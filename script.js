@@ -133,11 +133,9 @@ function generateDateList(options = {}) {
   const keepOverrides = options.keepOverrides !== false;
   const start = document.getElementById("start-date").value;
   const end = document.getElementById("end-date").value;
-  const tbody = document.getElementById("date-list-body");
 
   if (!start || !end || compareDateString(start, end) > 0) {
     dateNodes = [];
-    tbody.innerHTML = '<tr><td colspan="5">開始日と終了日を確認してください。</td></tr>';
     refreshDateViews();
     return;
   }
@@ -171,6 +169,10 @@ function generateDateList(options = {}) {
 
 function renderDateList() {
   const tbody = document.getElementById("date-list-body");
+  if (!tbody) {
+    updateDateSummary();
+    return;
+  }
   if (dateNodes.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5">日付がありません。</td></tr>';
     updateDateSummary();

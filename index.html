@@ -91,7 +91,7 @@
       <section class="panel" aria-labelledby="date-title">
         <div class="section-head">
           <h2 id="date-title">日付設定</h2>
-          <button class="ghost-button" type="button" id="generate-dates">日付リスト更新</button>
+          <button class="ghost-button" type="button" id="generate-dates">条件を再反映</button>
         </div>
 
         <div class="date-settings">
@@ -121,7 +121,7 @@
       <section class="panel" aria-labelledby="exclusion-title">
         <div class="section-head">
           <h2 id="exclusion-title">除外期間設定</h2>
-          <button class="ghost-button" type="button" id="refresh-from-exclusion">日付リスト更新</button>
+          <button class="ghost-button" type="button" id="refresh-from-exclusion">条件を再反映</button>
         </div>
 
         <div class="exclusion-form">
@@ -134,35 +134,11 @@
         <div class="exclusion-list" id="exclusion-list"></div>
       </section>
 
-      <section class="panel" aria-labelledby="list-title">
-        <div class="section-head">
-          <div>
-            <h2 id="list-title">日付リスト</h2>
-            <p class="note" id="date-summary">有効日 0 日</p>
-          </div>
-        </div>
-
-        <div class="table-wrap date-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>有効</th>
-                <th>日付</th>
-                <th>曜日</th>
-                <th>祝日名</th>
-                <th>除外理由</th>
-              </tr>
-            </thead>
-            <tbody id="date-list-body"></tbody>
-          </table>
-        </div>
-        <p class="scroll-hint">表は横にスワイプできます。</p>
-      </section>
-
       <section class="panel" aria-labelledby="calendar-title">
         <div class="section-head">
           <div>
             <h2 id="calendar-title">カレンダー表示</h2>
+            <p class="note" id="date-summary">有効日 0 日</p>
             <p class="note">日付をタップすると有効/無効を切り替えます。</p>
           </div>
         </div>

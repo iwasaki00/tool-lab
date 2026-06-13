@@ -359,10 +359,6 @@ input[type="checkbox"] {
   border: 1px solid var(--line);
   border-radius: 8px;
 }
-.date-table-wrap {
-  max-height: 420px;
-  overflow-y: auto;
-}
 table {
   width: 100%;
   min-width: 640px;
@@ -550,12 +546,6 @@ tr.is-disabled td {
   font-weight: 700;
 }
 
-.scroll-hint {
-  margin: 8px 2px 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-
 @media (hover: none) {
   .tool-card:hover {
     border-color: rgba(255, 255, 255, 0.72);
@@ -659,68 +649,6 @@ tr.is-disabled td {
 
   .exclusion-item {
     grid-template-columns: 1fr;
-  }
-
-  .date-table-wrap {
-    max-height: none;
-    overflow: visible;
-    border: 0;
-  }
-
-  .date-table-wrap table {
-    min-width: 0;
-    border-collapse: separate;
-    border-spacing: 0 8px;
-    background: transparent;
-  }
-
-  .date-table-wrap thead {
-    display: none;
-  }
-
-  .date-table-wrap tbody {
-    display: grid;
-    gap: 8px;
-  }
-
-  .date-table-wrap tr {
-    display: grid;
-    gap: 6px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 10px;
-    background: #fff;
-  }
-
-  .date-table-wrap tr.is-disabled {
-    background: #f7f8f8;
-  }
-
-  .date-table-wrap td {
-    display: grid;
-    grid-template-columns: 76px minmax(0, 1fr);
-    align-items: center;
-    min-width: 0;
-    border: 0;
-    padding: 0;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .date-table-wrap td::before {
-    content: attr(data-label);
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 800;
-  }
-
-  .date-table-wrap td:first-child {
-    grid-template-columns: 76px auto;
-    justify-content: start;
-  }
-
-  .scroll-hint {
-    display: none;
   }
 
   .result-panel .table-wrap {
