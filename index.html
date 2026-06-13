@@ -8,10 +8,8 @@
   </head>
   <body>
     <header class="app-header">
-      <div>
-        <p class="eyebrow">Ticket Cost Simulator</p>
-        <h1>乗車券購入シミュレーション</h1>
-      </div>
+      <p class="eyebrow">Ticket Cost Simulator</p>
+      <h1>乗車券購入シミュレーション</h1>
     </header>
 
     <main class="app-main">
@@ -22,41 +20,14 @@
         </div>
 
         <div class="cost-grid">
-          <label class="check-card">
-            <input type="checkbox" id="use-rtt" checked>
-            <span>往復乗車券を使う</span>
-          </label>
-          <label class="field">
-            <span>片道乗車券費用</span>
-            <input id="fare-one-way" type="number" min="0" step="10" inputmode="numeric" value="250">
-          </label>
-
-          <label class="check-card">
-            <input type="checkbox" id="use-cmt1m" checked>
-            <span>1ヶ月定期券を使う</span>
-          </label>
-          <label class="field">
-            <span>1ヶ月定期券費用</span>
-            <input id="fare-cmt1m" type="number" min="0" step="100" inputmode="numeric" value="9000">
-          </label>
-
-          <label class="check-card">
-            <input type="checkbox" id="use-cmt3m" checked>
-            <span>3ヶ月定期券を使う</span>
-          </label>
-          <label class="field">
-            <span>3ヶ月定期券費用</span>
-            <input id="fare-cmt3m" type="number" min="0" step="100" inputmode="numeric" value="25650">
-          </label>
-
-          <label class="check-card">
-            <input type="checkbox" id="use-cmt6m" checked>
-            <span>6ヶ月定期券を使う</span>
-          </label>
-          <label class="field">
-            <span>6ヶ月定期券費用</span>
-            <input id="fare-cmt6m" type="number" min="0" step="100" inputmode="numeric" value="48600">
-          </label>
+          <label class="check-card"><input type="checkbox" id="use-rtt" checked><span>往復乗車券を使う</span></label>
+          <label class="field"><span>片道乗車券費用</span><input id="fare-one-way" type="number" min="0" step="10" inputmode="numeric" value="250"></label>
+          <label class="check-card"><input type="checkbox" id="use-cmt1m" checked><span>1ヶ月定期券を使う</span></label>
+          <label class="field"><span>1ヶ月定期券費用</span><input id="fare-cmt1m" type="number" min="0" step="100" inputmode="numeric" value="9000"></label>
+          <label class="check-card"><input type="checkbox" id="use-cmt3m" checked><span>3ヶ月定期券を使う</span></label>
+          <label class="field"><span>3ヶ月定期券費用</span><input id="fare-cmt3m" type="number" min="0" step="100" inputmode="numeric" value="25650"></label>
+          <label class="check-card"><input type="checkbox" id="use-cmt6m" checked><span>6ヶ月定期券を使う</span></label>
+          <label class="field"><span>6ヶ月定期券費用</span><input id="fare-cmt6m" type="number" min="0" step="100" inputmode="numeric" value="48600"></label>
         </div>
       </section>
 
@@ -67,33 +38,43 @@
         </div>
 
         <div class="date-settings">
-          <label class="field">
-            <span>開始日</span>
-            <input id="start-date" type="date">
-          </label>
-          <label class="field">
-            <span>終了日</span>
-            <input id="end-date" type="date">
-          </label>
+          <label class="field"><span>開始日</span><input id="start-date" type="date"></label>
+          <label class="field"><span>終了日</span><input id="end-date" type="date"></label>
         </div>
 
         <fieldset class="weekday-box">
           <legend>有効曜日</legend>
           <div class="weekday-grid">
-            <label><input type="checkbox" name="weekday" value="1" checked> 月</label>
-            <label><input type="checkbox" name="weekday" value="2" checked> 火</label>
-            <label><input type="checkbox" name="weekday" value="3" checked> 水</label>
-            <label><input type="checkbox" name="weekday" value="4" checked> 木</label>
-            <label><input type="checkbox" name="weekday" value="5" checked> 金</label>
-            <label><input type="checkbox" name="weekday" value="6"> 土</label>
-            <label><input type="checkbox" name="weekday" value="0"> 日</label>
+            <label><input type="checkbox" name="weekday" value="1" checked>月</label>
+            <label><input type="checkbox" name="weekday" value="2" checked>火</label>
+            <label><input type="checkbox" name="weekday" value="3" checked>水</label>
+            <label><input type="checkbox" name="weekday" value="4" checked>木</label>
+            <label><input type="checkbox" name="weekday" value="5" checked>金</label>
+            <label><input type="checkbox" name="weekday" value="6">土</label>
+            <label><input type="checkbox" name="weekday" value="0">日</label>
           </div>
         </fieldset>
 
         <div class="option-row">
-          <label class="check-card compact"><input type="checkbox" id="exclude-weekend"> 土日を除く</label>
-          <label class="check-card compact"><input type="checkbox" id="exclude-holiday" checked> 祝日を除く</label>
+          <label class="check-card compact"><input type="checkbox" id="exclude-weekend">土日を除く</label>
+          <label class="check-card compact"><input type="checkbox" id="exclude-holiday" checked>祝日を除く</label>
         </div>
+      </section>
+
+      <section class="panel" aria-labelledby="exclusion-title">
+        <div class="section-head">
+          <h2 id="exclusion-title">除外期間設定</h2>
+          <button class="ghost-button" type="button" id="refresh-from-exclusion">日付リスト更新</button>
+        </div>
+
+        <div class="exclusion-form">
+          <label class="field"><span>開始日</span><input id="exclusion-start" type="date"></label>
+          <label class="field"><span>終了日</span><input id="exclusion-end" type="date"></label>
+          <label class="field reason-field"><span>除外理由</span><input id="exclusion-reason" type="text" placeholder="例：夏季休暇、年末年始、出張"></label>
+          <button class="secondary-button" type="button" id="add-exclusion">除外期間を追加</button>
+        </div>
+        <p class="form-error" id="exclusion-error" role="alert"></p>
+        <div class="exclusion-list" id="exclusion-list"></div>
       </section>
 
       <section class="panel" aria-labelledby="list-title">
@@ -112,11 +93,22 @@
                 <th>日付</th>
                 <th>曜日</th>
                 <th>祝日名</th>
+                <th>除外理由</th>
               </tr>
             </thead>
             <tbody id="date-list-body"></tbody>
           </table>
         </div>
+      </section>
+
+      <section class="panel" aria-labelledby="calendar-title">
+        <div class="section-head">
+          <div>
+            <h2 id="calendar-title">カレンダー表示</h2>
+            <p class="note">日付をタップすると有効/無効を切り替えます。</p>
+          </div>
+        </div>
+        <div class="calendar-grid" id="calendar-area"></div>
       </section>
 
       <div class="action-bar">
