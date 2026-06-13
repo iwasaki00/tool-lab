@@ -50,6 +50,7 @@ function renderRoute() {
   simulator.classList.toggle("is-active", isTicketSimulator);
   menu.setAttribute("aria-hidden", String(isTicketSimulator));
   simulator.setAttribute("aria-hidden", String(!isTicketSimulator));
+  window.scrollTo({ top: 0, behavior: "auto" });
 }
 
 function bindEvents() {
