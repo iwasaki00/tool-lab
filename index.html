@@ -3,101 +3,135 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tool Lab</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>乗車券購入シミュレーションツール</title>
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <div class="app-shell">
-      <header class="topbar">
-        <a class="brand" href="#dashboard" aria-label="Tool Lab ホーム">
-          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
-          <span>Tool Lab</span>
-        </a>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Ticket Cost Simulator</p>
+        <h1>乗車券購入シミュレーション</h1>
+      </div>
+    </header>
 
-        <nav class="tool-menu" aria-label="ツール選択">
-          <button class="menu-item is-active" type="button" data-tool="dashboard"><span class="menu-icon grid-icon" aria-hidden="true"></span><span>メニュー</span></button>
-          <button class="menu-item" type="button" data-tool="memo"><span class="menu-icon memo-icon" aria-hidden="true"></span><span>メモ</span></button>
-          <button class="menu-item" type="button" data-tool="timer"><span class="menu-icon timer-icon" aria-hidden="true"></span><span>タイマー</span></button>
-          <button class="menu-item" type="button" data-tool="calc"><span class="menu-icon calc-icon" aria-hidden="true"></span><span>計算</span></button>
-        </nav>
-      </header>
+    <main class="app-main">
+      <section class="panel" aria-labelledby="cost-title">
+        <div class="section-head">
+          <h2 id="cost-title">費用設定</h2>
+          <button class="ghost-button" type="button" id="reset-settings">初期化</button>
+        </div>
 
-      <main class="workspace">
-        <section class="tool-view is-active" id="dashboard" aria-labelledby="dashboard-title">
-          <div class="workspace-head">
-            <div>
-              <p class="eyebrow">Tool launcher</p>
-              <h1 id="dashboard-title">ツールを選択</h1>
-            </div>
-            <button class="primary-action" type="button" id="add-tool-button"><span class="plus-icon" aria-hidden="true"></span><span>ツール追加</span></button>
-          </div>
-
-          <div class="tool-grid" aria-label="利用可能なツール">
-            <button class="tool-tile" type="button" data-tool="memo">
-              <span class="tile-icon memo-icon" aria-hidden="true"></span>
-              <span class="tile-title">メモ</span>
-              <span class="tile-text">短い記録や作業ログを残します。</span>
-            </button>
-            <button class="tool-tile" type="button" data-tool="timer">
-              <span class="tile-icon timer-icon" aria-hidden="true"></span>
-              <span class="tile-title">タイマー</span>
-              <span class="tile-text">集中時間や作業時間を測ります。</span>
-            </button>
-            <button class="tool-tile" type="button" data-tool="calc">
-              <span class="tile-icon calc-icon" aria-hidden="true"></span>
-              <span class="tile-title">計算</span>
-              <span class="tile-text">ちょっとした数値計算を行います。</span>
-            </button>
-          </div>
-        </section>
-
-        <section class="tool-view" id="memo" aria-labelledby="memo-title">
-          <div class="workspace-head">
-            <div>
-              <p class="eyebrow">Text tool</p>
-              <h1 id="memo-title">メモ</h1>
-            </div>
-          </div>
-          <label class="field">
-            <span>内容</span>
-            <textarea id="memo-input" rows="12" placeholder="ここにメモを書きます"></textarea>
+        <div class="cost-grid">
+          <label class="check-card">
+            <input type="checkbox" id="use-rtt" checked>
+            <span>往復乗車券を使う</span>
           </label>
-        </section>
+          <label class="field">
+            <span>片道乗車券費用</span>
+            <input id="fare-one-way" type="number" min="0" step="10" inputmode="numeric" value="250">
+          </label>
 
-        <section class="tool-view" id="timer" aria-labelledby="timer-title">
-          <div class="workspace-head">
-            <div>
-              <p class="eyebrow">Time tool</p>
-              <h1 id="timer-title">タイマー</h1>
-            </div>
-          </div>
-          <div class="timer-panel">
-            <output id="timer-output" aria-live="polite">00:00</output>
-            <div class="button-row">
-              <button class="secondary-action" type="button" id="timer-start">開始</button>
-              <button class="secondary-action" type="button" id="timer-reset">リセット</button>
-            </div>
-          </div>
-        </section>
+          <label class="check-card">
+            <input type="checkbox" id="use-cmt1m" checked>
+            <span>1ヶ月定期券を使う</span>
+          </label>
+          <label class="field">
+            <span>1ヶ月定期券費用</span>
+            <input id="fare-cmt1m" type="number" min="0" step="100" inputmode="numeric" value="9000">
+          </label>
 
-        <section class="tool-view" id="calc" aria-labelledby="calc-title">
-          <div class="workspace-head">
-            <div>
-              <p class="eyebrow">Number tool</p>
-              <h1 id="calc-title">計算</h1>
-            </div>
-          </div>
-          <div class="calc-panel">
-            <label class="field">
-              <span>式</span>
-              <input id="calc-input" inputmode="decimal" autocomplete="off" placeholder="例: 1200 * 1.1">
-            </label>
-            <output id="calc-output">結果がここに表示されます</output>
-          </div>
-        </section>
-      </main>
-    </div>
+          <label class="check-card">
+            <input type="checkbox" id="use-cmt3m" checked>
+            <span>3ヶ月定期券を使う</span>
+          </label>
+          <label class="field">
+            <span>3ヶ月定期券費用</span>
+            <input id="fare-cmt3m" type="number" min="0" step="100" inputmode="numeric" value="25650">
+          </label>
 
-    <script src="app.js"></script>
+          <label class="check-card">
+            <input type="checkbox" id="use-cmt6m" checked>
+            <span>6ヶ月定期券を使う</span>
+          </label>
+          <label class="field">
+            <span>6ヶ月定期券費用</span>
+            <input id="fare-cmt6m" type="number" min="0" step="100" inputmode="numeric" value="48600">
+          </label>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="date-title">
+        <div class="section-head">
+          <h2 id="date-title">日付設定</h2>
+          <button class="ghost-button" type="button" id="generate-dates">日付リスト更新</button>
+        </div>
+
+        <div class="date-settings">
+          <label class="field">
+            <span>開始日</span>
+            <input id="start-date" type="date">
+          </label>
+          <label class="field">
+            <span>終了日</span>
+            <input id="end-date" type="date">
+          </label>
+        </div>
+
+        <fieldset class="weekday-box">
+          <legend>有効曜日</legend>
+          <div class="weekday-grid">
+            <label><input type="checkbox" name="weekday" value="1" checked> 月</label>
+            <label><input type="checkbox" name="weekday" value="2" checked> 火</label>
+            <label><input type="checkbox" name="weekday" value="3" checked> 水</label>
+            <label><input type="checkbox" name="weekday" value="4" checked> 木</label>
+            <label><input type="checkbox" name="weekday" value="5" checked> 金</label>
+            <label><input type="checkbox" name="weekday" value="6"> 土</label>
+            <label><input type="checkbox" name="weekday" value="0"> 日</label>
+          </div>
+        </fieldset>
+
+        <div class="option-row">
+          <label class="check-card compact"><input type="checkbox" id="exclude-weekend"> 土日を除く</label>
+          <label class="check-card compact"><input type="checkbox" id="exclude-holiday" checked> 祝日を除く</label>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="list-title">
+        <div class="section-head">
+          <div>
+            <h2 id="list-title">日付リスト</h2>
+            <p class="note" id="date-summary">有効日 0 日</p>
+          </div>
+        </div>
+
+        <div class="table-wrap date-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>有効</th>
+                <th>日付</th>
+                <th>曜日</th>
+                <th>祝日名</th>
+              </tr>
+            </thead>
+            <tbody id="date-list-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="action-bar">
+        <button class="primary-button" type="button" id="simulate-button">シミュレート実行</button>
+      </div>
+
+      <section class="panel result-panel" aria-labelledby="result-title">
+        <div class="section-head">
+          <h2 id="result-title">結果表示</h2>
+          <button class="ghost-button" type="button" id="download-csv" disabled>CSVダウンロード</button>
+        </div>
+        <div id="result-area" class="empty-result">条件を設定して「シミュレート実行」を押してください。</div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
   </body>
 </html>
