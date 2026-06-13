@@ -8,24 +8,53 @@
   </head>
   <body>
     <section class="top-menu-screen" id="top-menu-screen">
-      <header class="app-header menu-header">
-        <p class="eyebrow">Tool Lab</p>
-        <h1>ツールメニュー</h1>
-      </header>
-
-      <main class="app-main">
-        <section class="menu-intro">
-          <h2>使うツールを選択</h2>
-          <p class="note">作成したツールをここから起動します。</p>
+      <main class="menu-page">
+        <section class="menu-hero">
+          <p class="eyebrow">TOOL LAB</p>
+          <h1>iPhone向け実験ツール集</h1>
+          <p>
+            GitHub Pagesで公開しやすい、HTML / CSS / JavaScript製ツールの入口です。
+            乗車券購入シミュレーションをはじめ、日常作業を補助する小さなWebアプリを追加していきます。
+          </p>
         </section>
 
-        <nav class="tool-card-grid" aria-label="ツール一覧">
+        <section class="tool-card-grid" aria-label="ツール一覧">
           <a class="tool-card" href="#ticket-simulator">
-            <span class="tool-card-icon" aria-hidden="true">¥</span>
+            <span class="tool-card-tag">HTML + CSS + JavaScript</span>
             <span class="tool-card-title">乗車券購入シミュレーション</span>
-            <span class="tool-card-text">通勤・通学などの日付リストから、乗車券と定期券の最安購入パターンを計算します。</span>
+            <span class="tool-card-text">
+              通勤・通学などの日付リストを作成し、乗車券と定期券の最安購入パターンを計算します。
+            </span>
+            <span class="tool-card-button">乗車券購入シミュレーションを開く</span>
           </a>
-        </nav>
+
+          <article class="tool-card is-coming-soon">
+            <span class="tool-card-tag">Planning</span>
+            <span class="tool-card-title">CSV整形ツール</span>
+            <span class="tool-card-text">
+              表データやログを貼り付けて、CSVの列揃え・不要文字削除・簡易変換を行う予定です。
+            </span>
+            <span class="tool-card-button muted">準備中</span>
+          </article>
+
+          <article class="tool-card is-coming-soon">
+            <span class="tool-card-tag">Planning</span>
+            <span class="tool-card-title">日付計算ツール</span>
+            <span class="tool-card-text">
+              営業日、経過日数、月末調整など、業務で使う日付計算をまとめる予定です。
+            </span>
+            <span class="tool-card-button muted">準備中</span>
+          </article>
+
+          <article class="tool-card is-coming-soon">
+            <span class="tool-card-tag">Planning</span>
+            <span class="tool-card-title">テキスト変換ツール</span>
+            <span class="tool-card-text">
+              改行、空白、全角半角、接頭辞・接尾辞の付与などをまとめて処理する予定です。
+            </span>
+            <span class="tool-card-button muted">準備中</span>
+          </article>
+        </section>
       </main>
     </section>
 
