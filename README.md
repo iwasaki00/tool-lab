@@ -4,7 +4,8 @@
 
 ## Usage
 
-`index.html` をブラウザで開くと、乗車券購入シミュレーションツールを使用できます。
+`index.html` をブラウザで開くと、Tool Lab のトップメニューを表示します。
+トップメニューから乗車券購入シミュレーションツールを選択できます。
 HTML / CSS / JavaScript のみで動作するため、GitHub Pages にそのまま配置できます。
 
 ## GitHub Pages

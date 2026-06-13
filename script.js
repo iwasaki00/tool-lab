@@ -29,11 +29,27 @@ let lastResult = null;
 document.addEventListener("DOMContentLoaded", init);
 
 function init() {
+  bindNavigation();
   setDefaultDates();
   loadSettings();
   bindEvents();
   generateDateList();
   renderExclusionPeriods();
+  renderRoute();
+}
+
+function bindNavigation() {
+  window.addEventListener("hashchange", renderRoute);
+}
+
+function renderRoute() {
+  const isTicketSimulator = location.hash === "#ticket-simulator";
+  const menu = document.getElementById("top-menu-screen");
+  const simulator = document.getElementById("ticket-simulator-screen");
+  menu.classList.toggle("is-active", !isTicketSimulator);
+  simulator.classList.toggle("is-active", isTicketSimulator);
+  menu.setAttribute("aria-hidden", String(isTicketSimulator));
+  simulator.setAttribute("aria-hidden", String(!isTicketSimulator));
 }
 
 function bindEvents() {

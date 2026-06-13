@@ -28,6 +28,95 @@ body {
 }
 button, input { font: inherit; }
 button { cursor: pointer; }
+a { color: inherit; }
+
+.top-menu-screen,
+.tool-screen {
+  display: none;
+}
+
+.top-menu-screen.is-active,
+.tool-screen.is-active {
+  display: block;
+}
+
+.menu-header {
+  position: static;
+}
+
+.menu-intro {
+  padding: 4px 0;
+}
+
+.menu-intro h2 {
+  font-size: clamp(24px, 6vw, 38px);
+}
+
+.tool-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.tool-card {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 6px 14px;
+  min-height: 132px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.tool-card:hover {
+  border-color: rgba(11, 118, 109, 0.45);
+}
+
+.tool-card-icon {
+  display: inline-flex;
+  grid-row: span 2;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--accent-dark);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.tool-card-title {
+  align-self: end;
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.tool-card-text {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  margin-bottom: 8px;
+  color: var(--accent-dark);
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.back-link::before {
+  content: "<";
+  margin-right: 6px;
+}
 
 .app-header {
   position: sticky;

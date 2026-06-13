@@ -7,12 +7,36 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <header class="app-header">
-      <p class="eyebrow">Ticket Cost Simulator</p>
-      <h1>乗車券購入シミュレーション</h1>
-    </header>
+    <section class="top-menu-screen" id="top-menu-screen">
+      <header class="app-header menu-header">
+        <p class="eyebrow">Tool Lab</p>
+        <h1>ツールメニュー</h1>
+      </header>
 
-    <main class="app-main">
+      <main class="app-main">
+        <section class="menu-intro">
+          <h2>使うツールを選択</h2>
+          <p class="note">作成したツールをここから起動します。</p>
+        </section>
+
+        <nav class="tool-card-grid" aria-label="ツール一覧">
+          <a class="tool-card" href="#ticket-simulator">
+            <span class="tool-card-icon" aria-hidden="true">¥</span>
+            <span class="tool-card-title">乗車券購入シミュレーション</span>
+            <span class="tool-card-text">通勤・通学などの日付リストから、乗車券と定期券の最安購入パターンを計算します。</span>
+          </a>
+        </nav>
+      </main>
+    </section>
+
+    <section class="tool-screen" id="ticket-simulator-screen" aria-hidden="true">
+      <header class="app-header">
+        <a class="back-link" href="#menu">ツールメニューへ戻る</a>
+        <p class="eyebrow">Ticket Cost Simulator</p>
+        <h1>乗車券購入シミュレーション</h1>
+      </header>
+
+      <main class="app-main">
       <section class="panel" aria-labelledby="cost-title">
         <div class="section-head">
           <h2 id="cost-title">費用設定</h2>
@@ -122,7 +146,8 @@
         </div>
         <div id="result-area" class="empty-result">条件を設定して「シミュレート実行」を押してください。</div>
       </section>
-    </main>
+      </main>
+    </section>
 
     <script src="script.js"></script>
   </body>
