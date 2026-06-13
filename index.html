@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tool Lab</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#dashboard" aria-label="Tool Lab ホーム">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+          <span>Tool Lab</span>
+        </a>
+
+        <nav class="tool-menu" aria-label="ツール選択">
+          <button class="menu-item is-active" type="button" data-tool="dashboard"><span class="menu-icon grid-icon" aria-hidden="true"></span><span>メニュー</span></button>
+          <button class="menu-item" type="button" data-tool="memo"><span class="menu-icon memo-icon" aria-hidden="true"></span><span>メモ</span></button>
+          <button class="menu-item" type="button" data-tool="timer"><span class="menu-icon timer-icon" aria-hidden="true"></span><span>タイマー</span></button>
+          <button class="menu-item" type="button" data-tool="calc"><span class="menu-icon calc-icon" aria-hidden="true"></span><span>計算</span></button>
+        </nav>
+      </header>
+
+      <main class="workspace">
+        <section class="tool-view is-active" id="dashboard" aria-labelledby="dashboard-title">
+          <div class="workspace-head">
+            <div>
+              <p class="eyebrow">Tool launcher</p>
+              <h1 id="dashboard-title">ツールを選択</h1>
+            </div>
+            <button class="primary-action" type="button" id="add-tool-button"><span class="plus-icon" aria-hidden="true"></span><span>ツール追加</span></button>
+          </div>
+
+          <div class="tool-grid" aria-label="利用可能なツール">
+            <button class="tool-tile" type="button" data-tool="memo">
+              <span class="tile-icon memo-icon" aria-hidden="true"></span>
+              <span class="tile-title">メモ</span>
+              <span class="tile-text">短い記録や作業ログを残します。</span>
+            </button>
+            <button class="tool-tile" type="button" data-tool="timer">
+              <span class="tile-icon timer-icon" aria-hidden="true"></span>
+              <span class="tile-title">タイマー</span>
+              <span class="tile-text">集中時間や作業時間を測ります。</span>
+            </button>
+            <button class="tool-tile" type="button" data-tool="calc">
+              <span class="tile-icon calc-icon" aria-hidden="true"></span>
+              <span class="tile-title">計算</span>
+              <span class="tile-text">ちょっとした数値計算を行います。</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="tool-view" id="memo" aria-labelledby="memo-title">
+          <div class="workspace-head">
+            <div>
+              <p class="eyebrow">Text tool</p>
+              <h1 id="memo-title">メモ</h1>
+            </div>
+          </div>
+          <label class="field">
+            <span>内容</span>
+            <textarea id="memo-input" rows="12" placeholder="ここにメモを書きます"></textarea>
+          </label>
+        </section>
+
+        <section class="tool-view" id="timer" aria-labelledby="timer-title">
+          <div class="workspace-head">
+            <div>
+              <p class="eyebrow">Time tool</p>
+              <h1 id="timer-title">タイマー</h1>
+            </div>
+          </div>
+          <div class="timer-panel">
+            <output id="timer-output" aria-live="polite">00:00</output>
+            <div class="button-row">
+              <button class="secondary-action" type="button" id="timer-start">開始</button>
+              <button class="secondary-action" type="button" id="timer-reset">リセット</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="tool-view" id="calc" aria-labelledby="calc-title">
+          <div class="workspace-head">
+            <div>
+              <p class="eyebrow">Number tool</p>
+              <h1 id="calc-title">計算</h1>
+            </div>
+          </div>
+          <div class="calc-panel">
+            <label class="field">
+              <span>式</span>
+              <input id="calc-input" inputmode="decimal" autocomplete="off" placeholder="例: 1200 * 1.1">
+            </label>
+            <output id="calc-output">結果がここに表示されます</output>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
