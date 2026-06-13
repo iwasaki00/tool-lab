@@ -179,11 +179,11 @@ function renderDateList() {
 
   tbody.innerHTML = dateNodes.map((node) => `
     <tr class="${node.enabled ? "" : "is-disabled"}">
-      <td><input class="date-enabled" type="checkbox" data-date="${node.date}" ${node.enabled ? "checked" : ""} aria-label="${node.date}を有効にする"></td>
-      <td>${node.date}</td>
-      <td>${WEEKDAY_LABELS[node.weekday]}</td>
-      <td>${node.holidayName || ""}</td>
-      <td>${node.exclusionReason || ""}</td>
+      <td data-label="有効"><input class="date-enabled" type="checkbox" data-date="${node.date}" ${node.enabled ? "checked" : ""} aria-label="${node.date}を有効にする"></td>
+      <td data-label="日付">${node.date}</td>
+      <td data-label="曜日">${WEEKDAY_LABELS[node.weekday]}</td>
+      <td data-label="祝日名">${node.holidayName || ""}</td>
+      <td data-label="除外理由">${node.exclusionReason || ""}</td>
     </tr>
   `).join("");
 
@@ -436,7 +436,7 @@ function renderResult(result) {
         <tbody>
           ${result.flow.map((row) => {
             const weekday = parseDate(row.date).getDay();
-            return `<tr><td>${row.date}</td><td>${WEEKDAY_LABELS[weekday]}</td><td>${row.patternId}：${row.patternLabel}</td></tr>`;
+            return `<tr><td data-label="日付">${row.date}</td><td data-label="曜日">${WEEKDAY_LABELS[weekday]}</td><td data-label="購入タイプ">${row.patternId}：${row.patternLabel}</td></tr>`;
           }).join("")}
         </tbody>
       </table>
