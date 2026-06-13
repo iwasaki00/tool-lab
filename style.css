@@ -24,6 +24,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: "Segoe UI", "Noto Sans JP", system-ui, sans-serif;
+  -webkit-tap-highlight-color: rgba(11, 118, 109, 0.16);
 }
 button, input { font: inherit; }
 button { cursor: pointer; }
@@ -55,7 +56,7 @@ button { cursor: pointer; }
   gap: 16px;
   width: min(1120px, calc(100% - 24px));
   margin: 0 auto;
-  padding: 18px 0 52px;
+  padding: 18px 0 calc(52px + env(safe-area-inset-bottom));
 }
 .panel {
   padding: 18px;
@@ -108,6 +109,7 @@ h3 { margin-top: 18px; font-size: 17px; }
   padding: 0 12px;
   background: #fff;
   color: var(--ink);
+  font-size: 16px;
   outline: none;
 }
 .field input:focus {
@@ -130,6 +132,7 @@ h3 { margin-top: 18px; font-size: 17px; }
 input[type="checkbox"] {
   width: 20px;
   height: 20px;
+  flex: 0 0 auto;
   accent-color: var(--accent);
 }
 .weekday-box {
@@ -192,6 +195,7 @@ input[type="checkbox"] {
 }
 
 .table-wrap {
+  -webkit-overflow-scrolling: touch;
   overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -262,7 +266,9 @@ tr.is-disabled td {
   padding: 6px;
   background: var(--disabled);
   color: var(--muted);
+  font-size: 14px;
   text-align: left;
+  touch-action: manipulation;
 }
 .calendar-day:nth-child(7n) { border-right: 0; }
 .calendar-day.blank {
@@ -300,7 +306,7 @@ tr.is-disabled td {
   position: sticky;
   bottom: 0;
   z-index: 8;
-  padding: 10px 0;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
   background: linear-gradient(180deg, rgba(244, 246, 247, 0), var(--bg) 28%);
 }
 .primary-button, .ghost-button, .secondary-button, .danger-button {
@@ -311,6 +317,7 @@ tr.is-disabled td {
   border-radius: 8px;
   padding: 0 16px;
   font-weight: 800;
+  touch-action: manipulation;
 }
 .primary-button {
   width: 100%;
@@ -392,4 +399,6 @@ tr.is-disabled td {
   .weekday-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .ghost-button, .secondary-button { width: 100%; }
   .calendar-grid { grid-template-columns: 1fr; }
+  .calendar-day { min-height: 66px; }
+  th, td { padding: 9px 8px; }
 }
