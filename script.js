@@ -26,6 +26,7 @@ const HOLIDAYS = {
 let dateNodes = [];
 let exclusionPeriods = [];
 let lastResult = null;
+let flowViewMode = "calendar";
 
 document.addEventListener("DOMContentLoaded", init);
 
@@ -341,6 +342,7 @@ function simulate() {
   if (activeDates.length === 0) {
     lastResult = null;
     renderResult({ error: "有効な日付がありません。" });
+    scrollToResult();
     return;
   }
 
@@ -348,6 +350,7 @@ function simulate() {
   if (patterns.length === 0) {
     lastResult = null;
     renderResult({ error: "使用する購入方法を1つ以上選択してください。" });
+    scrollToResult();
     return;
   }
 
@@ -374,6 +377,7 @@ function simulate() {
   if (!best) {
     lastResult = null;
     renderResult({ error: "最終有効日へ到達する購入ルートがありません。" });
+    scrollToResult();
     return;
   }
 
@@ -389,6 +393,7 @@ function simulate() {
     }
   };
   renderResult(lastResult);
+  scrollToResult();
 }
 
 function getNextNodeIndex(activeDates, currentIndex, pattern) {
@@ -460,9 +465,34 @@ function renderResult(result) {
       ${renderSummaryCard("6ヶ月定期券のみ", result.patternOnlyCosts.CMT6M)}
       ${renderSummaryCard("有効日数", `${result.activeDates.length}日`)}
     </div>
-    <h3>購入フロー</h3>
-    ${renderFlowCalendar(result)}
+    <div class="flow-head">
+      <h3>購入フロー</h3>
+      <div class="flow-view-toggle" aria-label="購入フロー表示切り替え">
+        <button type="button" data-flow-view="calendar" class="${flowViewMode === "calendar" ? "is-active" : ""}">カレンダー</button>
+        <button type="button" data-flow-view="gantt" class="${flowViewMode === "gantt" ? "is-active" : ""}">線表</button>
+      </div>
+    </div>
+    <div id="flow-view-area">
+      ${renderFlowView(result)}
+    </div>
   `;
+  bindFlowViewToggle(result);
+}
+
+function bindFlowViewToggle(result) {
+  document.querySelectorAll("[data-flow-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      flowViewMode = button.dataset.flowView;
+      document.querySelectorAll("[data-flow-view]").forEach((item) => {
+        item.classList.toggle("is-active", item.dataset.flowView === flowViewMode);
+      });
+      document.getElementById("flow-view-area").innerHTML = renderFlowView(result);
+    });
+  });
+}
+
+function renderFlowView(result) {
+  return flowViewMode === "gantt" ? renderFlowGantt(result) : renderFlowCalendar(result);
 }
 
 function renderFlowCalendar(result) {
@@ -526,6 +556,64 @@ function buildFlowDayMap(flow) {
     }
   });
   return flowByDate;
+}
+
+function renderFlowGantt(result) {
+  const start = result.activeDates[0];
+  const end = result.activeDates[result.activeDates.length - 1];
+  const totalDays = Math.max(1, getDateDiffDays(start, end) + 1);
+  const months = getMonthsInRange(start, end);
+
+  return `
+    <div class="gantt-wrap">
+      <div class="gantt-scale" aria-hidden="true">
+        ${months.map((monthKey) => {
+          const monthStart = `${monthKey}-01`;
+          const [year, month] = monthKey.split("-").map(Number);
+          const monthEnd = formatDate(new Date(year, month, 0));
+          const visibleStart = compareDateString(monthStart, start) < 0 ? start : monthStart;
+          const visibleEnd = compareDateString(monthEnd, end) > 0 ? end : monthEnd;
+          const left = getPercent(getDateDiffDays(start, visibleStart), totalDays);
+          const width = getPercent(getDateDiffDays(visibleStart, visibleEnd) + 1, totalDays);
+          return `<span style="left:${left}%;width:${width}%">${year}/${month}</span>`;
+        }).join("")}
+      </div>
+      <div class="gantt-list">
+        ${result.flow.map((step, index) => renderGanttRow(step, index, start, totalDays)).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderGanttRow(step, index, timelineStart, totalDays) {
+  const offset = getDateDiffDays(timelineStart, step.startDate);
+  const spanDays = getDateDiffDays(step.startDate, step.endDate) + 1;
+  const left = getPercent(offset, totalDays);
+  const width = Math.max(step.patternId === "RTT" ? 2.4 : 4, getPercent(spanDays, totalDays));
+  const isTicket = step.patternId === "RTT";
+  const range = step.startDate === step.endDate ? step.startDate : `${step.startDate} → ${step.endDate}`;
+
+  return `
+    <div class="gantt-row">
+      <div class="gantt-row-label">
+        <strong>${index + 1}. ${step.patternId}</strong>
+        <span>${range}</span>
+      </div>
+      <div class="gantt-track">
+        <div class="gantt-bar ${isTicket ? "ticket" : "pass"}" style="left:${left}%;width:${width}%">
+          <span>${isTicket ? "往復" : step.patternLabel}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function scrollToResult() {
+  const resultPanel = document.querySelector(".result-panel");
+  if (!resultPanel) return;
+  window.requestAnimationFrame(() => {
+    resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 function downloadCsv() {
@@ -681,6 +769,15 @@ function addDays(date, days) {
 
 function compareDateString(left, right) {
   return left.localeCompare(right);
+}
+
+function getDateDiffDays(start, end) {
+  const diff = parseDate(end).getTime() - parseDate(start).getTime();
+  return Math.round(diff / 86400000);
+}
+
+function getPercent(value, total) {
+  return (value / total) * 100;
 }
 
 function formatCurrency(value) {
