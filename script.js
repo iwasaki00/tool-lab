@@ -1,7 +1,7 @@
 "use strict";
 
 const STORAGE_KEY = "ticket-simulator-settings-v2";
-const SETTINGS_VERSION = 3;
+const SETTINGS_VERSION = 4;
 const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 const PATTERNS = [
   { id: "RTT", label: "往復乗車券", months: 0, days: 1, useId: "use-rtt", fareId: "fare-one-way" },
