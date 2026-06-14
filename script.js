@@ -1,6 +1,7 @@
 "use strict";
 
 const STORAGE_KEY = "ticket-simulator-settings-v2";
+const SETTINGS_VERSION = 2;
 const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 const PATTERNS = [
   { id: "RTT", label: "往復乗車券", months: 0, days: 1, useId: "use-rtt", fareId: "fare-one-way" },
@@ -62,6 +63,7 @@ function bindEvents() {
   document.getElementById("add-exclusion").addEventListener("click", addExclusionPeriod);
   document.getElementById("simulate-button").addEventListener("click", simulate);
   document.getElementById("download-csv").addEventListener("click", downloadCsv);
+  document.getElementById("download-pdf").addEventListener("click", downloadPdf);
   document.getElementById("reset-settings").addEventListener("click", resetSettings);
 }
 
@@ -80,8 +82,8 @@ function regenerateByCurrentConditions() {
 
 function setDefaultDates() {
   const today = new Date();
-  document.getElementById("start-date").value = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
-  document.getElementById("end-date").value = formatDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+  document.getElementById("start-date").value = formatDate(today);
+  document.getElementById("end-date").value = addMonthsSafe(formatDate(today), 6);
 }
 
 function loadSettings() {
@@ -98,6 +100,9 @@ function loadSettings() {
       checkbox.checked = settings.weekdays?.includes(Number(checkbox.value)) || false;
     });
     exclusionPeriods = Array.isArray(settings.exclusionPeriods) ? settings.exclusionPeriods : [];
+    if (settings.version !== SETTINGS_VERSION) {
+      setDefaultDates();
+    }
   } catch {
     localStorage.removeItem(STORAGE_KEY);
   }
@@ -122,6 +127,7 @@ function saveSettings(keepDateOverrides = true) {
   }
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    version: SETTINGS_VERSION,
     values,
     weekdays: getSelectedWeekdays(),
     exclusionPeriods,
@@ -291,8 +297,9 @@ function renderCalendar() {
       ].filter(Boolean).join(" ");
       const note = node.exclusionReason || node.holidayName || "";
       days.push(`
-        <button class="${classes}" type="button" data-date="${date}">
+        <button class="${classes}" type="button" data-date="${date}" aria-pressed="${node.enabled}">
           <span class="day-number">${day}</span>
+          <span class="day-status">${node.enabled ? "有効" : "無効"}</span>
           <span class="day-note">${note}</span>
         </button>
       `);
@@ -415,13 +422,16 @@ function getPatternOnlyCost(activeDates, patternId) {
 function renderResult(result) {
   const area = document.getElementById("result-area");
   const csvButton = document.getElementById("download-csv");
+  const pdfButton = document.getElementById("download-pdf");
   if (result.error) {
     area.innerHTML = `<div class="warning">${result.error}</div>`;
     csvButton.disabled = true;
+    pdfButton.disabled = true;
     return;
   }
 
   csvButton.disabled = false;
+  pdfButton.disabled = false;
   area.innerHTML = `
     <div class="summary-grid">
       ${renderSummaryCard("最安金額", result.bestCost, true)}
@@ -471,6 +481,64 @@ function downloadCsv() {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function downloadPdf() {
+  if (!lastResult) return;
+
+  const lines = lastResult.flow.map((row) => {
+    const weekday = WEEKDAY_LABELS[parseDate(row.date).getDay()];
+    return `<tr><td>${row.date}</td><td>${weekday}</td><td>${row.patternId}：${row.patternLabel}</td></tr>`;
+  }).join("");
+
+  const html = `
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>乗車券購入シミュレーション結果</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Noto Sans JP", sans-serif; color: #172124; margin: 24px; }
+      h1 { font-size: 24px; margin: 0 0 16px; }
+      h2 { font-size: 18px; margin: 24px 0 10px; }
+      .summary { display: grid; gap: 8px; margin-bottom: 12px; }
+      .item { border: 1px solid #dbe3e5; border-radius: 8px; padding: 10px; }
+      .label { color: #66767a; font-size: 12px; font-weight: 700; }
+      .value { display: block; margin-top: 4px; font-size: 18px; font-weight: 800; }
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+      th, td { border: 1px solid #dbe3e5; padding: 8px; text-align: left; }
+      th { background: #eef4f3; }
+      @media print { body { margin: 12mm; } }
+    </style>
+  </head>
+  <body>
+    <h1>乗車券購入シミュレーション結果</h1>
+    <div class="summary">
+      <div class="item"><span class="label">最安金額</span><span class="value">${formatCurrency(lastResult.bestCost)}</span></div>
+      <div class="item"><span class="label">乗車券のみ</span><span class="value">${formatCurrency(lastResult.patternOnlyCosts.RTT)}</span></div>
+      <div class="item"><span class="label">1ヶ月定期券のみ</span><span class="value">${formatCurrency(lastResult.patternOnlyCosts.CMT1M)}</span></div>
+      <div class="item"><span class="label">3ヶ月定期券のみ</span><span class="value">${formatCurrency(lastResult.patternOnlyCosts.CMT3M)}</span></div>
+      <div class="item"><span class="label">6ヶ月定期券のみ</span><span class="value">${formatCurrency(lastResult.patternOnlyCosts.CMT6M)}</span></div>
+      <div class="item"><span class="label">有効日数</span><span class="value">${lastResult.activeDates.length}日</span></div>
+    </div>
+    <h2>購入フロー</h2>
+    <table>
+      <thead><tr><th>日付</th><th>曜日</th><th>購入タイプ</th></tr></thead>
+      <tbody>${lines}</tbody>
+    </table>
+    <script>window.addEventListener("load", () => setTimeout(() => window.print(), 250));<\/script>
+  </body>
+</html>`;
+
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    alert("PDFを作成するにはポップアップを許可してください。");
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
 }
 
 function renderSummaryCard(label, value, best = false) {
