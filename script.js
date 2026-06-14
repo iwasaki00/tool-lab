@@ -531,7 +531,7 @@ function renderFlowMonth(monthKey, flowByDate) {
       step?.endDate === date ? "is-end" : "",
       weekday === 0 || weekday === 6 ? "is-weekend" : ""
     ].filter(Boolean).join(" ");
-    const label = step ? getFlowShortLabel(step.patternId) : "";
+    const label = step ? getFlowCalendarLabel(step, date) : "";
     days.push(`
       <div class="${classes}">
         <span class="flow-day-number">${day}</span>
@@ -598,7 +598,7 @@ function renderGanttRow(step, index, timelineStart, totalDays) {
   return `
     <div class="gantt-row">
       <div class="gantt-row-label">
-        <strong>${index + 1}. ${step.patternId}</strong>
+        <strong>${index + 1}. ${getFlowPlainLabel(step.patternId)}</strong>
         <span>${range}</span>
       </div>
       <div class="gantt-track">
@@ -632,6 +632,20 @@ function getFlowShortLabel(patternId) {
   if (patternId === "CMT1M") return "○1か月";
   if (patternId === "CMT3M") return "○3か月";
   if (patternId === "CMT6M") return "○6か月";
+  return patternId;
+}
+
+function getFlowCalendarLabel(step, date) {
+  if (step.patternId === "RTT") return "往復";
+  const label = getFlowPlainLabel(step.patternId);
+  return step.startDate === date ? `○${label}` : label;
+}
+
+function getFlowPlainLabel(patternId) {
+  if (patternId === "RTT") return "往復";
+  if (patternId === "CMT1M") return "1か月";
+  if (patternId === "CMT3M") return "3か月";
+  if (patternId === "CMT6M") return "6か月";
   return patternId;
 }
 
