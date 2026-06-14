@@ -1,7 +1,7 @@
 "use strict";
 
 const STORAGE_KEY = "ticket-simulator-settings-v2";
-const SETTINGS_VERSION = 4;
+const SETTINGS_VERSION = 5;
 const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 const PATTERNS = [
   { id: "RTT", label: "往復乗車券", months: 0, days: 1, useId: "use-rtt", fareId: "fare-one-way" },
@@ -82,8 +82,9 @@ function regenerateByCurrentConditions() {
 
 function setDefaultDates() {
   const today = new Date();
-  document.getElementById("start-date").value = formatDate(today);
-  document.getElementById("end-date").value = addMonthsSafe(formatDate(today), 6);
+  const todayKey = formatDate(today);
+  document.getElementById("start-date").value = todayKey;
+  document.getElementById("end-date").value = formatDate(addDays(parseDate(addMonthsSafe(todayKey, 6)), -1));
 }
 
 function loadSettings() {
@@ -460,31 +461,71 @@ function renderResult(result) {
       ${renderSummaryCard("有効日数", `${result.activeDates.length}日`)}
     </div>
     <h3>購入フロー</h3>
-    <div class="flow-list">
-      ${result.flow.map(renderFlowCard).join("")}
+    ${renderFlowCalendar(result)}
+  `;
+}
+
+function renderFlowCalendar(result) {
+  const flowByDate = buildFlowDayMap(result.flow);
+  const months = getMonthsInRange(result.activeDates[0], result.activeDates[result.activeDates.length - 1]);
+
+  return `
+    <div class="flow-legend" aria-label="購入フロー凡例">
+      <span><i class="legend-dot ticket"></i>往復乗車券</span>
+      <span><i class="legend-dot pass"></i>定期券期間</span>
+    </div>
+    <div class="flow-calendar-grid">
+      ${months.map((monthKey) => renderFlowMonth(monthKey, flowByDate)).join("")}
     </div>
   `;
 }
 
-function renderFlowCard(row) {
-  const startWeekday = WEEKDAY_LABELS[parseDate(row.startDate).getDay()];
-  const endWeekday = WEEKDAY_LABELS[parseDate(row.endDate).getDay()];
-  const isSingleDay = row.startDate === row.endDate;
-  const rangeText = isSingleDay
-    ? `${row.startDate}（${startWeekday}）`
-    : `${row.startDate}（${startWeekday}） → ${row.endDate}（${endWeekday}）`;
-  const typeClass = row.patternId === "RTT" ? "ticket" : "pass";
-  const caption = row.patternId === "RTT" ? "この日は往復乗車券" : `この期間は${row.patternLabel}`;
+function renderFlowMonth(monthKey, flowByDate) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const first = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0).getDate();
+  const blanks = Array.from({ length: first.getDay() }, () => '<div class="flow-day blank"></div>');
+  const days = [];
+
+  for (let day = 1; day <= lastDay; day += 1) {
+    const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const step = flowByDate.get(date);
+    const weekday = parseDate(date).getDay();
+    const classes = [
+      "flow-day",
+      step ? "has-flow" : "",
+      step?.patternId === "RTT" ? "ticket" : "",
+      step && step.patternId !== "RTT" ? "pass" : "",
+      step?.startDate === date ? "is-start" : "",
+      step?.endDate === date ? "is-end" : "",
+      weekday === 0 || weekday === 6 ? "is-weekend" : ""
+    ].filter(Boolean).join(" ");
+    const label = step ? (step.patternId === "RTT" ? "往復" : step.patternLabel.replace("定期券", "")) : "";
+    days.push(`
+      <div class="${classes}">
+        <span class="flow-day-number">${day}</span>
+        ${step ? `<span class="flow-day-label">${label}</span>` : ""}
+      </div>
+    `);
+  }
 
   return `
-    <article class="flow-card ${typeClass}">
-      <div class="flow-type">${row.patternId}</div>
-      <div class="flow-main">
-        <div class="flow-title">${caption}</div>
-        <div class="flow-range">${rangeText}</div>
-      </div>
-    </article>
+    <section class="flow-month" aria-label="${year}年${month}月の購入フロー">
+      <div class="flow-month-title">${year}年${month}月</div>
+      <div class="flow-weekdays">${WEEKDAY_LABELS.map((label) => `<span>${label}</span>`).join("")}</div>
+      <div class="flow-days">${blanks.concat(days).join("")}</div>
+    </section>
   `;
+}
+
+function buildFlowDayMap(flow) {
+  const flowByDate = new Map();
+  flow.forEach((step) => {
+    for (let current = parseDate(step.startDate); compareDateString(formatDate(current), step.endDate) <= 0; current = addDays(current, 1)) {
+      flowByDate.set(formatDate(current), step);
+    }
+  });
+  return flowByDate;
 }
 
 function downloadCsv() {
