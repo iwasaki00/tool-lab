@@ -545,15 +545,15 @@ tr.is-disabled td {
 }
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
   margin-bottom: 16px;
 }
 .summary-card {
-  min-height: 82px;
+  min-height: 58px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 12px;
+  padding: 8px 10px;
   background: #fbfcfc;
 }
 .summary-card.best {
@@ -563,15 +563,94 @@ tr.is-disabled td {
 .summary-label {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 .summary-value {
   display: block;
-  margin-top: 6px;
-  font-size: 20px;
+  margin-top: 3px;
+  font-size: 17px;
   font-weight: 850;
   line-height: 1.2;
+}
+.flow-list {
+  display: grid;
+  gap: 10px;
+}
+
+.flow-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+}
+
+.flow-card::before {
+  position: absolute;
+  left: 45px;
+  top: 50%;
+  width: 22px;
+  height: 2px;
+  background: currentColor;
+  content: "";
+  opacity: 0.45;
+}
+
+.flow-card::after {
+  position: absolute;
+  left: 62px;
+  top: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  content: "";
+  opacity: 0.45;
+  transform: rotate(45deg);
+}
+
+.flow-card.ticket {
+  color: #8b4a23;
+  background: #fff8f0;
+}
+
+.flow-card.pass {
+  color: var(--accent-dark);
+  background: #eef8f6;
+}
+
+.flow-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border-radius: 999px;
+  background: currentColor;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.flow-main {
+  min-width: 0;
+  color: var(--ink);
+}
+
+.flow-title {
+  font-weight: 850;
+}
+
+.flow-range {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 .warning {
   border-left: 4px solid var(--danger);
@@ -600,7 +679,7 @@ tr.is-disabled td {
     align-items: stretch;
     flex-direction: column;
   }
-  .cost-grid, .date-settings, .exclusion-form, .summary-grid {
+  .cost-grid, .date-settings, .exclusion-form {
     grid-template-columns: 1fr;
   }
   .weekday-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
@@ -714,6 +793,10 @@ tr.is-disabled td {
     width: 100%;
     padding: 0 8px;
     font-size: 14px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .exclusion-item {

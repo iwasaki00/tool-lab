@@ -363,7 +363,7 @@ function simulate() {
       if (!currentBest || nextCost < currentBest.cost) {
         bestRoutes.set(nextIndex, {
           cost: nextCost,
-          flow: current.flow.concat([{ date: activeDates[index], patternId: pattern.id, patternLabel: pattern.label }])
+          flow: current.flow.concat([createFlowStep(activeDates, index, nextIndex, pattern)])
         });
       }
     });
@@ -398,6 +398,23 @@ function getNextNodeIndex(activeDates, currentIndex, pattern) {
     if (compareDateString(activeDates[index], nextDate) >= 0) return index;
   }
   return activeDates.length;
+}
+
+function createFlowStep(activeDates, currentIndex, nextIndex, pattern) {
+  const startDate = activeDates[currentIndex];
+  const endDate = getFlowEndDate(activeDates, currentIndex, nextIndex);
+  return {
+    date: startDate,
+    startDate,
+    endDate,
+    patternId: pattern.id,
+    patternLabel: pattern.label
+  };
+}
+
+function getFlowEndDate(activeDates, currentIndex, nextIndex) {
+  if (nextIndex >= activeDates.length) return activeDates[activeDates.length - 1];
+  return activeDates[Math.max(currentIndex, nextIndex - 1)];
 }
 
 function addMonthsSafe(dateString, months) {
@@ -443,17 +460,30 @@ function renderResult(result) {
       ${renderSummaryCard("有効日数", `${result.activeDates.length}日`)}
     </div>
     <h3>購入フロー</h3>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>日付</th><th>曜日</th><th>購入タイプ</th></tr></thead>
-        <tbody>
-          ${result.flow.map((row) => {
-            const weekday = parseDate(row.date).getDay();
-            return `<tr><td data-label="日付">${row.date}</td><td data-label="曜日">${WEEKDAY_LABELS[weekday]}</td><td data-label="購入タイプ">${row.patternId}：${row.patternLabel}</td></tr>`;
-          }).join("")}
-        </tbody>
-      </table>
+    <div class="flow-list">
+      ${result.flow.map(renderFlowCard).join("")}
     </div>
+  `;
+}
+
+function renderFlowCard(row) {
+  const startWeekday = WEEKDAY_LABELS[parseDate(row.startDate).getDay()];
+  const endWeekday = WEEKDAY_LABELS[parseDate(row.endDate).getDay()];
+  const isSingleDay = row.startDate === row.endDate;
+  const rangeText = isSingleDay
+    ? `${row.startDate}（${startWeekday}）`
+    : `${row.startDate}（${startWeekday}） → ${row.endDate}（${endWeekday}）`;
+  const typeClass = row.patternId === "RTT" ? "ticket" : "pass";
+  const caption = row.patternId === "RTT" ? "この日は往復乗車券" : `この期間は${row.patternLabel}`;
+
+  return `
+    <article class="flow-card ${typeClass}">
+      <div class="flow-type">${row.patternId}</div>
+      <div class="flow-main">
+        <div class="flow-title">${caption}</div>
+        <div class="flow-range">${rangeText}</div>
+      </div>
+    </article>
   `;
 }
 
@@ -467,10 +497,10 @@ function downloadCsv() {
     ["3ヶ月定期券のみ", lastResult.patternOnlyCosts.CMT3M],
     ["6ヶ月定期券のみ", lastResult.patternOnlyCosts.CMT6M],
     [],
-    ["日付", "曜日", "購入タイプ"]
+    ["開始日", "終了日", "購入タイプ"]
   ];
   lastResult.flow.forEach((row) => {
-    lines.push([row.date, WEEKDAY_LABELS[parseDate(row.date).getDay()], `${row.patternId}:${row.patternLabel}`]);
+    lines.push([row.startDate, row.endDate, `${row.patternId}:${row.patternLabel}`]);
   });
   const csv = lines.map((row) => row.map(escapeCsvValue).join(",")).join("\r\n");
   const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
@@ -487,10 +517,7 @@ function downloadCsv() {
 function downloadPdf() {
   if (!lastResult) return;
 
-  const lines = lastResult.flow.map((row) => {
-    const weekday = WEEKDAY_LABELS[parseDate(row.date).getDay()];
-    return `<tr><td>${row.date}</td><td>${weekday}</td><td>${row.patternId}：${row.patternLabel}</td></tr>`;
-  }).join("");
+  const lines = lastResult.flow.map((row) => `<tr><td>${row.startDate}</td><td>${row.endDate}</td><td>${row.patternId}：${row.patternLabel}</td></tr>`).join("");
 
   const html = `
 <!doctype html>
@@ -525,7 +552,7 @@ function downloadPdf() {
     </div>
     <h2>購入フロー</h2>
     <table>
-      <thead><tr><th>日付</th><th>曜日</th><th>購入タイプ</th></tr></thead>
+      <thead><tr><th>開始日</th><th>終了日</th><th>購入タイプ</th></tr></thead>
       <tbody>${lines}</tbody>
     </table>
     <script>window.addEventListener("load", () => setTimeout(() => window.print(), 250));<\/script>
