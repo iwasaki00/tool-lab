@@ -634,7 +634,9 @@ tr.is-disabled td {
 }
 
 .legend-dot.ticket { background: #d97732; }
-.legend-dot.pass { background: var(--accent); }
+.legend-dot.cmt1m { background: #0b766d; }
+.legend-dot.cmt3m { background: #3267c9; }
+.legend-dot.cmt6m { background: #8d4bb8; }
 
 .flow-calendar-grid {
   display: grid;
@@ -698,36 +700,24 @@ tr.is-disabled td {
   font-weight: 800;
 }
 
-.flow-day.pass {
+.flow-day.cmt1m {
   background: #dff3ef;
   box-shadow: inset 0 -7px 0 rgba(11, 118, 109, 0.22);
+}
+
+.flow-day.cmt3m {
+  background: #e8f0ff;
+  box-shadow: inset 0 -7px 0 rgba(50, 103, 201, 0.22);
+}
+
+.flow-day.cmt6m {
+  background: #f5eaff;
+  box-shadow: inset 0 -7px 0 rgba(141, 75, 184, 0.24);
 }
 
 .flow-day.ticket {
   background: #fff3e8;
   box-shadow: inset 0 -7px 0 rgba(217, 119, 50, 0.25);
-}
-
-.flow-day.is-start::before,
-.flow-day.is-end::after {
-  position: absolute;
-  bottom: 4px;
-  width: 7px;
-  height: 7px;
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  content: "";
-  opacity: 0.72;
-}
-
-.flow-day.is-start::before {
-  left: 5px;
-  transform: rotate(45deg);
-}
-
-.flow-day.is-end::after {
-  right: 5px;
-  transform: rotate(45deg);
 }
 
 .flow-day-number {
@@ -838,13 +828,21 @@ tr.is-disabled td {
   background: #d97732;
 }
 
-.gantt-bar.pass {
-  background: var(--accent);
-}
-
 .gantt-bar span {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.gantt-bar.cmt1m {
+  background: #0b766d;
+}
+
+.gantt-bar.cmt3m {
+  background: #3267c9;
+}
+
+.gantt-bar.cmt6m {
+  background: #8d4bb8;
 }
 .warning {
   border-left: 4px solid var(--danger);

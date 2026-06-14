@@ -502,7 +502,9 @@ function renderFlowCalendar(result) {
   return `
     <div class="flow-legend" aria-label="購入フロー凡例">
       <span><i class="legend-dot ticket"></i>往復乗車券</span>
-      <span><i class="legend-dot pass"></i>定期券期間</span>
+      <span><i class="legend-dot cmt1m"></i>1ヶ月定期券</span>
+      <span><i class="legend-dot cmt3m"></i>3ヶ月定期券</span>
+      <span><i class="legend-dot cmt6m"></i>6ヶ月定期券</span>
     </div>
     <div class="flow-calendar-grid">
       ${months.map((monthKey) => renderFlowMonth(monthKey, flowByDate)).join("")}
@@ -524,13 +526,12 @@ function renderFlowMonth(monthKey, flowByDate) {
     const classes = [
       "flow-day",
       step ? "has-flow" : "",
-      step?.patternId === "RTT" ? "ticket" : "",
-      step && step.patternId !== "RTT" ? "pass" : "",
+      step ? getFlowTypeClass(step.patternId) : "",
       step?.startDate === date ? "is-start" : "",
       step?.endDate === date ? "is-end" : "",
       weekday === 0 || weekday === 6 ? "is-weekend" : ""
     ].filter(Boolean).join(" ");
-    const label = step ? (step.patternId === "RTT" ? "往復" : step.patternLabel.replace("定期券", "")) : "";
+    const label = step ? getFlowShortLabel(step.patternId) : "";
     days.push(`
       <div class="${classes}">
         <span class="flow-day-number">${day}</span>
@@ -563,6 +564,7 @@ function renderFlowGantt(result) {
   const end = result.activeDates[result.activeDates.length - 1];
   const totalDays = Math.max(1, getDateDiffDays(start, end) + 1);
   const months = getMonthsInRange(start, end);
+  const displayFlow = mergeConsecutiveTickets(result.flow);
 
   return `
     <div class="gantt-wrap">
@@ -579,7 +581,7 @@ function renderFlowGantt(result) {
         }).join("")}
       </div>
       <div class="gantt-list">
-        ${result.flow.map((step, index) => renderGanttRow(step, index, start, totalDays)).join("")}
+        ${displayFlow.map((step, index) => renderGanttRow(step, index, start, totalDays)).join("")}
       </div>
     </div>
   `;
@@ -600,12 +602,37 @@ function renderGanttRow(step, index, timelineStart, totalDays) {
         <span>${range}</span>
       </div>
       <div class="gantt-track">
-        <div class="gantt-bar ${isTicket ? "ticket" : "pass"}" style="left:${left}%;width:${width}%">
-          <span>${isTicket ? "往復" : step.patternLabel}</span>
+        <div class="gantt-bar ${getFlowTypeClass(step.patternId)}" style="left:${left}%;width:${width}%">
+          <span>${getFlowShortLabel(step.patternId)}</span>
         </div>
       </div>
     </div>
   `;
+}
+
+function mergeConsecutiveTickets(flow) {
+  return flow.reduce((merged, step) => {
+    const last = merged[merged.length - 1];
+    if (last && last.patternId === "RTT" && step.patternId === "RTT") {
+      last.endDate = step.endDate;
+      return merged;
+    }
+    merged.push({ ...step });
+    return merged;
+  }, []);
+}
+
+function getFlowTypeClass(patternId) {
+  if (patternId === "RTT") return "ticket";
+  return patternId.toLowerCase();
+}
+
+function getFlowShortLabel(patternId) {
+  if (patternId === "RTT") return "往復";
+  if (patternId === "CMT1M") return "○1か月";
+  if (patternId === "CMT3M") return "○3か月";
+  if (patternId === "CMT6M") return "○6か月";
+  return patternId;
 }
 
 function scrollToResult() {
