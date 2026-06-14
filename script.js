@@ -1,7 +1,7 @@
 "use strict";
 
 const STORAGE_KEY = "ticket-simulator-settings-v2";
-const SETTINGS_VERSION = 2;
+const SETTINGS_VERSION = 3;
 const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 const PATTERNS = [
   { id: "RTT", label: "往復乗車券", months: 0, days: 1, useId: "use-rtt", fareId: "fare-one-way" },
@@ -91,6 +91,10 @@ function loadSettings() {
   if (!raw) return;
   try {
     const settings = JSON.parse(raw);
+    if (settings.version !== SETTINGS_VERSION) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
     Object.entries(settings.values || {}).forEach(([id, value]) => {
       const element = document.getElementById(id);
       if (!element) return;
@@ -100,9 +104,6 @@ function loadSettings() {
       checkbox.checked = settings.weekdays?.includes(Number(checkbox.value)) || false;
     });
     exclusionPeriods = Array.isArray(settings.exclusionPeriods) ? settings.exclusionPeriods : [];
-    if (settings.version !== SETTINGS_VERSION) {
-      setDefaultDates();
-    }
   } catch {
     localStorage.removeItem(STORAGE_KEY);
   }
