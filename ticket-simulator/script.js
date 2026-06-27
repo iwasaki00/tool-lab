@@ -45,7 +45,7 @@ function bindNavigation() {
 }
 
 function renderRoute() {
-  const isTicketSimulator = location.hash === "#ticket-simulator";
+  const isTicketSimulator = location.hash !== "#menu";
   const menu = document.getElementById("top-menu-screen");
   const simulator = document.getElementById("ticket-simulator-screen");
   menu.classList.toggle("is-active", !isTicketSimulator);

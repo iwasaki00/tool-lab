@@ -17,8 +17,10 @@ GitHub の `Settings` → `Pages` で、`Build and deployment` の `Source` を 
 
 ## Structure
 
-- `tools/`: 作成中のツールを置く場所
-- `index.html`: アプリ画面
-- `style.css`: 画面スタイル
-- `script.js`: 日付生成、シミュレーション、CSV出力
+- `index.html`: Tool Lab のトップメニュー
+- `style.css`: トップメニューの画面スタイル
+- `ticket-simulator/`: 乗車券購入シミュレーション
+- `ticket-simulator/index.html`: シミュレーション画面
+- `ticket-simulator/style.css`: シミュレーション画面スタイル
+- `ticket-simulator/script.js`: 日付生成、シミュレーション、CSV出力
 - `.nojekyll`: GitHub Pagesで静的ファイルをそのまま配信するための設定
