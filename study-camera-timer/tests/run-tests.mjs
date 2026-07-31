@@ -378,7 +378,7 @@ test("alarm repeats the selected WAV until explicitly stopped", async () => {
   assert.equal(notifier.isAlarmActive, true);
   await new Promise((resolve) => setTimeout(resolve, 125));
   assert.ok(playCount >= 3, `expected repeated WAV playback, got ${playCount}`);
-  assert.ok(audioElement.src.endsWith("/audio/digital.wav"));
+  assert.ok(audioElement.src.endsWith("/audio/digital-medium.wav"));
   assert.equal(notifier.suspendAlarm(), true);
   const countAtSuspend = playCount;
   await new Promise((resolve) => setTimeout(resolve, 80));
@@ -449,12 +449,13 @@ test("selected WAV is decoded and played through the unlocked audio context", as
   });
   const result = await notifier.notify("complete", { mode: "sound", sound: "school" });
   assert.equal(result.sounded, true);
-  assert.ok(requestedSource.endsWith("/audio/school-bell.wav"));
+  assert.ok(requestedSource.endsWith("/audio/school-bell-medium.wav"));
   assert.equal(started, 1);
   await notifier.destroy();
 });
 
-test("notification volume levels apply clearly separated Web Audio gains", async () => {
+test("notification volume levels select amplitude-encoded WAV variants", async () => {
+  const requestedSources = [];
   const appliedGains = [];
   const audioContext = {
     state: "running",
@@ -480,14 +481,57 @@ test("notification volume levels apply clearly separated Web Audio gains", async
   const notifier = new Notifier({
     audioContext,
     autoUnlock: false,
-    fetch: async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })
+    fetch: async (source) => {
+      requestedSources.push(source);
+      return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) };
+    }
   });
   await notifier.notify("complete", { mode: "sound", volume: "low" });
   await notifier.notify("complete", { mode: "sound", volume: "medium" });
   await notifier.notify("complete", { mode: "sound", volume: "high" });
-  assert.deepEqual(appliedGains, [VOLUME_LEVELS.low, VOLUME_LEVELS.medium, VOLUME_LEVELS.high]);
-  assert.ok(VOLUME_LEVELS.medium >= VOLUME_LEVELS.low * 5);
-  assert.ok(VOLUME_LEVELS.high >= VOLUME_LEVELS.medium * 3);
+  assert.ok(requestedSources[0].endsWith("/audio/clear-chime-low.wav"));
+  assert.ok(requestedSources[1].endsWith("/audio/clear-chime-medium.wav"));
+  assert.ok(requestedSources[2].endsWith("/audio/clear-chime.wav"));
+  assert.deepEqual(appliedGains, [1, 1, 1]);
+
+  const pcmPeak = (filename) => {
+    const bytes = fs.readFileSync(path.join(appRoot, "audio", filename));
+    let peak = 0;
+    for (let offset = 44; offset + 1 < bytes.length; offset += 2) {
+      peak = Math.max(peak, Math.abs(bytes.readInt16LE(offset)));
+    }
+    return peak;
+  };
+  for (const fileStem of ["clear-chime", "bell", "digital", "school-bell", "gentle"]) {
+    const highPeak = pcmPeak(`${fileStem}.wav`);
+    assert.ok(Math.abs(pcmPeak(`${fileStem}-low.wav`) / highPeak - VOLUME_LEVELS.low) < 0.002);
+    assert.ok(Math.abs(pcmPeak(`${fileStem}-medium.wav`) / highPeak - VOLUME_LEVELS.medium) < 0.002);
+  }
+  await notifier.destroy();
+});
+
+test("HTMLAudio fallback also uses the amplitude-encoded volume variants", async () => {
+  const playedSources = [];
+  const audioElement = {
+    src: "",
+    volume: 0,
+    currentTime: 0,
+    setAttribute: () => undefined,
+    load: () => undefined,
+    pause: () => undefined,
+    play() {
+      playedSources.push(this.src);
+      return Promise.resolve();
+    }
+  };
+  const notifier = new Notifier({ audioElement, autoUnlock: false });
+  await notifier.notify("complete", { mode: "sound", volume: "low", sound: "bell" });
+  await notifier.notify("complete", { mode: "sound", volume: "medium", sound: "bell" });
+  await notifier.notify("complete", { mode: "sound", volume: "high", sound: "bell" });
+  assert.ok(playedSources[0].endsWith("/audio/bell-low.wav"));
+  assert.ok(playedSources[1].endsWith("/audio/bell-medium.wav"));
+  assert.ok(playedSources[2].endsWith("/audio/bell.wav"));
+  assert.equal(audioElement.volume, 1);
   await notifier.destroy();
 });
 
@@ -516,9 +560,11 @@ test("default screen flash uses a bright full-screen triple pulse", async () => 
     matchMedia: () => ({ matches: false })
   });
   assert.equal(await notifier.flash(), true);
-  assert.equal(capturedKeyframes.filter(({ opacity }) => opacity === 1).length, 3);
-  assert.ok(capturedTiming.duration >= 1_000);
-  assert.match(overlay.style.background, /0\.98/);
+  assert.equal(capturedKeyframes.filter(({ opacity }) => opacity === 1).length, 6);
+  assert.ok(capturedKeyframes.some(({ backgroundColor }) => backgroundColor === "#ff1744"));
+  assert.ok(capturedKeyframes.some(({ backgroundColor }) => backgroundColor === "#ffffff"));
+  assert.ok(capturedTiming.duration >= 1_500);
+  assert.equal(overlay.style.background, "#ffffff");
   await notifier.destroy();
 });
 

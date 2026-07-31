@@ -8,32 +8,26 @@ export const NOTIFICATION_MODES = Object.freeze([
 ]);
 
 export const VOLUME_LEVELS = Object.freeze({
-  low: 0.05,
+  low: 0.06,
   medium: 0.28,
-  high: 0.95
+  high: 1
 });
 
+function defineAlarmSound(label, fileStem) {
+  const sources = Object.freeze({
+    low: new URL(`../audio/${fileStem}-low.wav`, import.meta.url).href,
+    medium: new URL(`../audio/${fileStem}-medium.wav`, import.meta.url).href,
+    high: new URL(`../audio/${fileStem}.wav`, import.meta.url).href
+  });
+  return Object.freeze({ label, src: sources.high, sources });
+}
+
 export const ALARM_SOUNDS = Object.freeze({
-  clear_chime: Object.freeze({
-    label: "クリアチャイム",
-    src: new URL("../audio/clear-chime.wav", import.meta.url).href
-  }),
-  bell: Object.freeze({
-    label: "ベル",
-    src: new URL("../audio/bell.wav", import.meta.url).href
-  }),
-  digital: Object.freeze({
-    label: "デジタル",
-    src: new URL("../audio/digital.wav", import.meta.url).href
-  }),
-  school: Object.freeze({
-    label: "スクールベル",
-    src: new URL("../audio/school-bell.wav", import.meta.url).href
-  }),
-  gentle: Object.freeze({
-    label: "やさしい音",
-    src: new URL("../audio/gentle.wav", import.meta.url).href
-  })
+  clear_chime: defineAlarmSound("クリアチャイム", "clear-chime"),
+  bell: defineAlarmSound("ベル", "bell"),
+  digital: defineAlarmSound("デジタル", "digital"),
+  school: defineAlarmSound("スクールベル", "school-bell"),
+  gentle: defineAlarmSound("やさしい音", "gentle")
 });
 
 export const EVENT_CUES = Object.freeze({
@@ -83,6 +77,11 @@ function normalizeSound(sound) {
   return typeof normalized === "string" && normalized in ALARM_SOUNDS
     ? normalized
     : "clear_chime";
+}
+
+function alarmSource(sound, volume) {
+  const soundDefinition = ALARM_SOUNDS[normalizeSound(sound)];
+  return soundDefinition?.sources?.[normalizeVolume(volume)] || soundDefinition?.src || "";
 }
 
 function noop() {}
@@ -135,6 +134,8 @@ export class Notifier extends EventTarget {
 
   setVolume(volume) {
     this.volume = normalizeVolume(volume);
+    this._prepareAlarmAudio();
+    if (this.isAudioUnlocked) void this._loadAlarmBuffer(this.sound, this.volume);
     this._emit("settingschange", { mode: this.mode, volume: this.volume, sound: this.sound });
     return this.volume;
   }
@@ -142,6 +143,7 @@ export class Notifier extends EventTarget {
   setSound(sound) {
     this.sound = normalizeSound(sound);
     this._prepareAlarmAudio();
+    if (this.isAudioUnlocked) void this._loadAlarmBuffer(this.sound, this.volume);
     this._emit("settingschange", { mode: this.mode, volume: this.volume, sound: this.sound });
     return this.sound;
   }
@@ -149,7 +151,7 @@ export class Notifier extends EventTarget {
   async unlock() {
     if (this._unlockPromise) return this._unlockPromise;
     this._unlockPromise = this._unlockAudio().then(async (unlocked) => {
-      if (unlocked) await this._loadAlarmBuffer(this.sound);
+      if (unlocked) await this._loadAlarmBuffer(this.sound, this.volume);
       return unlocked;
     });
     try {
@@ -339,24 +341,33 @@ export class Notifier extends EventTarget {
 
     const overlay = this._getFlashOverlay();
     if (!overlay) return false;
-    const color = options?.color || "rgba(255, 225, 48, 0.98)";
+    const color = options?.color || "#ffffff";
     const requestedDuration = Number(options?.duration);
     const duration = Math.max(120, Number.isFinite(requestedDuration) && requestedDuration > 0
       ? requestedDuration
-      : 1_080);
+      : 1_500);
     const reduceMotion = Boolean(this.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
     const useStrongTriplePulse = !reduceMotion && duration >= 600;
     const keyframes = useStrongTriplePulse
       ? [
-          { opacity: 0 },
-          { opacity: 1, offset: 0.08 },
-          { opacity: 0, offset: 0.22 },
-          { opacity: 1, offset: 0.36 },
-          { opacity: 0, offset: 0.5 },
-          { opacity: 1, offset: 0.64 },
-          { opacity: 0 }
+          { opacity: 0, backgroundColor: "#ffffff" },
+          { opacity: 1, backgroundColor: "#ffffff", offset: 0.06 },
+          { opacity: 1, backgroundColor: "#ffffff", offset: 0.18 },
+          { opacity: 0, backgroundColor: "#ffffff", offset: 0.27 },
+          { opacity: 0, backgroundColor: "#ff1744", offset: 0.34 },
+          { opacity: 1, backgroundColor: "#ff1744", offset: 0.4 },
+          { opacity: 1, backgroundColor: "#ff1744", offset: 0.52 },
+          { opacity: 0, backgroundColor: "#ff1744", offset: 0.61 },
+          { opacity: 0, backgroundColor: "#ffffff", offset: 0.68 },
+          { opacity: 1, backgroundColor: "#ffffff", offset: 0.74 },
+          { opacity: 1, backgroundColor: "#ffffff", offset: 0.86 },
+          { opacity: 0, backgroundColor: "#ffffff" }
         ]
-      : [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0 }];
+      : [
+          { opacity: 0, backgroundColor: color },
+          { opacity: 1, backgroundColor: color, offset: 0.3 },
+          { opacity: 0, backgroundColor: color }
+        ];
     const flashGeneration = ++this._flashGeneration;
     overlay.style.background = color;
 
@@ -369,8 +380,10 @@ export class Notifier extends EventTarget {
     } else {
       const pulseCount = useStrongTriplePulse ? 3 : 1;
       const pulseDuration = duration / pulseCount;
+      const pulseColors = useStrongTriplePulse ? ["#ffffff", "#ff1744", "#ffffff"] : [color];
       for (let index = 0; index < pulseCount; index += 1) {
         if (flashGeneration !== this._flashGeneration) return false;
+        overlay.style.background = pulseColors[index];
         overlay.style.opacity = "1";
         await new Promise((resolve) => globalThis.setTimeout(resolve, Math.round(pulseDuration * 0.42)));
         if (flashGeneration !== this._flashGeneration) return false;
@@ -403,7 +416,7 @@ export class Notifier extends EventTarget {
 
   _prepareAlarmAudio() {
     const audio = this.audioElement;
-    const source = ALARM_SOUNDS[this.sound]?.src;
+    const source = alarmSource(this.sound, this.volume);
     if (!audio || !source || audio.src === source) return false;
     audio.preload = "auto";
     audio.setAttribute?.("playsinline", "");
@@ -412,9 +425,9 @@ export class Notifier extends EventTarget {
     return true;
   }
 
-  async _loadAlarmBuffer(sound) {
+  async _loadAlarmBuffer(sound, volume) {
     const soundId = normalizeSound(sound);
-    const source = ALARM_SOUNDS[soundId]?.src;
+    const source = alarmSource(soundId, volume);
     const context = this.audioContext;
     if (!source || !context?.decodeAudioData || typeof this.fetch !== "function") return null;
     if (this._audioBuffers.has(source)) return this._audioBuffers.get(source);
@@ -440,14 +453,17 @@ export class Notifier extends EventTarget {
 
   async _playAlarmSound(sound, volumeName) {
     const playbackGeneration = this._playbackGeneration;
-    const buffer = await this._loadAlarmBuffer(sound);
+    const buffer = await this._loadAlarmBuffer(sound, volumeName);
     if (playbackGeneration !== this._playbackGeneration) return false;
     if (buffer && this.audioContext?.state === "running" && this.audioContext.createBufferSource) {
       try {
         const sourceNode = this.audioContext.createBufferSource();
         const gain = this.audioContext.createGain();
         sourceNode.buffer = buffer;
-        const amplitude = VOLUME_LEVELS[volumeName];
+        // The selected WAV already contains the requested amplitude. Keeping
+        // the node at unity also makes the same volume difference survive the
+        // HTMLAudio fallback used by iPhone Safari.
+        const amplitude = 1;
         if (typeof gain.gain.setValueAtTime === "function") {
           gain.gain.setValueAtTime(amplitude, this.audioContext.currentTime);
         } else {
@@ -465,7 +481,7 @@ export class Notifier extends EventTarget {
     }
 
     const audio = this.audioElement;
-    const source = ALARM_SOUNDS[normalizeSound(sound)]?.src;
+    const source = alarmSource(sound, volumeName);
     if (!audio?.play || !source) return false;
     try {
       if (audio.src !== source) {
@@ -473,7 +489,7 @@ export class Notifier extends EventTarget {
         audio.src = source;
         audio.load?.();
       }
-      audio.volume = VOLUME_LEVELS[volumeName];
+      audio.volume = 1;
       audio.currentTime = 0;
       let timeoutId = 0;
       const played = await Promise.race([

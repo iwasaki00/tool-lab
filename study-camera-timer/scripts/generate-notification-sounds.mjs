@@ -118,9 +118,21 @@ const sounds = {
   }
 };
 
+const volumeVariants = Object.freeze({
+  low: 0.06,
+  medium: 0.28,
+  high: 1
+});
+
 fs.mkdirSync(outputDirectory, { recursive: true });
 for (const [filename, render] of Object.entries(sounds)) {
-  const outputPath = path.join(outputDirectory, filename);
-  fs.writeFileSync(outputPath, encodeWav(normalize(render())));
-  console.log(`${filename}: ${fs.statSync(outputPath).size} bytes`);
+  const normalizedTrack = normalize(render());
+  const fileStem = filename.replace(/\.wav$/i, "");
+  for (const [volume, amplitude] of Object.entries(volumeVariants)) {
+    const variantFilename = volume === "high" ? filename : `${fileStem}-${volume}.wav`;
+    const variantTrack = Float64Array.from(normalizedTrack, (sample) => sample * amplitude);
+    const outputPath = path.join(outputDirectory, variantFilename);
+    fs.writeFileSync(outputPath, encodeWav(variantTrack));
+    console.log(`${variantFilename}: ${fs.statSync(outputPath).size} bytes`);
+  }
 }

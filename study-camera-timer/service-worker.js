@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_VERSION = "focus-lens-2026-08-01-v4";
+const CACHE_VERSION = "focus-lens-2026-08-01-v5";
 const CACHE_PREFIX = "focus-lens";
 const STATIC_CACHE = CACHE_PREFIX + "-static-" + CACHE_VERSION;
 const RUNTIME_CACHE = CACHE_PREFIX + "-runtime-" + CACHE_VERSION;
@@ -15,10 +15,20 @@ const APP_SHELL = Object.freeze([
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./audio/clear-chime.wav",
+  "./audio/clear-chime-low.wav",
+  "./audio/clear-chime-medium.wav",
   "./audio/bell.wav",
+  "./audio/bell-low.wav",
+  "./audio/bell-medium.wav",
   "./audio/digital.wav",
+  "./audio/digital-low.wav",
+  "./audio/digital-medium.wav",
   "./audio/school-bell.wav",
+  "./audio/school-bell-low.wav",
+  "./audio/school-bell-medium.wav",
   "./audio/gentle.wav",
+  "./audio/gentle-low.wav",
+  "./audio/gentle-medium.wav",
   "./js/constants.js",
   "./js/storage.js",
   "./js/settings.js",
