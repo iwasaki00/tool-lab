@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="css/style.css?v=2">
+    <link rel="stylesheet" href="css/style.css?v=3">
   </head>
   <body>
     <a class="skip-link" href="#main-content">メイン内容へ移動</a>
@@ -118,11 +118,13 @@
             </div>
             <div id="preset-buttons" class="preset-grid"></div>
             <div class="custom-duration">
-              <label for="custom-minutes">1分単位で指定</label>
+              <label for="custom-minutes">分・秒で指定</label>
               <div>
-                <input id="custom-minutes" type="number" inputmode="numeric" min="1" max="720" value="25">
+                <input id="custom-minutes" type="number" inputmode="numeric" min="0" max="720" value="25" aria-label="分">
                 <span>分</span>
-                <button class="small-button" type="button" id="apply-custom-minutes">設定</button>
+                <input id="custom-seconds" type="number" inputmode="numeric" min="0" max="59" value="0" aria-label="秒">
+                <span>秒</span>
+                <button class="small-button" type="button" id="apply-custom-duration">設定</button>
               </div>
             </div>
           </section>
@@ -205,12 +207,11 @@
         <section class="content-panel settings-section" aria-labelledby="notification-settings-title">
           <div class="section-heading"><h3 id="notification-settings-title">通知</h3></div>
           <div class="setting-list">
-            <label class="select-row"><span><strong>終了通知</strong></span><select id="setting-notification"><option value="sound">音</option><option value="vibration">バイブレーション</option><option value="flash">画面点滅</option><option value="sound_flash">音＋画面点滅</option><option value="silent">無音</option></select></label>
+            <label class="select-row"><span><strong>終了通知</strong></span><select id="setting-notification"><option value="sound">音</option><option value="flash">画面点滅</option><option value="sound_flash">音＋画面点滅</option><option value="silent">無音</option></select></label>
             <label class="select-row"><span><strong>通知音</strong><small>終了時に鳴る音</small></span><select id="setting-sound"><option value="clear_chime">クリアチャイム</option><option value="bell">ベル</option><option value="digital">デジタル</option><option value="school">スクールベル</option><option value="gentle">やさしい音</option></select></label>
             <label class="select-row"><span><strong>通知音量</strong></span><select id="setting-volume"><option value="low">小</option><option value="medium">中</option><option value="high">大</option></select></label>
             <label class="toggle-row"><span><strong>停止するまで繰り返す</strong><small>画面を開いている間、停止ボタンを押すまで通知</small></span><input id="setting-repeat-alarm" type="checkbox"><i aria-hidden="true"></i></label>
             <label class="toggle-row"><span><strong>ジェスチャー確認音</strong></span><input id="setting-gesture-sound" type="checkbox"><i aria-hidden="true"></i></label>
-            <p id="vibration-support-note" class="capability-note" role="status"></p>
             <button class="text-button test-sound-button" type="button" id="test-notification"><span aria-hidden="true">♪</span> 通知を試す</button>
           </div>
         </section>
@@ -224,16 +225,17 @@
             <label class="toggle-row"><span><strong>終了後のカウントアップ</strong></span><input id="setting-count-up" type="checkbox"><i aria-hidden="true"></i></label>
             <label class="toggle-row"><span><strong>画面を点灯したままにする</strong><small id="wake-lock-note"></small></span><input id="setting-wake-lock" type="checkbox"><i aria-hidden="true"></i></label>
             <label class="toggle-row"><span><strong>学習履歴を保存</strong></span><input id="setting-save-history" type="checkbox"><i aria-hidden="true"></i></label>
+            <label class="toggle-row"><span><strong>デバッグモード</strong><small>再読み込み後、検出状態とテスト操作を表示</small></span><input id="setting-debug" type="checkbox"><i aria-hidden="true"></i></label>
           </div>
         </section>
 
         <section class="content-panel settings-section" aria-labelledby="pomodoro-settings-title">
           <div class="section-heading"><h3 id="pomodoro-settings-title">ポモドーロ</h3></div>
           <div class="number-settings-grid">
-            <label><span>勉強</span><input id="setting-pomodoro-study" type="number" min="1" max="180" inputmode="numeric"><small>分</small></label>
-            <label><span>短い休憩</span><input id="setting-pomodoro-short" type="number" min="1" max="60" inputmode="numeric"><small>分</small></label>
-            <label><span>長い休憩</span><input id="setting-pomodoro-long" type="number" min="1" max="120" inputmode="numeric"><small>分</small></label>
-            <label><span>長い休憩まで</span><input id="setting-pomodoro-sets" type="number" min="1" max="12" inputmode="numeric"><small>セット</small></label>
+            <label><span>勉強</span><span class="duration-pair"><input id="setting-pomodoro-study" type="number" min="0" max="180" inputmode="numeric" aria-label="勉強の分"><small>分</small><input id="setting-pomodoro-study-seconds" type="number" min="0" max="59" inputmode="numeric" aria-label="勉強の秒"><small>秒</small></span></label>
+            <label><span>短い休憩</span><span class="duration-pair"><input id="setting-pomodoro-short" type="number" min="0" max="60" inputmode="numeric" aria-label="短い休憩の分"><small>分</small><input id="setting-pomodoro-short-seconds" type="number" min="0" max="59" inputmode="numeric" aria-label="短い休憩の秒"><small>秒</small></span></label>
+            <label><span>長い休憩</span><span class="duration-pair"><input id="setting-pomodoro-long" type="number" min="0" max="120" inputmode="numeric" aria-label="長い休憩の分"><small>分</small><input id="setting-pomodoro-long-seconds" type="number" min="0" max="59" inputmode="numeric" aria-label="長い休憩の秒"><small>秒</small></span></label>
+            <label><span>長い休憩まで</span><span class="duration-pair single-number"><input id="setting-pomodoro-sets" type="number" min="1" max="12" inputmode="numeric"><small>セット</small></span></label>
           </div>
           <div class="setting-list">
             <label class="toggle-row"><span><strong>休憩を自動開始</strong></span><input id="setting-auto-break" type="checkbox"><i aria-hidden="true"></i></label>
@@ -279,7 +281,7 @@
         </section>
 
         <section id="debug-panel" class="content-panel debug-panel" aria-labelledby="debug-title" hidden>
-          <div class="section-heading"><h3 id="debug-title">デバッグ</h3><span class="debug-badge">?debug=1</span></div>
+          <div class="section-heading"><h3 id="debug-title">デバッグ</h3><span class="debug-badge">DEBUG ON</span></div>
           <div class="debug-preview-wrap">
             <video id="debug-camera-preview" autoplay muted playsinline></video>
             <canvas id="debug-overlay"></canvas>
@@ -307,6 +309,7 @@
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
     <div id="flash-layer" class="flash-layer" aria-hidden="true"></div>
     <video id="camera-video" class="camera-analysis-video" autoplay muted playsinline aria-hidden="true" tabindex="-1"></video>
+    <audio id="alarm-audio" preload="auto" playsinline aria-hidden="true"></audio>
 
     <dialog id="camera-consent-dialog" class="app-dialog">
       <form method="dialog">
@@ -410,9 +413,9 @@
         <input id="quick-timer-index" type="hidden" value="-1">
         <h2>クイックタイマー</h2>
         <label class="dialog-field"><span>名前</span><input id="quick-name" type="text" maxlength="24" required placeholder="例：英単語"></label>
-        <label class="dialog-field"><span>時間</span><span class="input-with-unit"><input id="quick-minutes" type="number" min="1" max="720" required inputmode="numeric"><i>分</i></span></label>
+        <label class="dialog-field"><span>時間</span><span class="input-with-unit"><input id="quick-minutes" type="number" min="0" max="720" required inputmode="numeric" aria-label="分"><i>分</i><input id="quick-seconds" type="number" min="0" max="59" required inputmode="numeric" aria-label="秒"><i>秒</i></span></label>
         <label class="dialog-field"><span>教科</span><select id="quick-subject"></select></label>
-        <label class="dialog-field"><span>通知</span><select id="quick-notification"><option value="sound">音</option><option value="vibration">バイブレーション</option><option value="flash">画面点滅</option><option value="sound_flash">音＋画面点滅</option><option value="silent">無音</option></select></label>
+        <label class="dialog-field"><span>通知</span><select id="quick-notification"><option value="sound">音</option><option value="flash">画面点滅</option><option value="sound_flash">音＋画面点滅</option><option value="silent">無音</option></select></label>
         <label class="toggle-row compact-toggle"><span><strong>カメラ補助</strong></span><input id="quick-camera" type="checkbox"><i aria-hidden="true"></i></label>
         <label class="dialog-field"><span>離席判定</span><select id="quick-absence"><option value="10">10秒</option><option value="20">20秒</option><option value="30">30秒</option><option value="45">45秒</option><option value="60">60秒</option><option value="90">90秒</option><option value="0">自動停止しない</option></select></label>
         <div class="dialog-actions">
@@ -433,6 +436,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="js/app.js?v=2"></script>
+    <script type="module" src="js/app.js?v=3"></script>
   </body>
 </html>

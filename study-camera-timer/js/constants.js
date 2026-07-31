@@ -5,7 +5,7 @@
  * on real iPhones without hunting through implementation modules.
  */
 
-export const APP_SCHEMA_VERSION = 2;
+export const APP_SCHEMA_VERSION = 3;
 
 export const TIMER_STATES = Object.freeze({
   IDLE: "idle",
@@ -103,7 +103,6 @@ export const ANALYSIS = Object.freeze({
 
 export const NOTIFICATION_METHODS = Object.freeze({
   SOUND: "sound",
-  VIBRATION: "vibration",
   FLASH: "flash",
   SOUND_AND_FLASH: "sound_flash",
   SILENT: "silent",

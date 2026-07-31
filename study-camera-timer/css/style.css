@@ -681,12 +681,13 @@ html[data-theme="dark"] .primary-button {
 
 .custom-duration > div {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
 
 .custom-duration input {
-  width: 74px;
+  width: 64px;
   min-height: 42px;
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -1016,16 +1017,6 @@ html[data-theme="dark"] .primary-button {
   justify-self: start;
 }
 
-.capability-note {
-  margin: 8px 0 2px;
-  border-radius: 10px;
-  padding: 9px 11px;
-  background: var(--surface-soft);
-  color: var(--muted);
-  font-size: 0.72rem;
-  line-height: 1.55;
-}
-
 .settings-camera-preview {
   margin-top: 14px;
   overflow: hidden;
@@ -1060,7 +1051,7 @@ html[data-theme="dark"] .primary-button {
 
 .number-settings-grid label {
   display: grid;
-  grid-template-columns: 1fr 68px auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 5px;
   color: var(--muted);
@@ -1078,6 +1069,23 @@ html[data-theme="dark"] .primary-button {
   color: var(--ink);
   font-size: 16px;
   text-align: right;
+}
+
+.duration-pair {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.duration-pair.single-number {
+  min-width: 116px;
+}
+
+.input-with-unit input {
+  flex: 1 1 80px;
+  width: 0;
+  min-width: 0;
 }
 
 .editable-list {
@@ -1423,7 +1431,7 @@ html[data-theme="dark"] .primary-button {
   background: var(--accent-soft);
   color: var(--accent-strong);
   font-size: 2rem;
-  animation: alarm-pulse 1.45s ease-out infinite;
+  animation: alarm-pulse 1.9s ease-out infinite;
 }
 
 .stop-alarm-button {

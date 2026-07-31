@@ -2,7 +2,6 @@ const AUDIO_CONTEXT_CLASS = globalThis.AudioContext || globalThis.webkitAudioCon
 
 export const NOTIFICATION_MODES = Object.freeze([
   "sound",
-  "vibrate",
   "flash",
   "sound+flash",
   "silent"
@@ -17,58 +16,38 @@ export const VOLUME_LEVELS = Object.freeze({
 export const ALARM_SOUNDS = Object.freeze({
   clear_chime: Object.freeze({
     label: "クリアチャイム",
-    cue: Object.freeze({
-      waveform: "sine",
-      notes: Object.freeze([[659, 0.12, 0], [784, 0.14, 0.14], [988, 0.26, 0.3]])
-    })
+    src: new URL("../audio/clear-chime.wav", import.meta.url).href
   }),
   bell: Object.freeze({
     label: "ベル",
-    cue: Object.freeze({
-      waveform: "triangle",
-      volumeScale: 0.82,
-      notes: Object.freeze([[1047, 0.34, 0], [784, 0.48, 0.06], [1047, 0.28, 0.48]])
-    })
+    src: new URL("../audio/bell.wav", import.meta.url).href
   }),
   digital: Object.freeze({
     label: "デジタル",
-    cue: Object.freeze({
-      waveform: "square",
-      volumeScale: 0.48,
-      notes: Object.freeze([[880, 0.08, 0], [880, 0.08, 0.16], [1175, 0.14, 0.32], [1175, 0.14, 0.52]])
-    })
+    src: new URL("../audio/digital.wav", import.meta.url).href
   }),
   school: Object.freeze({
     label: "スクールベル",
-    cue: Object.freeze({
-      waveform: "sine",
-      volumeScale: 0.9,
-      notes: Object.freeze([[784, 0.28, 0], [659, 0.28, 0.3], [523, 0.4, 0.6]])
-    })
+    src: new URL("../audio/school-bell.wav", import.meta.url).href
   }),
   gentle: Object.freeze({
     label: "やさしい音",
-    cue: Object.freeze({
-      waveform: "triangle",
-      volumeScale: 0.6,
-      notes: Object.freeze([[523, 0.18, 0], [659, 0.24, 0.2], [784, 0.38, 0.44]])
-    })
+    src: new URL("../audio/gentle.wav", import.meta.url).href
   })
 });
 
 export const EVENT_CUES = Object.freeze({
-  start: { notes: [[659, 0.07, 0], [880, 0.09, 0.08]], vibrate: [55] },
-  pause: { notes: [[440, 0.1, 0]], vibrate: [45] },
-  resume: { notes: [[587, 0.07, 0], [784, 0.08, 0.07]], vibrate: [45] },
-  complete: { notes: [[659, 0.1, 0], [784, 0.1, 0.12], [988, 0.18, 0.24]], vibrate: [80, 60, 120] },
-  breakComplete: { notes: [[784, 0.1, 0], [988, 0.16, 0.12]], vibrate: [70, 50, 90] },
-  absent: { notes: [[392, 0.14, 0], [330, 0.18, 0.16]], vibrate: [120, 80, 120] },
-  returned: { notes: [[523, 0.07, 0], [659, 0.09, 0.08]], vibrate: [50] },
-  gesture: { notes: [[988, 0.055, 0]], vibrate: [] }
+  start: { notes: [[659, 0.07, 0], [880, 0.09, 0.08]] },
+  pause: { notes: [[440, 0.1, 0]] },
+  resume: { notes: [[587, 0.07, 0], [784, 0.08, 0.07]] },
+  complete: { notes: [[659, 0.1, 0], [784, 0.1, 0.12], [988, 0.18, 0.24]] },
+  breakComplete: { notes: [[784, 0.1, 0], [988, 0.16, 0.12]] },
+  absent: { notes: [[392, 0.14, 0], [330, 0.18, 0.16]] },
+  returned: { notes: [[523, 0.07, 0], [659, 0.09, 0.08]] },
+  gesture: { notes: [[988, 0.055, 0]] }
 });
 
 const MODE_ALIASES = Object.freeze({
-  vibration: "vibrate",
   "sound-flash": "sound+flash",
   sound_flash: "sound+flash",
   soundFlash: "sound+flash",
@@ -117,16 +96,22 @@ export class Notifier extends EventTarget {
     this.document = options.document || globalThis.document;
     this.navigator = options.navigator || globalThis.navigator;
     this.audioContext = options.audioContext || null;
+    this.audioElement = options.audioElement || null;
+    this.fetch = options.fetch || globalThis.fetch;
     this.ownsAudioContext = !options.audioContext;
     this.unlockTimeoutMs = Math.max(50, Number(options.unlockTimeoutMs) || 900);
-    this.repeatIntervalMs = Math.max(50, Number(options.repeatIntervalMs) || 1_450);
+    this.repeatIntervalMs = Math.max(50, Number(options.repeatIntervalMs) || 1_900);
     this._unlockPromise = null;
     this._unlockCleanup = noop;
     this._flashOverlay = null;
     this._flashAnimation = null;
     this._activeVoices = new Map();
+    this._audioBuffers = new Map();
+    this._audioBufferPromises = new Map();
+    this._playbackGeneration = 0;
     this._alarm = null;
     this._alarmSequence = 0;
+    this._prepareAlarmAudio();
     if (options.autoUnlock !== false) {
       this.bindUnlock(options.unlockTarget || this.document);
     }
@@ -138,10 +123,6 @@ export class Notifier extends EventTarget {
 
   get isAlarmActive() {
     return Boolean(this._alarm);
-  }
-
-  get vibrationSupported() {
-    return typeof this.navigator?.vibrate === "function";
   }
 
   setMode(mode) {
@@ -158,13 +139,17 @@ export class Notifier extends EventTarget {
 
   setSound(sound) {
     this.sound = normalizeSound(sound);
+    this._prepareAlarmAudio();
     this._emit("settingschange", { mode: this.mode, volume: this.volume, sound: this.sound });
     return this.sound;
   }
 
   async unlock() {
     if (this._unlockPromise) return this._unlockPromise;
-    this._unlockPromise = this._unlockAudio();
+    this._unlockPromise = this._unlockAudio().then(async (unlocked) => {
+      if (unlocked) await this._loadAlarmBuffer(this.sound);
+      return unlocked;
+    });
     try {
       return await this._unlockPromise;
     } finally {
@@ -242,29 +227,23 @@ export class Notifier extends EventTarget {
     const volume = normalizeVolume(options.volume || this.volume);
     const sound = normalizeSound(options.sound || this.sound);
     const isCompletionCue = eventName === "complete" || eventName === "breakComplete";
-    const eventCue = EVENT_CUES[eventName] || EVENT_CUES.complete;
-    const cue = isCompletionCue
-      ? { ...ALARM_SOUNDS[sound].cue, vibrate: eventCue.vibrate }
-      : eventCue;
+    const cue = EVENT_CUES[eventName] || EVENT_CUES.complete;
     const result = {
       eventName,
       mode,
       volume,
       sound,
       sounded: false,
-      vibrated: false,
       flashed: false
     };
 
     if (mode === "sound" || mode === "sound+flash") {
-      result.sounded = await this._playCue(cue, volume);
+      result.sounded = isCompletionCue
+        ? await this._playAlarmSound(sound, volume)
+        : await this._playCue(cue, volume);
       if (!result.sounded && options.fallbackToFlash) {
         result.flashed = await this.flash(options.flash);
       }
-    }
-    if (mode === "vibrate") {
-      result.vibrated = this._vibrate(cue.vibrate);
-      if (!result.vibrated) result.flashed = await this.flash(options.flash);
     }
     if (mode === "flash" || mode === "sound+flash") {
       result.flashed = await this.flash(options.flash);
@@ -306,15 +285,9 @@ export class Notifier extends EventTarget {
     if (!alarm) return false;
     this._alarm = null;
     globalThis.clearTimeout(alarm.timerId);
+    this._stopMediaAudio();
     this._stopActiveOscillators();
     this._stopFlash();
-    if (this.vibrationSupported) {
-      try {
-        this.navigator.vibrate(0);
-      } catch (error) {
-        this._emit("error", { source: "vibration-stop", error });
-      }
-    }
     this._emit("alarmstop", { eventName: alarm.eventName, reason: options.reason || "user" });
     return true;
   }
@@ -324,15 +297,9 @@ export class Notifier extends EventTarget {
     if (!alarm) return false;
     alarm.suspended = false;
     globalThis.clearTimeout(alarm.timerId);
+    this._stopMediaAudio();
     this._stopActiveOscillators();
     this._stopFlash();
-    if (this.vibrationSupported) {
-      try {
-        this.navigator.vibrate(0);
-      } catch (error) {
-        this._emit("error", { source: "vibration-refresh", error });
-      }
-    }
     if (alarm.inFlight) {
       alarm.refreshRequested = true;
     } else {
@@ -347,15 +314,9 @@ export class Notifier extends EventTarget {
     alarm.suspended = true;
     alarm.refreshRequested = false;
     globalThis.clearTimeout(alarm.timerId);
+    this._stopMediaAudio();
     this._stopActiveOscillators();
     this._stopFlash();
-    if (this.vibrationSupported) {
-      try {
-        this.navigator.vibrate(0);
-      } catch (error) {
-        this._emit("error", { source: "vibration-suspend", error });
-      }
-    }
     return true;
   }
 
@@ -401,6 +362,8 @@ export class Notifier extends EventTarget {
 
   async destroy() {
     this.stopAlarm({ reason: "destroy" });
+    this._stopMediaAudio();
+    this._stopActiveOscillators();
     this._unlockCleanup();
     this._flashOverlay?.remove();
     this._flashOverlay = null;
@@ -408,6 +371,109 @@ export class Notifier extends EventTarget {
       await this.audioContext.close().catch(noop);
     }
     this.audioContext = null;
+    if (this.audioElement) {
+      this.audioElement.removeAttribute?.("src");
+      this.audioElement.load?.();
+    }
+    this.audioElement = null;
+    this._audioBuffers.clear();
+    this._audioBufferPromises.clear();
+  }
+
+  _prepareAlarmAudio() {
+    const audio = this.audioElement;
+    const source = ALARM_SOUNDS[this.sound]?.src;
+    if (!audio || !source || audio.src === source) return false;
+    audio.preload = "auto";
+    audio.setAttribute?.("playsinline", "");
+    audio.src = source;
+    audio.load?.();
+    return true;
+  }
+
+  async _loadAlarmBuffer(sound) {
+    const soundId = normalizeSound(sound);
+    const source = ALARM_SOUNDS[soundId]?.src;
+    const context = this.audioContext;
+    if (!source || !context?.decodeAudioData || typeof this.fetch !== "function") return null;
+    if (this._audioBuffers.has(source)) return this._audioBuffers.get(source);
+    if (this._audioBufferPromises.has(source)) return this._audioBufferPromises.get(source);
+
+    const loading = (async () => {
+      try {
+        const response = await this.fetch(source);
+        if (!response?.ok) throw new Error(`Audio source returned HTTP ${response?.status || 0}`);
+        const buffer = await context.decodeAudioData(await response.arrayBuffer());
+        this._audioBuffers.set(source, buffer);
+        return buffer;
+      } catch (error) {
+        this._emit("error", { source: "audio-source-load", error });
+        return null;
+      } finally {
+        this._audioBufferPromises.delete(source);
+      }
+    })();
+    this._audioBufferPromises.set(source, loading);
+    return loading;
+  }
+
+  async _playAlarmSound(sound, volumeName) {
+    const playbackGeneration = this._playbackGeneration;
+    const buffer = await this._loadAlarmBuffer(sound);
+    if (playbackGeneration !== this._playbackGeneration) return false;
+    if (buffer && this.audioContext?.state === "running" && this.audioContext.createBufferSource) {
+      try {
+        const sourceNode = this.audioContext.createBufferSource();
+        const gain = this.audioContext.createGain();
+        sourceNode.buffer = buffer;
+        gain.gain.value = Math.min(1, VOLUME_LEVELS[volumeName] * 1.45);
+        sourceNode.connect(gain);
+        gain.connect(this.audioContext.destination);
+        this._activeVoices.set(sourceNode, gain);
+        sourceNode.addEventListener?.("ended", () => this._releaseVoice(sourceNode), { once: true });
+        sourceNode.start();
+        return true;
+      } catch (error) {
+        this._emit("error", { source: "audio-buffer-playback", error });
+      }
+    }
+
+    const audio = this.audioElement;
+    const source = ALARM_SOUNDS[normalizeSound(sound)]?.src;
+    if (!audio?.play || !source) return false;
+    try {
+      if (audio.src !== source) {
+        audio.pause?.();
+        audio.src = source;
+        audio.load?.();
+      }
+      audio.volume = Math.min(1, VOLUME_LEVELS[volumeName] * 1.45);
+      audio.currentTime = 0;
+      let timeoutId = 0;
+      const played = await Promise.race([
+        Promise.resolve(audio.play()).then(() => true, () => false),
+        new Promise((resolve) => {
+          timeoutId = globalThis.setTimeout(() => resolve(false), this.unlockTimeoutMs);
+        })
+      ]);
+      globalThis.clearTimeout(timeoutId);
+      return played;
+    } catch (error) {
+      this._emit("error", { source: "media-audio-playback", error });
+      return false;
+    }
+  }
+
+  _stopMediaAudio() {
+    this._playbackGeneration += 1;
+    const audio = this.audioElement;
+    if (!audio) return;
+    try {
+      audio.pause?.();
+      audio.currentTime = 0;
+    } catch (error) {
+      this._emit("error", { source: "media-audio-stop", error });
+    }
   }
 
   async _playCue(cue, volumeName) {
@@ -445,7 +511,7 @@ export class Notifier extends EventTarget {
     try {
       result = await this.notify(alarm.eventName, alarm.options);
     } catch (error) {
-      result = { eventName: alarm.eventName, sounded: false, vibrated: false, flashed: false };
+      result = { eventName: alarm.eventName, sounded: false, flashed: false };
       this._emit("error", { source: "alarm-cycle", error });
     } finally {
       alarm.inFlight = false;
@@ -490,16 +556,6 @@ export class Notifier extends EventTarget {
     this._flashAnimation?.cancel();
     this._flashAnimation = null;
     if (this._flashOverlay) this._flashOverlay.style.opacity = "0";
-  }
-
-  _vibrate(pattern) {
-    if (!pattern?.length || typeof this.navigator?.vibrate !== "function") return false;
-    try {
-      return this.navigator.vibrate(pattern) !== false;
-    } catch (error) {
-      this._emit("error", { source: "vibration", error });
-      return false;
-    }
   }
 
   _getFlashOverlay() {

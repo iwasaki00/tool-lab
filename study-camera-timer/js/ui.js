@@ -20,8 +20,6 @@ const MODE_LABELS = Object.freeze({
 
 const NOTIFICATION_LABELS = Object.freeze({
   sound: "音",
-  vibrate: "バイブレーション",
-  vibration: "バイブレーション",
   flash: "画面点滅",
   "sound-flash": "音＋画面点滅",
   sound_flash: "音＋画面点滅",
@@ -45,6 +43,14 @@ export function formatCompactDuration(milliseconds) {
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;
   return remainder ? `${hours}時間${remainder}分` : `${hours}時間`;
+}
+
+export function formatSelectableSeconds(totalSeconds) {
+  const seconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  if (!minutes) return `${remainder}秒`;
+  return remainder ? `${minutes}分${remainder}秒` : `${minutes}分`;
 }
 
 export function formatClock(date = new Date(), format = "24") {
@@ -103,6 +109,7 @@ export class UIController {
       configuredDuration: byId("configured-duration"),
       presetButtons: byId("preset-buttons"),
       customMinutes: byId("custom-minutes"),
+      customSeconds: byId("custom-seconds"),
       pomodoroSummary: byId("pomodoro-summary"),
       pomodoroPhase: byId("pomodoro-phase"),
       pomodoroSet: byId("pomodoro-set"),
@@ -187,7 +194,7 @@ export class UIController {
       canReset = true,
       canRepeat = false,
       canFinish = false,
-      configuredMinutes,
+      configuredSeconds,
       pomodoro,
       examDisplay = "remaining",
       examLocked = false
@@ -208,9 +215,15 @@ export class UIController {
     this.elements.repeat.disabled = !canRepeat;
     this.elements.finish.disabled = !canFinish;
 
-    if (Number.isFinite(configuredMinutes)) {
-      this.elements.configuredDuration.textContent = `設定 ${configuredMinutes}分`;
-      this.elements.customMinutes.value = String(configuredMinutes);
+    if (Number.isFinite(configuredSeconds)) {
+      const normalized = Math.max(0, Math.round(configuredSeconds));
+      this.elements.configuredDuration.textContent = `設定 ${formatSelectableSeconds(normalized)}`;
+      const editingDuration = [this.elements.customMinutes, this.elements.customSeconds]
+        .includes(this.root.activeElement);
+      if (!editingDuration) {
+        this.elements.customMinutes.value = String(Math.floor(normalized / 60));
+        this.elements.customSeconds.value = String(normalized % 60);
+      }
     }
 
     if (pomodoro) {
@@ -314,7 +327,8 @@ export class UIController {
       button.dataset.quickIndex = String(index);
       button.append(document.createTextNode(timer.name || `タイマー${index + 1}`));
       const detail = document.createElement("span");
-      detail.textContent = ` ${timer.durationMinutes ?? timer.minutes}分`;
+      const durationSeconds = Number(timer.durationSeconds ?? (timer.durationMinutes ?? timer.minutes) * 60);
+      detail.textContent = ` ${formatSelectableSeconds(durationSeconds)}`;
       button.append(detail);
       return button;
     });
@@ -326,10 +340,10 @@ export class UIController {
       const text = document.createElement("p");
       text.textContent = timer.name || `タイマー${index + 1}`;
       const meta = document.createElement("span");
-      const minutes = timer.durationMinutes ?? timer.minutes;
+      const durationSeconds = Number(timer.durationSeconds ?? (timer.durationMinutes ?? timer.minutes) * 60);
       const subject = timer.subjectName || timer.subject || "教科なし";
       const notification = timer.notificationMethod || timer.notification;
-      meta.textContent = `${minutes}分・${subject}・${NOTIFICATION_LABELS[notification] || "通知"}`;
+      meta.textContent = `${formatSelectableSeconds(durationSeconds)}・${subject}・${NOTIFICATION_LABELS[notification] || "通知"}`;
       text.append(meta);
       const actions = document.createElement("div");
       actions.className = "row-actions";

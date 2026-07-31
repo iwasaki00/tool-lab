@@ -44,6 +44,7 @@ import {
 } from "./ui.js";
 
 const MINUTE_MS = 60_000;
+const SECOND_MS = 1_000;
 const ACTIVE_STATES = new Set([
   TIMER_STATES.RUNNING,
   TIMER_STATES.ABSENCE_PENDING,
@@ -82,7 +83,8 @@ const attendance = new AttendanceController(attendanceOptions());
 const notifier = createNotifier({
   mode: settings.notifications.endMethod,
   volume: settings.notifications.volume,
-  sound: settings.notifications.sound
+  sound: settings.notifications.sound,
+  audioElement: document.getElementById("alarm-audio")
 });
 const wakeLock = createWakeLockManager();
 const debugTools = createDebugTools({ enabled: debugEnabled });
@@ -138,13 +140,11 @@ function shouldMonitorAttendance(snapshot) {
 
 function timerOptions() {
   const mode = settings.timer.lastMode;
-  const durationMinutes = mode === TIMER_MODES.EXAM
-    ? settings.exam.durationMinutes
-    : settings.timer.lastDurationMinutes;
+  const durationSeconds = getConfiguredSeconds(mode);
   return {
     mode,
-    durationMinutes,
-    durationMs: mode === TIMER_MODES.STOPWATCH ? null : durationMinutes * MINUTE_MS,
+    durationMinutes: durationSeconds / 60,
+    durationMs: mode === TIMER_MODES.STOPWATCH ? null : durationSeconds * SECOND_MS,
     countUpEnabled: settings.timer.countUpEnabled,
     absenceDetectionEnabled: settings.camera.absenceDetectionEnabled && mode !== TIMER_MODES.EXAM,
     absenceTimeoutSeconds: settings.camera.absenceTimeoutSeconds,
@@ -280,7 +280,7 @@ function renderTimer(snapshot) {
     canReset: !snapshot.examLocked,
     canRepeat: snapshot.state === TIMER_STATES.COMPLETED,
     canFinish: Boolean(snapshot.sessionStartedAt) && snapshot.state !== TIMER_STATES.COMPLETED && !snapshot.examLocked,
-    configuredMinutes: getConfiguredMinutes(snapshot.mode),
+    configuredSeconds: getConfiguredSeconds(snapshot.mode),
     pomodoro: buildPomodoroView(snapshot),
     examDisplay: snapshot.displayMode,
     examLocked: snapshot.examLocked
@@ -308,21 +308,52 @@ function buildPomodoroView(snapshot) {
     currentSet: Math.min(setNumber, totalSets),
     totalSets,
     nextLabel: phaseIsStudy
-      ? `${longBreakNext ? "長い休憩" : "休憩"}${longBreakNext ? settings.pomodoro.longBreakMinutes : settings.pomodoro.shortBreakMinutes}分`
-      : `勉強${settings.pomodoro.studyMinutes}分`
+      ? `${longBreakNext ? "長い休憩" : "休憩"} ${formatSelectableDuration(minutesToSeconds(longBreakNext ? settings.pomodoro.longBreakMinutes : settings.pomodoro.shortBreakMinutes))}`
+      : `勉強 ${formatSelectableDuration(minutesToSeconds(settings.pomodoro.studyMinutes))}`
   };
 }
 
-function getConfiguredMinutes(mode) {
-  if (mode === TIMER_MODES.EXAM) return settings.exam.durationMinutes;
-  if (mode === TIMER_MODES.POMODORO) return settings.pomodoro.studyMinutes;
-  return settings.timer.lastDurationMinutes;
+function getConfiguredSeconds(mode) {
+  if (mode === TIMER_MODES.EXAM) return minutesToSeconds(settings.exam.durationMinutes);
+  if (mode === TIMER_MODES.POMODORO) return minutesToSeconds(settings.pomodoro.studyMinutes);
+  return minutesToSeconds(settings.timer.lastDurationMinutes);
+}
+
+function minutesToSeconds(minutes) {
+  return Math.max(0, Math.round((Number(minutes) || 0) * 60));
+}
+
+function readDurationInputs(minutesId, secondsId) {
+  const minutes = Math.max(0, Math.floor(Number(document.getElementById(minutesId).value) || 0));
+  const seconds = Math.max(0, Math.min(59, Math.floor(Number(document.getElementById(secondsId).value) || 0)));
+  return minutes * 60 + seconds;
+}
+
+function setDurationInputs(minutesId, secondsId, totalSeconds) {
+  const normalized = Math.max(0, Math.round(Number(totalSeconds) || 0));
+  setValue(minutesId, Math.floor(normalized / 60));
+  setValue(secondsId, normalized % 60);
+}
+
+function readDurationMinutes(minutesId, secondsId, fallbackMinutes, maximumMinutes) {
+  const totalSeconds = readDurationInputs(minutesId, secondsId);
+  const maximumSeconds = maximumMinutes * 60;
+  if (totalSeconds < 1) return fallbackMinutes;
+  return Math.min(totalSeconds, maximumSeconds) / 60;
+}
+
+function formatSelectableDuration(totalSeconds) {
+  const seconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  if (!minutes) return `${remainder}秒`;
+  return remainder ? `${minutes}分${remainder}秒` : `${minutes}分`;
 }
 
 function renderPresets() {
   const mode = settings.timer.lastMode;
   const presets = mode === TIMER_MODES.EXAM ? EXAM_PRESETS_MINUTES : TIMER_PRESETS_MINUTES;
-  ui.renderPresets(presets, getConfiguredMinutes(mode));
+  ui.renderPresets(presets, getConfiguredSeconds(mode) / 60);
 }
 
 function bindNavigation() {
@@ -348,16 +379,18 @@ function bindTimerControls() {
 
   document.getElementById("preset-buttons").addEventListener("click", (event) => {
     const button = event.target.closest("[data-minutes]");
-    if (button) void changeDuration(Number(button.dataset.minutes));
+    if (button) void changeDurationSeconds(Number(button.dataset.minutes) * 60);
   });
-  document.getElementById("apply-custom-minutes").addEventListener("click", () => {
-    void changeDuration(Number(document.getElementById("custom-minutes").value));
+  document.getElementById("apply-custom-duration").addEventListener("click", () => {
+    void changeDurationSeconds(readDurationInputs("custom-minutes", "custom-seconds"));
   });
-  document.getElementById("custom-minutes").addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      void changeDuration(Number(event.currentTarget.value));
-    }
+  ["custom-minutes", "custom-seconds"].forEach((id) => {
+    document.getElementById(id).addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void changeDurationSeconds(readDurationInputs("custom-minutes", "custom-seconds"));
+      }
+    });
   });
 
   document.getElementById("start-pause-button").addEventListener("click", () => void toggleTimer("button"));
@@ -400,13 +433,14 @@ async function changeMode(mode) {
   rebuildTimer();
 }
 
-async function changeDuration(minutes) {
-  minutes = Math.round(minutes);
-  if (!Number.isFinite(minutes) || minutes < 1 || minutes > 720) {
-    ui.showError("時間は1〜720分で指定してください。");
+async function changeDurationSeconds(totalSeconds) {
+  totalSeconds = Math.round(totalSeconds);
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 1 || totalSeconds > 720 * 60) {
+    ui.showError("時間は1秒〜720分で指定してください。");
     return;
   }
   if (!await endActiveSessionForReconfiguration()) return;
+  const minutes = totalSeconds / 60;
   if (settings.timer.lastMode === TIMER_MODES.EXAM) {
     settings = saveSettings({ exam: { durationMinutes: minutes } });
   } else {
@@ -522,7 +556,7 @@ function bindExamLockControl() {
       examUnlockCompleted = true;
       timer.setExamLock(false);
       ui.showToast("操作ロックを解除しました");
-      if (navigator.vibrate) navigator.vibrate(35);
+      void notifier.flash({ duration: 180 });
     }, 1200);
   };
   const cancel = () => window.clearTimeout(pendingExamUnlockTimer);
@@ -635,13 +669,16 @@ async function handleSettingChange(control) {
       patch = { history: { enabled: control.checked } };
       break;
     case "setting-pomodoro-study":
-      patch = { pomodoro: { studyMinutes: validMinutes(control.value, 25) } };
+    case "setting-pomodoro-study-seconds":
+      patch = { pomodoro: { studyMinutes: readDurationMinutes("setting-pomodoro-study", "setting-pomodoro-study-seconds", 25, 180) } };
       break;
     case "setting-pomodoro-short":
-      patch = { pomodoro: { shortBreakMinutes: validMinutes(control.value, 5) } };
+    case "setting-pomodoro-short-seconds":
+      patch = { pomodoro: { shortBreakMinutes: readDurationMinutes("setting-pomodoro-short", "setting-pomodoro-short-seconds", 5, 60) } };
       break;
     case "setting-pomodoro-long":
-      patch = { pomodoro: { longBreakMinutes: validMinutes(control.value, 15) } };
+    case "setting-pomodoro-long-seconds":
+      patch = { pomodoro: { longBreakMinutes: readDurationMinutes("setting-pomodoro-long", "setting-pomodoro-long-seconds", 15, 120) } };
       break;
     case "setting-pomodoro-sets":
       patch = { pomodoro: { longBreakEvery: Math.max(1, Math.min(12, Math.round(Number(control.value) || 4))) } };
@@ -652,17 +689,16 @@ async function handleSettingChange(control) {
     case "setting-auto-study":
       patch = { pomodoro: { autoStartStudy: control.checked } };
       break;
+    case "setting-debug":
+      patch = { debug: { enabled: control.checked } };
+      break;
     default:
       return;
   }
 
   settings = saveSettings(patch);
   applySettingsSideEffects(control.id);
-}
-
-function validMinutes(value, fallback) {
-  const minutes = Math.round(Number(value));
-  return Number.isFinite(minutes) ? Math.max(1, Math.min(180, minutes)) : fallback;
+  if (control.id === "setting-sound") await notifier.unlock();
 }
 
 function applySettingsSideEffects(changedId = "") {
@@ -677,10 +713,19 @@ function applySettingsSideEffects(changedId = "") {
     camera.setHandEnabled(settings.camera.gestureEnabled).catch((error) => ui.showError(error.message));
   }
   if (changedId === "setting-wake-lock") updateRuntimeActivity(timer.getSnapshot());
+  if (changedId === "setting-debug") {
+    const nextUrl = new URL(window.location.href);
+    if (!settings.debug.enabled) nextUrl.searchParams.delete("debug");
+    ui.showToast("デバッグモードを切り替えています");
+    window.setTimeout(() => window.location.replace(nextUrl.href), 120);
+    return;
+  }
 
   const timerRelated = new Set([
     "setting-attendance", "setting-absence-threshold", "setting-resume-mode", "setting-count-up",
-    "setting-pomodoro-study", "setting-pomodoro-short", "setting-pomodoro-long",
+    "setting-pomodoro-study", "setting-pomodoro-study-seconds",
+    "setting-pomodoro-short", "setting-pomodoro-short-seconds",
+    "setting-pomodoro-long", "setting-pomodoro-long-seconds",
     "setting-pomodoro-sets", "setting-auto-break", "setting-auto-study"
   ]);
   if (timerRelated.has(changedId)) reconfigureTimerIfIdle();
@@ -714,9 +759,10 @@ function populateSettingsForm() {
   setValue("setting-count-up", settings.timer.countUpEnabled);
   setValue("setting-wake-lock", settings.wakeLock.enabled);
   setValue("setting-save-history", settings.history.enabled);
-  setValue("setting-pomodoro-study", settings.pomodoro.studyMinutes);
-  setValue("setting-pomodoro-short", settings.pomodoro.shortBreakMinutes);
-  setValue("setting-pomodoro-long", settings.pomodoro.longBreakMinutes);
+  setValue("setting-debug", debugEnabled);
+  setDurationInputs("setting-pomodoro-study", "setting-pomodoro-study-seconds", minutesToSeconds(settings.pomodoro.studyMinutes));
+  setDurationInputs("setting-pomodoro-short", "setting-pomodoro-short-seconds", minutesToSeconds(settings.pomodoro.shortBreakMinutes));
+  setDurationInputs("setting-pomodoro-long", "setting-pomodoro-long-seconds", minutesToSeconds(settings.pomodoro.longBreakMinutes));
   setValue("setting-pomodoro-sets", settings.pomodoro.longBreakEvery);
   setValue("setting-auto-break", settings.pomodoro.autoStartBreak);
   setValue("setting-auto-study", settings.pomodoro.autoStartStudy);
@@ -728,17 +774,6 @@ function populateSettingsForm() {
   const wakeNote = document.getElementById("wake-lock-note");
   wakeControl.disabled = !capability.supported;
   wakeNote.textContent = capability.supported ? "対応しています" : "この環境では利用できません";
-
-  const vibrationOptions = document.querySelectorAll('select option[value="vibration"]');
-  const vibrationNote = document.getElementById("vibration-support-note");
-  vibrationOptions.forEach((option) => {
-    option.textContent = notifier.vibrationSupported
-      ? "バイブレーション"
-      : "バイブレーション（画面点滅で代替）";
-  });
-  vibrationNote.textContent = notifier.vibrationSupported
-    ? "このブラウザでは端末のバイブレーションを利用できます。"
-    : "このブラウザはバイブレーションに対応していないため、選択時は画面点滅で通知します。";
 
   const cameraNote = document.getElementById("camera-capability-note");
   if (!window.isSecureContext) cameraNote.textContent = "カメラにはHTTPSまたはlocalhostが必要です。";
@@ -807,7 +842,11 @@ function openQuickTimerEditor(index = -1) {
   const quick = quickTimers[index] || {};
   document.getElementById("quick-timer-index").value = quick.id || "";
   document.getElementById("quick-name").value = quick.name || "";
-  document.getElementById("quick-minutes").value = quick.durationMinutes || settings.timer.lastDurationMinutes;
+  setDurationInputs(
+    "quick-minutes",
+    "quick-seconds",
+    quick.durationSeconds || minutesToSeconds(settings.timer.lastDurationMinutes)
+  );
   document.getElementById("quick-subject").value = quick.subjectId || subjects[0]?.id || "";
   document.getElementById("quick-notification").value = quick.notificationMethod || settings.notifications.endMethod;
   document.getElementById("quick-camera").checked = quick.cameraEnabled ?? false;
@@ -826,7 +865,7 @@ function saveQuickTimerFromDialog(event) {
     upsertQuickTimer({
       id: id || undefined,
       name: document.getElementById("quick-name").value,
-      durationMinutes: Number(document.getElementById("quick-minutes").value),
+      durationSeconds: readDurationInputs("quick-minutes", "quick-seconds"),
       subjectId: document.getElementById("quick-subject").value || null,
       notificationMethod: document.getElementById("quick-notification").value,
       cameraEnabled: document.getElementById("quick-camera").checked,
@@ -864,7 +903,7 @@ async function applyQuickTimer(index) {
   const quick = quickTimers[index];
   if (!quick || !await endActiveSessionForReconfiguration()) return;
   settings = saveSettings({
-    timer: { lastMode: TIMER_MODES.COUNTDOWN, lastDurationMinutes: quick.durationMinutes },
+    timer: { lastMode: TIMER_MODES.COUNTDOWN, lastDurationMinutes: quick.durationSeconds / 60 },
     notifications: { endMethod: quick.notificationMethod },
     camera: { absenceTimeoutSeconds: quick.absenceTimeoutSeconds }
   });
@@ -909,6 +948,11 @@ async function resetAllPreferences() {
   renderSubjectsAndQuickTimers();
   rebuildTimer();
   ui.showToast("設定を初期化しました");
+  if (debugEnabled) {
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.delete("debug");
+    window.setTimeout(() => window.location.replace(nextUrl.href), 180);
+  }
 }
 
 async function deleteAllHistory() {
@@ -1257,7 +1301,7 @@ function startCompletionNotification(eventName, title, suppliedOptions = null) {
 
   if (!repeats) {
     void notifier.notifyEvent(eventName, options).then((result) => {
-      if (!result.sounded && !result.vibrated && !result.flashed && options.mode !== "silent") {
+      if (!result.sounded && !result.flashed && options.mode !== "silent") {
         ui.showToast("通知を再生できなかったため、完了表示でお知らせします");
       }
     });
@@ -1265,13 +1309,11 @@ function startCompletionNotification(eventName, title, suppliedOptions = null) {
   }
 
   document.getElementById("alarm-title").textContent = title;
-  document.getElementById("alarm-message").textContent = notifier.vibrationSupported
-    ? "停止ボタンを押すまで通知を繰り返します。"
-    : "停止ボタンを押すまで通知を繰り返します。バイブレーション非対応時は画面を点滅します。";
+  document.getElementById("alarm-message").textContent = "停止ボタンを押すまで通知を繰り返します。";
   notifier.stopAlarm({ reason: "replaced" });
   ui.openDialog("alarm-dialog");
   void notifier.startAlarm(eventName, { ...options, repeat: true }).then((result) => {
-    if (!result.sounded && !result.vibrated && !result.flashed && notifier.isAlarmActive) {
+    if (!result.sounded && !result.flashed && notifier.isAlarmActive) {
       ui.showToast("音声が制限されています。停止ボタンは画面に表示されています。", 3600);
     }
   });

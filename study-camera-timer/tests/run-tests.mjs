@@ -57,6 +57,16 @@ test("countdown uses wall-clock deltas and excludes manual pauses", () => {
   assert.equal(result.stats.actualStudyMs, 60_000);
 });
 
+test("countdown accepts an exact duration in seconds", () => {
+  const timer = new StudyTimer({ durationMs: 1_500, autoTick: false, now: () => 1_000 });
+  timer.start(1_000);
+  timer.tick(2_499);
+  assert.equal(timer.getSnapshot(2_499).state, TIMER_STATES.RUNNING);
+  assert.equal(timer.getSnapshot(2_499).remainingMs, 1);
+  timer.tick(2_500);
+  assert.equal(timer.getSnapshot(2_500).state, TIMER_STATES.COMPLETED);
+});
+
 test("brief face loss cancels without pausing", () => {
   const timer = new StudyTimer({ durationMinutes: 2, autoTick: false, now: () => 1_000 });
   timer.start(1_000);
@@ -345,39 +355,21 @@ test("audio unlock timeout cannot block the timer interaction path", async () =>
   assert.ok(Date.now() - startedAt < 500);
 });
 
-test("alarm repeats until explicitly stopped and releases scheduled audio", async () => {
-  let oscillatorCount = 0;
-  let stopCount = 0;
-  let disconnectCount = 0;
-  const audioContext = {
-    state: "running",
+test("alarm repeats the selected WAV until explicitly stopped", async () => {
+  let playCount = 0;
+  let pauseCount = 0;
+  const audioElement = {
+    src: "",
+    volume: 1,
     currentTime: 0,
-    destination: {},
-    createOscillator() {
-      oscillatorCount += 1;
-      return {
-        type: "sine",
-        frequency: { setValueAtTime: () => undefined },
-        connect: () => undefined,
-        disconnect: () => { disconnectCount += 1; },
-        addEventListener: () => undefined,
-        start: () => undefined,
-        stop: () => { stopCount += 1; }
-      };
-    },
-    createGain() {
-      return {
-        gain: {
-          setValueAtTime: () => undefined,
-          exponentialRampToValueAtTime: () => undefined
-        },
-        connect: () => undefined,
-        disconnect: () => { disconnectCount += 1; }
-      };
-    }
+    preload: "",
+    setAttribute: () => undefined,
+    load: () => undefined,
+    play: async () => { playCount += 1; },
+    pause: () => { pauseCount += 1; }
   };
   const notifier = new Notifier({
-    audioContext,
+    audioElement,
     autoUnlock: false,
     repeatIntervalMs: 50
   });
@@ -385,48 +377,115 @@ test("alarm repeats until explicitly stopped and releases scheduled audio", asyn
   assert.equal(first.repeating, true);
   assert.equal(notifier.isAlarmActive, true);
   await new Promise((resolve) => setTimeout(resolve, 125));
-  assert.ok(oscillatorCount >= 8, `expected repeated notes, got ${oscillatorCount}`);
+  assert.ok(playCount >= 3, `expected repeated WAV playback, got ${playCount}`);
+  assert.ok(audioElement.src.endsWith("/audio/digital.wav"));
   assert.equal(notifier.suspendAlarm(), true);
-  const countAtSuspend = oscillatorCount;
+  const countAtSuspend = playCount;
   await new Promise((resolve) => setTimeout(resolve, 80));
-  assert.equal(oscillatorCount, countAtSuspend);
+  assert.equal(playCount, countAtSuspend);
   assert.equal(notifier.refreshAlarm(), true);
   await new Promise((resolve) => setTimeout(resolve, 70));
-  assert.ok(oscillatorCount > countAtSuspend);
-  const countAtStop = oscillatorCount;
-  const stopsBeforeStop = stopCount;
+  assert.ok(playCount > countAtSuspend);
+  const countAtStop = playCount;
+  const pausesBeforeStop = pauseCount;
   assert.equal(notifier.stopAlarm({ reason: "test" }), true);
   assert.equal(notifier.isAlarmActive, false);
-  assert.ok(stopCount > stopsBeforeStop, "explicit stop should stop already scheduled oscillators");
-  assert.ok(disconnectCount >= countAtStop * 2, "source and gain nodes should be disconnected");
+  assert.ok(pauseCount > pausesBeforeStop, "explicit stop should pause the WAV element");
   await new Promise((resolve) => setTimeout(resolve, 80));
-  assert.equal(oscillatorCount, countAtStop);
+  assert.equal(playCount, countAtStop);
 });
 
-test("five alarm sounds are distinct and invalid sound IDs fall back safely", async () => {
+test("five alarm sounds use distinct local WAV files and invalid IDs fall back safely", async () => {
   assert.equal(Object.keys(ALARM_SOUNDS).length, 5);
-  const signatures = Object.values(ALARM_SOUNDS).map(({ cue }) => JSON.stringify({
-    waveform: cue.waveform,
-    notes: cue.notes
-  }));
-  assert.equal(new Set(signatures).size, 5);
+  const sources = Object.values(ALARM_SOUNDS).map(({ src }) => src);
+  assert.equal(new Set(sources).size, 5);
+  const wavFiles = ["clear-chime.wav", "bell.wav", "digital.wav", "school-bell.wav", "gentle.wav"];
+  const wavHashes = wavFiles.map((filename) => {
+    const bytes = fs.readFileSync(path.join(appRoot, "audio", filename));
+    assert.equal(bytes.subarray(0, 4).toString("ascii"), "RIFF");
+    assert.equal(bytes.subarray(8, 12).toString("ascii"), "WAVE");
+    return bytes.subarray(44, 2048).toString("base64");
+  });
+  assert.equal(new Set(wavHashes).size, 5);
   const notifier = new Notifier({ autoUnlock: false });
   assert.equal(notifier.setSound("digital"), "digital");
   assert.equal(notifier.setSound("not-a-sound"), "clear_chime");
 });
 
-test("unsupported vibration falls back to a visible flash", async () => {
-  const notifier = new Notifier({ navigator: {}, autoUnlock: false });
-  let flashes = 0;
-  notifier.flash = async () => {
-    flashes += 1;
-    return true;
+test("selected WAV is decoded and played through the unlocked audio context", async () => {
+  let requestedSource = "";
+  let started = 0;
+  const decodedBuffer = { id: "decoded-school-bell" };
+  const audioContext = {
+    state: "running",
+    currentTime: 0,
+    destination: {},
+    decodeAudioData: async () => decodedBuffer,
+    createBufferSource() {
+      return {
+        buffer: null,
+        connect: () => undefined,
+        disconnect: () => undefined,
+        addEventListener: () => undefined,
+        start: () => { started += 1; },
+        stop: () => undefined
+      };
+    },
+    createGain() {
+      return {
+        gain: { value: 0 },
+        connect: () => undefined,
+        disconnect: () => undefined
+      };
+    }
   };
-  const result = await notifier.notify("complete", { mode: "vibrate" });
-  assert.equal(notifier.vibrationSupported, false);
-  assert.equal(result.vibrated, false);
-  assert.equal(result.flashed, true);
-  assert.equal(flashes, 1);
+  const notifier = new Notifier({
+    audioContext,
+    autoUnlock: false,
+    fetch: async (source) => {
+      requestedSource = source;
+      return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) };
+    }
+  });
+  const result = await notifier.notify("complete", { mode: "sound", sound: "school" });
+  assert.equal(result.sounded, true);
+  assert.ok(requestedSource.endsWith("/audio/school-bell.wav"));
+  assert.equal(started, 1);
+  await notifier.destroy();
+});
+
+test("stopping during WAV loading prevents late playback", async () => {
+  let resolveDecode;
+  let started = 0;
+  const audioContext = {
+    state: "running",
+    destination: {},
+    decodeAudioData: () => new Promise((resolve) => { resolveDecode = resolve; }),
+    createBufferSource: () => ({
+      connect: () => undefined,
+      disconnect: () => undefined,
+      addEventListener: () => undefined,
+      start: () => { started += 1; },
+      stop: () => undefined
+    }),
+    createGain: () => ({
+      gain: { value: 0 },
+      connect: () => undefined,
+      disconnect: () => undefined
+    })
+  };
+  const notifier = new Notifier({
+    audioContext,
+    autoUnlock: false,
+    fetch: async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })
+  });
+  const starting = notifier.startAlarm("complete", { mode: "sound", sound: "bell" });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(notifier.stopAlarm({ reason: "test" }), true);
+  resolveDecode({ id: "late-buffer" });
+  const result = await starting;
+  assert.equal(result.repeating, false);
+  assert.equal(started, 0);
 });
 
 test("notification sound and repeat preference persist with safe defaults", () => {
@@ -441,6 +500,8 @@ test("notification sound and repeat preference persist with safe defaults", () =
   assert.equal(current.notifications.repeatUntilStopped, false);
   saveSettings({ notifications: { sound: "invalid" } });
   assert.equal(loadSettings().notifications.sound, "clear_chime");
+  saveSettings({ notifications: { endMethod: "vibration" } });
+  assert.equal(loadSettings().notifications.endMethod, "sound");
 });
 
 test("camera controller can start and releases its media track", async () => {
@@ -532,6 +593,13 @@ test("settings preserve the explicit no-auto-pause null value", () => {
   assert.equal(loadSettings().camera.absenceTimeoutSeconds, null);
 });
 
+test("debug mode preference persists", () => {
+  storageValues.clear();
+  resetPreferences();
+  saveSettings({ debug: { enabled: true } });
+  assert.equal(loadSettings().debug.enabled, true);
+});
+
 test("quick timer storage is capped at three", () => {
   storageValues.clear();
   const saved = saveQuickTimers([1, 2, 3, 4].map((index) => ({
@@ -541,6 +609,18 @@ test("quick timer storage is capped at three", () => {
   })));
   assert.equal(saved.length, 3);
   assert.equal(loadQuickTimers().length, 3);
+});
+
+test("quick timer preserves a seconds-level duration", () => {
+  storageValues.clear();
+  const [saved] = saveQuickTimers([{
+    name: "90秒",
+    durationSeconds: 90,
+    absenceTimeoutSeconds: 30
+  }]);
+  assert.equal(saved.durationSeconds, 90);
+  assert.equal(saved.durationMinutes, 1.5);
+  assert.equal(loadQuickTimers()[0].durationSeconds, 90);
 });
 
 test("history record and Monday-week aggregates use actual study time", () => {
@@ -598,8 +678,13 @@ test("HTML references exist and every app module is present", () => {
   assert.deepEqual(missingIds, []);
   const soundSelect = html.match(/<select id="setting-sound">([\s\S]*?)<\/select>/)?.[1] || "";
   assert.equal((soundSelect.match(/<option\b/g) || []).length, 5);
+  assert.equal(html.includes('value="vibration"'), false);
   assert.ok(html.includes('id="alarm-dialog"'));
   assert.ok(html.includes('id="stop-alarm-button"'));
+  assert.ok(html.includes('id="alarm-audio"'));
+  assert.ok(html.includes('id="custom-seconds"'));
+  assert.ok(html.includes('id="quick-seconds"'));
+  assert.ok(html.includes('id="setting-debug"'));
   const scripts = [
     "constants.js", "storage.js", "settings.js", "timer.js", "history.js",
     "faceDetector.js", "handDetector.js", "gestureController.js",
@@ -609,6 +694,9 @@ test("HTML references exist and every app module is present", () => {
   scripts.forEach((file) => assert.equal(fs.existsSync(path.join(appRoot, "js", file)), true, file));
   assert.equal(fs.existsSync(path.join(appRoot, "icons", "icon-192.png")), true);
   assert.equal(fs.existsSync(path.join(appRoot, "icons", "icon-512.png")), true);
+  ["clear-chime.wav", "bell.wav", "digital.wav", "school-bell.wav", "gentle.wav"].forEach((file) => {
+    assert.equal(fs.existsSync(path.join(appRoot, "audio", file)), true, file);
+  });
   const manifest = JSON.parse(fs.readFileSync(path.join(appRoot, "manifest.webmanifest"), "utf8"));
   assert.equal(manifest.start_url, "./");
   assert.equal(manifest.scope, "./");

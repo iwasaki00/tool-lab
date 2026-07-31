@@ -243,13 +243,15 @@ export function removeSubject(id) {
 
 function normalizeQuickTimer(value, index = 0) {
   const name = String(value?.name ?? "").trim();
-  const durationMinutes = Math.round(Number(value?.durationMinutes));
-  if (!name || !Number.isFinite(durationMinutes) || durationMinutes < 1) return null;
+  const legacySeconds = Number(value?.durationMinutes) * 60;
+  const durationSeconds = Math.round(Number(value?.durationSeconds ?? legacySeconds));
+  if (!name || !Number.isFinite(durationSeconds) || durationSeconds < 1) return null;
   const timeout = value.absenceTimeoutSeconds;
   return {
     id: String(value.id || createId(`quick-${index}`)),
     name: name.slice(0, 40),
-    durationMinutes: Math.min(durationMinutes, 24 * 60),
+    durationSeconds: Math.min(durationSeconds, 24 * 60 * 60),
+    durationMinutes: Math.min(durationSeconds, 24 * 60 * 60) / 60,
     subjectId: value.subjectId ? String(value.subjectId) : null,
     notificationMethod: Object.values(NOTIFICATION_METHODS).includes(value.notificationMethod)
       ? value.notificationMethod
