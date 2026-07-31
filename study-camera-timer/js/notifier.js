@@ -8,9 +8,9 @@ export const NOTIFICATION_MODES = Object.freeze([
 ]);
 
 export const VOLUME_LEVELS = Object.freeze({
-  low: 0.16,
-  medium: 0.34,
-  high: 0.62
+  low: 0.05,
+  medium: 0.28,
+  high: 0.95
 });
 
 export const ALARM_SOUNDS = Object.freeze({
@@ -95,6 +95,7 @@ export class Notifier extends EventTarget {
     this.sound = normalizeSound(options.sound || "clear_chime");
     this.document = options.document || globalThis.document;
     this.navigator = options.navigator || globalThis.navigator;
+    this.matchMedia = options.matchMedia || globalThis.matchMedia;
     this.audioContext = options.audioContext || null;
     this.audioElement = options.audioElement || null;
     this.fetch = options.fetch || globalThis.fetch;
@@ -105,6 +106,7 @@ export class Notifier extends EventTarget {
     this._unlockCleanup = noop;
     this._flashOverlay = null;
     this._flashAnimation = null;
+    this._flashGeneration = 0;
     this._activeVoices = new Map();
     this._audioBuffers = new Map();
     this._audioBufferPromises = new Map();
@@ -337,25 +339,44 @@ export class Notifier extends EventTarget {
 
     const overlay = this._getFlashOverlay();
     if (!overlay) return false;
-    const color = options?.color || "rgba(255, 239, 140, 0.72)";
-    const duration = Math.max(120, Number(options?.duration) || 360);
+    const color = options?.color || "rgba(255, 225, 48, 0.98)";
+    const requestedDuration = Number(options?.duration);
+    const duration = Math.max(120, Number.isFinite(requestedDuration) && requestedDuration > 0
+      ? requestedDuration
+      : 1_080);
+    const reduceMotion = Boolean(this.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+    const useStrongTriplePulse = !reduceMotion && duration >= 600;
+    const keyframes = useStrongTriplePulse
+      ? [
+          { opacity: 0 },
+          { opacity: 1, offset: 0.08 },
+          { opacity: 0, offset: 0.22 },
+          { opacity: 1, offset: 0.36 },
+          { opacity: 0, offset: 0.5 },
+          { opacity: 1, offset: 0.64 },
+          { opacity: 0 }
+        ]
+      : [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0 }];
+    const flashGeneration = ++this._flashGeneration;
+    overlay.style.background = color;
 
     if (typeof overlay.animate === "function") {
-      const animation = overlay.animate(
-        [{ opacity: 0 }, { opacity: 1, offset: 0.28 }, { opacity: 0 }],
-        { duration, easing: "ease-out" }
-      );
       this._flashAnimation?.cancel();
+      const animation = overlay.animate(keyframes, { duration, easing: "linear" });
       this._flashAnimation = animation;
-      overlay.style.background = color;
       await animation.finished.catch(noop);
       if (this._flashAnimation === animation) this._flashAnimation = null;
     } else {
-      overlay.style.background = color;
-      overlay.style.opacity = "1";
-      await new Promise((resolve) => globalThis.setTimeout(resolve, Math.round(duration * 0.35)));
-      overlay.style.opacity = "0";
-      await new Promise((resolve) => globalThis.setTimeout(resolve, Math.round(duration * 0.65)));
+      const pulseCount = useStrongTriplePulse ? 3 : 1;
+      const pulseDuration = duration / pulseCount;
+      for (let index = 0; index < pulseCount; index += 1) {
+        if (flashGeneration !== this._flashGeneration) return false;
+        overlay.style.opacity = "1";
+        await new Promise((resolve) => globalThis.setTimeout(resolve, Math.round(pulseDuration * 0.42)));
+        if (flashGeneration !== this._flashGeneration) return false;
+        overlay.style.opacity = "0";
+        await new Promise((resolve) => globalThis.setTimeout(resolve, Math.round(pulseDuration * 0.58)));
+      }
     }
     return true;
   }
@@ -367,7 +388,7 @@ export class Notifier extends EventTarget {
     this._unlockCleanup();
     this._flashOverlay?.remove();
     this._flashOverlay = null;
-    if (this.ownsAudioContext && this.audioContext?.state !== "closed") {
+    if (this.ownsAudioContext && this.audioContext && this.audioContext.state !== "closed") {
       await this.audioContext.close().catch(noop);
     }
     this.audioContext = null;
@@ -426,7 +447,12 @@ export class Notifier extends EventTarget {
         const sourceNode = this.audioContext.createBufferSource();
         const gain = this.audioContext.createGain();
         sourceNode.buffer = buffer;
-        gain.gain.value = Math.min(1, VOLUME_LEVELS[volumeName] * 1.45);
+        const amplitude = VOLUME_LEVELS[volumeName];
+        if (typeof gain.gain.setValueAtTime === "function") {
+          gain.gain.setValueAtTime(amplitude, this.audioContext.currentTime);
+        } else {
+          gain.gain.value = amplitude;
+        }
         sourceNode.connect(gain);
         gain.connect(this.audioContext.destination);
         this._activeVoices.set(sourceNode, gain);
@@ -447,7 +473,7 @@ export class Notifier extends EventTarget {
         audio.src = source;
         audio.load?.();
       }
-      audio.volume = Math.min(1, VOLUME_LEVELS[volumeName] * 1.45);
+      audio.volume = VOLUME_LEVELS[volumeName];
       audio.currentTime = 0;
       let timeoutId = 0;
       const played = await Promise.race([
@@ -553,6 +579,7 @@ export class Notifier extends EventTarget {
   }
 
   _stopFlash() {
+    this._flashGeneration += 1;
     this._flashAnimation?.cancel();
     this._flashAnimation = null;
     if (this._flashOverlay) this._flashOverlay.style.opacity = "0";

@@ -24,7 +24,7 @@ const { FacePresenceTracker } = await import("../js/faceDetector.js");
 const { PalmGestureController } = await import("../js/gestureController.js");
 const { AttendanceController } = await import("../js/attendanceController.js");
 const { CameraController, CAMERA_STATES } = await import("../js/camera.js");
-const { ALARM_SOUNDS, Notifier } = await import("../js/notifier.js");
+const { ALARM_SOUNDS, Notifier, VOLUME_LEVELS } = await import("../js/notifier.js");
 const {
   loadSettings,
   saveSettings,
@@ -451,6 +451,74 @@ test("selected WAV is decoded and played through the unlocked audio context", as
   assert.equal(result.sounded, true);
   assert.ok(requestedSource.endsWith("/audio/school-bell.wav"));
   assert.equal(started, 1);
+  await notifier.destroy();
+});
+
+test("notification volume levels apply clearly separated Web Audio gains", async () => {
+  const appliedGains = [];
+  const audioContext = {
+    state: "running",
+    currentTime: 2,
+    destination: {},
+    decodeAudioData: async () => ({ id: "decoded-alarm" }),
+    createBufferSource: () => ({
+      connect: () => undefined,
+      disconnect: () => undefined,
+      addEventListener: () => undefined,
+      start: () => undefined,
+      stop: () => undefined
+    }),
+    createGain: () => ({
+      gain: {
+        value: 0,
+        setValueAtTime(value) { appliedGains.push(value); }
+      },
+      connect: () => undefined,
+      disconnect: () => undefined
+    })
+  };
+  const notifier = new Notifier({
+    audioContext,
+    autoUnlock: false,
+    fetch: async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })
+  });
+  await notifier.notify("complete", { mode: "sound", volume: "low" });
+  await notifier.notify("complete", { mode: "sound", volume: "medium" });
+  await notifier.notify("complete", { mode: "sound", volume: "high" });
+  assert.deepEqual(appliedGains, [VOLUME_LEVELS.low, VOLUME_LEVELS.medium, VOLUME_LEVELS.high]);
+  assert.ok(VOLUME_LEVELS.medium >= VOLUME_LEVELS.low * 5);
+  assert.ok(VOLUME_LEVELS.high >= VOLUME_LEVELS.medium * 3);
+  await notifier.destroy();
+});
+
+test("default screen flash uses a bright full-screen triple pulse", async () => {
+  let capturedKeyframes = [];
+  let capturedTiming = {};
+  const overlay = {
+    isConnected: true,
+    style: {},
+    setAttribute: () => undefined,
+    remove: () => undefined,
+    animate(keyframes, timing) {
+      capturedKeyframes = keyframes;
+      capturedTiming = timing;
+      return { finished: Promise.resolve(), cancel: () => undefined };
+    }
+  };
+  const document = {
+    visibilityState: "visible",
+    body: { append: () => undefined },
+    createElement: () => overlay
+  };
+  const notifier = new Notifier({
+    document,
+    autoUnlock: false,
+    matchMedia: () => ({ matches: false })
+  });
+  assert.equal(await notifier.flash(), true);
+  assert.equal(capturedKeyframes.filter(({ opacity }) => opacity === 1).length, 3);
+  assert.ok(capturedTiming.duration >= 1_000);
+  assert.match(overlay.style.background, /0\.98/);
   await notifier.destroy();
 });
 
