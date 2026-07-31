@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f4f5f3">
+    <meta name="color-scheme" content="light dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Focus Lens">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="description" content="離席検出と手のひら操作に対応した、端末内処理の学習タイマー。">
+    <title>Focus Lens 学習タイマー</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="css/style.css?v=1">
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">メイン内容へ移動</a>
+
+    <header class="app-header">
+      <a class="back-link" href="../" aria-label="Tool Labへ戻る">
+        <span aria-hidden="true">‹</span><span>Tool Lab</span>
+      </a>
+      <div class="brand-block">
+        <p class="eyebrow">FOCUS LENS</p>
+        <h1>学習タイマー</h1>
+      </div>
+      <div class="header-tools">
+        <time id="current-clock" class="current-clock" aria-label="現在時刻">--:--</time>
+        <span id="camera-live-indicator" class="camera-live-indicator" hidden>
+          <span aria-hidden="true">●</span> カメラ使用中
+        </span>
+        <button class="icon-button" type="button" id="open-settings" aria-label="設定を開く">
+          <span aria-hidden="true">⚙</span>
+        </button>
+      </div>
+    </header>
+
+    <div id="error-banner" class="error-banner" role="alert" hidden>
+      <span id="error-banner-text"></span>
+      <button type="button" id="dismiss-error" aria-label="エラー表示を閉じる">×</button>
+    </div>
+
+    <main id="main-content" class="app-main">
+      <section id="timer-view" class="view is-active" data-view="timer" aria-labelledby="timer-view-title">
+        <h2 id="timer-view-title" class="visually-hidden">タイマー</h2>
+
+        <section class="timer-panel" aria-label="学習タイマー">
+          <div class="mode-tabs" role="tablist" aria-label="タイマーモード">
+            <button class="mode-tab is-active" type="button" role="tab" aria-selected="true" data-mode="countdown">カウントダウン</button>
+            <button class="mode-tab" type="button" role="tab" aria-selected="false" data-mode="stopwatch">ストップウォッチ</button>
+            <button class="mode-tab" type="button" role="tab" aria-selected="false" data-mode="pomodoro">ポモドーロ</button>
+            <button class="mode-tab" type="button" role="tab" aria-selected="false" data-mode="exam">試験</button>
+          </div>
+
+          <div id="quick-timer-strip" class="quick-timer-strip" aria-label="クイックタイマー"></div>
+
+          <div class="session-fields">
+            <label>
+              <span>教科</span>
+              <select id="session-subject" aria-label="学習する教科"></select>
+            </label>
+            <label class="memo-field">
+              <span>メモ</span>
+              <input id="session-memo" type="text" maxlength="120" placeholder="例：問題集 20〜28ページ">
+            </label>
+          </div>
+
+          <div id="pomodoro-summary" class="mode-summary" hidden>
+            <span id="pomodoro-phase">現在：勉強</span>
+            <span id="pomodoro-set">1 / 4セット</span>
+            <span id="pomodoro-next">次：休憩5分</span>
+          </div>
+
+          <div id="exam-tools" class="mode-summary exam-tools" hidden>
+            <button type="button" id="exam-display-toggle" class="text-button">表示：残り時間</button>
+            <label class="inline-check"><input id="exam-visual-only" type="checkbox" checked> 試験通知は画面のみ</label>
+            <label class="inline-check"><input id="exam-no-pause" type="checkbox" checked> 一時停止を禁止</label>
+            <button type="button" id="exam-lock-toggle" class="text-button"><span aria-hidden="true">◇</span> 操作をロック</button>
+          </div>
+
+          <div class="timer-face">
+            <p id="timer-caption" class="timer-caption">残り時間</p>
+            <output id="timer-display" class="timer-display" aria-live="off">25:00</output>
+            <p id="overtime-display" class="overtime-display" hidden>超過 00:00</p>
+            <div class="progress-track" role="progressbar" aria-label="タイマーの進捗" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span id="timer-progress" class="progress-value"></span>
+            </div>
+            <div class="status-grid">
+              <p><span class="status-label">状態</span><strong id="timer-status">待機中</strong></p>
+              <p><span class="status-label">カメラ</span><strong id="camera-status">停止中</strong></p>
+            </div>
+            <p id="camera-advice" class="camera-advice" hidden></p>
+          </div>
+
+          <div id="absence-countdown" class="absence-countdown" role="status" hidden>
+            顔を確認できません。あと <strong id="absence-seconds">30</strong> 秒で一時停止します。
+          </div>
+
+          <div class="primary-actions">
+            <button class="primary-button" type="button" id="start-pause-button">
+              <span aria-hidden="true">▶</span><span id="start-pause-label">開始</span>
+            </button>
+            <button class="secondary-button" type="button" id="reset-button">
+              <span aria-hidden="true">↺</span><span>リセット</span>
+            </button>
+          </div>
+          <div class="quiet-actions">
+            <button class="text-button" type="button" id="repeat-button" disabled><span aria-hidden="true">↻</span> 同じ設定でリピート</button>
+            <button class="text-button danger-text" type="button" id="finish-button" disabled><span aria-hidden="true">■</span> 学習を終了</button>
+          </div>
+
+          <section id="duration-picker" class="duration-picker" aria-labelledby="duration-title">
+            <div class="section-heading compact-heading">
+              <h3 id="duration-title">時間を選ぶ</h3>
+              <p id="configured-duration">設定 25分</p>
+            </div>
+            <div id="preset-buttons" class="preset-grid"></div>
+            <div class="custom-duration">
+              <label for="custom-minutes">1分単位で指定</label>
+              <div>
+                <input id="custom-minutes" type="number" inputmode="numeric" min="1" max="720" value="25">
+                <span>分</span>
+                <button class="small-button" type="button" id="apply-custom-minutes">設定</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="camera-assist-card" aria-labelledby="camera-assist-title">
+            <div>
+              <p class="eyebrow">OPTIONAL CAMERA ASSIST</p>
+              <h3 id="camera-assist-title">触れずに集中を見守る</h3>
+              <p id="camera-assist-copy">カメラは停止中です。通常の学習タイマーとしてそのまま使えます。</p>
+            </div>
+            <button class="secondary-button" type="button" id="camera-assist-button">
+              <span aria-hidden="true">◉</span><span>カメラ補助を使う</span>
+            </button>
+          </section>
+
+          <div class="today-total">
+            <span>今日の学習</span>
+            <strong id="today-total">0分</strong>
+          </div>
+        </section>
+      </section>
+
+      <section id="history-view" class="view" data-view="history" aria-labelledby="history-title" hidden>
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">STUDY LOG</p>
+            <h2 id="history-title">学習履歴</h2>
+          </div>
+          <p>端末内に保存した学習時間を、静かに振り返れます。</p>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card"><span>今日</span><strong id="history-today">0分</strong></article>
+          <article class="stat-card"><span>今週</span><strong id="history-week">0分</strong></article>
+          <article class="stat-card"><span>完了率</span><strong id="history-completion">—</strong></article>
+          <article class="stat-card"><span>離席時間</span><strong id="history-absence">0分</strong></article>
+        </div>
+
+        <section class="content-panel" aria-labelledby="subject-totals-title">
+          <div class="section-heading"><h3 id="subject-totals-title">教科別</h3></div>
+          <div id="subject-totals" class="subject-bars"></div>
+        </section>
+
+        <section class="content-panel" aria-labelledby="daily-history-title">
+          <div class="section-heading">
+            <h3 id="daily-history-title">日ごとの履歴</h3>
+            <button class="text-button" type="button" id="refresh-history"><span aria-hidden="true">↻</span> 更新</button>
+          </div>
+          <div id="history-list" class="history-list"></div>
+        </section>
+      </section>
+
+      <section id="settings-view" class="view" data-view="settings" aria-labelledby="settings-title" hidden>
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">PREFERENCES</p>
+            <h2 id="settings-title">設定</h2>
+          </div>
+          <p>変更内容はこの端末にだけ保存されます。</p>
+        </div>
+
+        <section class="content-panel settings-section" aria-labelledby="camera-settings-title">
+          <div class="section-heading">
+            <div><h3 id="camera-settings-title">カメラ補助</h3><p id="camera-capability-note" class="section-note">カメラは明示的に有効にした場合のみ起動します。</p></div>
+            <button class="small-button" type="button" id="settings-camera-action">有効にする</button>
+          </div>
+          <div class="setting-list">
+            <label class="toggle-row"><span><strong>離席検出</strong><small>顔が見えない時間を学習から除外</small></span><input id="setting-attendance" type="checkbox"><i aria-hidden="true"></i></label>
+            <label class="toggle-row"><span><strong>手のひら操作</strong><small>0.8秒かざして開始・一時停止</small></span><input id="setting-gesture" type="checkbox"><i aria-hidden="true"></i></label>
+            <label class="select-row"><span><strong>離席判定時間</strong><small>10秒後から控えめに予告します</small></span><select id="setting-absence-threshold"><option value="10">10秒</option><option value="20">20秒</option><option value="30">30秒</option><option value="45">45秒</option><option value="60">60秒</option><option value="90">90秒</option><option value="0">自動停止しない</option></select></label>
+            <label class="select-row"><span><strong>戻ったとき</strong></span><select id="setting-resume-mode"><option value="confirm">確認して再開</option><option value="auto">自動で再開</option></select></label>
+            <label class="toggle-row"><span><strong>設定画面のプレビュー</strong></span><input id="setting-camera-preview" type="checkbox"><i aria-hidden="true"></i></label>
+          </div>
+          <div id="settings-camera-preview-wrap" class="settings-camera-preview" hidden>
+            <video id="settings-camera-preview" autoplay muted playsinline aria-label="カメラプレビュー"></video>
+            <p>映像は保存・送信されません。</p>
+          </div>
+        </section>
+
+        <section class="content-panel settings-section" aria-labelledby="notification-settings-title">
+          <div class="section-heading"><h3 id="notification-settings-title">通知</h3></div>
+          <div class="setting-list">
+            <label class="select-row"><span><strong>終了通知</strong></span><select id="setting-notification"><option value="sound">音</option><option value="vibration">バイブレーション</option><option value="flash">画面点滅</option><option value="sound_flash">音＋画面点滅</option><option value="silent">無音</option></select></label>
+            <label class="select-row"><span><strong>通知音量</strong></span><select id="setting-volume"><option value="low">小</option><option value="medium">中</option><option value="high">大</option></select></label>
+            <label class="toggle-row"><span><strong>ジェスチャー確認音</strong></span><input id="setting-gesture-sound" type="checkbox"><i aria-hidden="true"></i></label>
+            <button class="text-button test-sound-button" type="button" id="test-notification"><span aria-hidden="true">♪</span> 通知を試す</button>
+          </div>
+        </section>
+
+        <section class="content-panel settings-section" aria-labelledby="display-settings-title">
+          <div class="section-heading"><h3 id="display-settings-title">表示と動作</h3></div>
+          <div class="setting-list">
+            <label class="select-row"><span><strong>文字サイズ</strong></span><select id="setting-font-size"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label>
+            <label class="select-row"><span><strong>外観</strong></span><select id="setting-theme"><option value="system">端末設定に合わせる</option><option value="light">ライト</option><option value="dark">ダーク</option></select></label>
+            <label class="select-row"><span><strong>時計</strong></span><select id="setting-clock-format"><option value="24h">24時間表示</option><option value="12h">12時間表示</option></select></label>
+            <label class="toggle-row"><span><strong>終了後のカウントアップ</strong></span><input id="setting-count-up" type="checkbox"><i aria-hidden="true"></i></label>
+            <label class="toggle-row"><span><strong>画面を点灯したままにする</strong><small id="wake-lock-note"></small></span><input id="setting-wake-lock" type="checkbox"><i aria-hidden="true"></i></label>
+            <label class="toggle-row"><span><strong>学習履歴を保存</strong></span><input id="setting-save-history" type="checkbox"><i aria-hidden="true"></i></label>
+          </div>
+        </section>
+
+        <section class="content-panel settings-section" aria-labelledby="pomodoro-settings-title">
+          <div class="section-heading"><h3 id="pomodoro-settings-title">ポモドーロ</h3></div>
+          <div class="number-settings-grid">
+            <label><span>勉強</span><input id="setting-pomodoro-study" type="number" min="1" max="180" inputmode="numeric"><small>分</small></label>
+            <label><span>短い休憩</span><input id="setting-pomodoro-short" type="number" min="1" max="60" inputmode="numeric"><small>分</small></label>
+            <label><span>長い休憩</span><input id="setting-pomodoro-long" type="number" min="1" max="120" inputmode="numeric"><small>分</small></label>
+            <label><span>長い休憩まで</span><input id="setting-pomodoro-sets" type="number" min="1" max="12" inputmode="numeric"><small>セット</small></label>
+          </div>
+          <div class="setting-list">
+            <label class="toggle-row"><span><strong>休憩を自動開始</strong></span><input id="setting-auto-break" type="checkbox"><i aria-hidden="true"></i></label>
+            <label class="toggle-row"><span><strong>次の勉強を自動開始</strong></span><input id="setting-auto-study" type="checkbox"><i aria-hidden="true"></i></label>
+          </div>
+        </section>
+
+        <section class="content-panel settings-section" aria-labelledby="quick-settings-title">
+          <div class="section-heading">
+            <div><h3 id="quick-settings-title">クイックタイマー</h3><p class="section-note">よく使う設定を3件まで登録できます。</p></div>
+            <button class="small-button" type="button" id="add-quick-timer">追加</button>
+          </div>
+          <div id="quick-timer-settings" class="editable-list"></div>
+        </section>
+
+        <section class="content-panel settings-section" aria-labelledby="subjects-settings-title">
+          <div class="section-heading"><h3 id="subjects-settings-title">教科</h3></div>
+          <form id="subject-form" class="inline-form">
+            <label for="new-subject" class="visually-hidden">新しい教科名</label>
+            <input id="new-subject" type="text" maxlength="20" placeholder="教科を追加">
+            <button class="small-button" type="submit">追加</button>
+          </form>
+          <div id="subject-settings" class="editable-list"></div>
+        </section>
+
+        <section class="content-panel privacy-panel" aria-labelledby="privacy-title">
+          <div class="section-heading"><h3 id="privacy-title">カメラとプライバシー</h3></div>
+          <ul>
+            <li>カメラ映像はこの端末内だけで解析します。</li>
+            <li>映像と静止画は保存せず、サーバーへ送信しません。</li>
+            <li>保存するのは離席時間などの数値だけです。</li>
+            <li>カメラはいつでもOFFにでき、停止時は映像トラックを終了します。</li>
+          </ul>
+        </section>
+
+        <section class="content-panel settings-section danger-zone" aria-labelledby="data-settings-title">
+          <div class="section-heading"><h3 id="data-settings-title">データ管理</h3></div>
+          <div class="data-actions">
+            <button class="secondary-button" type="button" id="reset-settings-button">設定を初期化</button>
+            <button class="danger-button" type="button" id="delete-history-button">全履歴を削除</button>
+          </div>
+          <p class="section-note">削除した履歴は復元できません。</p>
+        </section>
+
+        <section id="debug-panel" class="content-panel debug-panel" aria-labelledby="debug-title" hidden>
+          <div class="section-heading"><h3 id="debug-title">デバッグ</h3><span class="debug-badge">?debug=1</span></div>
+          <div class="debug-preview-wrap">
+            <video id="debug-camera-preview" autoplay muted playsinline></video>
+            <canvas id="debug-overlay"></canvas>
+          </div>
+          <pre id="debug-readout" aria-live="polite"></pre>
+          <div class="debug-actions">
+            <button type="button" data-debug-event="face-present">顔あり</button>
+            <button type="button" data-debug-event="face-absent">顔なし</button>
+            <button type="button" data-debug-event="absence-30">30秒離席</button>
+            <button type="button" data-debug-event="palm">手のひら</button>
+            <button type="button" data-debug-event="camera-error">カメラエラー</button>
+            <button type="button" data-debug-event="background">バックグラウンド復帰</button>
+            <button type="button" data-debug-event="complete">タイマー終了</button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="メインメニュー">
+      <button class="nav-button is-active" type="button" data-view-target="timer" aria-current="page"><span aria-hidden="true">◷</span><span>タイマー</span></button>
+      <button class="nav-button" type="button" data-view-target="history"><span aria-hidden="true">▤</span><span>履歴</span></button>
+      <button class="nav-button" type="button" data-view-target="settings"><span aria-hidden="true">⚙</span><span>設定</span></button>
+    </nav>
+
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <div id="flash-layer" class="flash-layer" aria-hidden="true"></div>
+    <video id="camera-video" class="camera-analysis-video" autoplay muted playsinline aria-hidden="true" tabindex="-1"></video>
+
+    <dialog id="camera-consent-dialog" class="app-dialog">
+      <form method="dialog">
+        <p class="dialog-icon" aria-hidden="true">◉</p>
+        <h2>カメラ補助を使いますか？</h2>
+        <p>フロントカメラを使用して、離席と手のひらを検出します。映像は端末内だけで処理され、保存・送信されません。</p>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">今は使わない</button>
+          <button class="primary-button" value="confirm" id="confirm-camera-consent">説明を理解して続ける</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="camera-calibration-dialog" class="app-dialog wide-dialog">
+      <div class="dialog-body">
+        <div class="section-heading">
+          <div><p class="eyebrow">CAMERA CHECK</p><h2>カメラ位置を調整</h2></div>
+          <button class="dialog-close" type="button" data-close-dialog="camera-calibration-dialog" aria-label="閉じる">×</button>
+        </div>
+        <div class="calibration-layout">
+          <div class="camera-preview-wrap">
+            <video id="camera-calibration-preview" autoplay muted playsinline aria-label="フロントカメラのプレビュー"></video>
+            <canvas id="camera-overlay" aria-hidden="true"></canvas>
+          </div>
+          <dl class="calibration-status">
+            <div><dt>顔検出</dt><dd id="calibration-face">準備中</dd></div>
+            <div><dt>手の検出</dt><dd id="calibration-hand">準備中</dd></div>
+            <div><dt>明るさ</dt><dd id="calibration-light">計測中</dd></div>
+            <div><dt>推奨</dt><dd id="calibration-advice">顔全体が収まる位置に置いてください</dd></div>
+          </dl>
+        </div>
+        <p id="camera-start-error" class="form-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" id="disable-camera-from-calibration">カメラをOFF</button>
+          <button class="primary-button" type="button" id="finish-camera-calibration">この位置で開始</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="absence-resume-dialog" class="app-dialog">
+      <form method="dialog">
+        <p class="dialog-icon" aria-hidden="true">↩</p>
+        <h2>戻りましたか？</h2>
+        <p id="absence-summary">離席中は学習時間から除外されています。</p>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="stay-paused">停止したまま</button>
+          <button class="primary-button" value="resume">再開する</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="background-dialog" class="app-dialog">
+      <form method="dialog">
+        <p class="dialog-icon" aria-hidden="true">▣</p>
+        <h2>画面外でも勉強を続けていましたか？</h2>
+        <p>「中断していた」を選ぶと、画面外だった時間を学習時間から除外します。</p>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="interrupted">中断していた</button>
+          <button class="primary-button" value="continued">続けていた</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="break-dialog" class="app-dialog">
+      <form method="dialog">
+        <p class="dialog-icon" aria-hidden="true">☕</p>
+        <h2>休憩を終了しますか？</h2>
+        <p>手のひら操作を検出しました。次の勉強へ進めます。</p>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="continue-break">休憩を続ける</button>
+          <button class="primary-button" value="end-break">休憩を終了</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="finish-dialog" class="app-dialog">
+      <form method="dialog">
+        <p class="dialog-icon" aria-hidden="true">■</p>
+        <h2>学習を終了しますか？</h2>
+        <p>ここまでの実学習時間と離席時間を履歴に記録します。</p>
+        <label class="dialog-field"><span>メモ</span><input id="finish-memo" type="text" maxlength="120"></label>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">戻る</button>
+          <button class="primary-button" value="finish">履歴を保存して終了</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="quick-timer-dialog" class="app-dialog">
+      <form method="dialog" id="quick-timer-form">
+        <input id="quick-timer-index" type="hidden" value="-1">
+        <h2>クイックタイマー</h2>
+        <label class="dialog-field"><span>名前</span><input id="quick-name" type="text" maxlength="24" required placeholder="例：英単語"></label>
+        <label class="dialog-field"><span>時間</span><span class="input-with-unit"><input id="quick-minutes" type="number" min="1" max="720" required inputmode="numeric"><i>分</i></span></label>
+        <label class="dialog-field"><span>教科</span><select id="quick-subject"></select></label>
+        <label class="dialog-field"><span>通知</span><select id="quick-notification"><option value="sound">音</option><option value="vibration">バイブレーション</option><option value="flash">画面点滅</option><option value="sound_flash">音＋画面点滅</option><option value="silent">無音</option></select></label>
+        <label class="toggle-row compact-toggle"><span><strong>カメラ補助</strong></span><input id="quick-camera" type="checkbox"><i aria-hidden="true"></i></label>
+        <label class="dialog-field"><span>離席判定</span><select id="quick-absence"><option value="10">10秒</option><option value="20">20秒</option><option value="30">30秒</option><option value="45">45秒</option><option value="60">60秒</option><option value="90">90秒</option><option value="0">自動停止しない</option></select></label>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">キャンセル</button>
+          <button class="primary-button" value="save">保存</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="confirm-dialog" class="app-dialog">
+      <form method="dialog">
+        <h2 id="confirm-title">確認</h2>
+        <p id="confirm-message"></p>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">キャンセル</button>
+          <button class="danger-button" value="confirm" id="confirm-action-button">実行する</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="js/app.js?v=1"></script>
+  </body>
+</html>
