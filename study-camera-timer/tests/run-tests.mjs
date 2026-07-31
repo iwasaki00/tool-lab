@@ -24,7 +24,7 @@ const { FacePresenceTracker } = await import("../js/faceDetector.js");
 const { PalmGestureController } = await import("../js/gestureController.js");
 const { AttendanceController } = await import("../js/attendanceController.js");
 const { CameraController, CAMERA_STATES } = await import("../js/camera.js");
-const { Notifier } = await import("../js/notifier.js");
+const { ALARM_SOUNDS, Notifier } = await import("../js/notifier.js");
 const {
   loadSettings,
   saveSettings,
@@ -345,6 +345,104 @@ test("audio unlock timeout cannot block the timer interaction path", async () =>
   assert.ok(Date.now() - startedAt < 500);
 });
 
+test("alarm repeats until explicitly stopped and releases scheduled audio", async () => {
+  let oscillatorCount = 0;
+  let stopCount = 0;
+  let disconnectCount = 0;
+  const audioContext = {
+    state: "running",
+    currentTime: 0,
+    destination: {},
+    createOscillator() {
+      oscillatorCount += 1;
+      return {
+        type: "sine",
+        frequency: { setValueAtTime: () => undefined },
+        connect: () => undefined,
+        disconnect: () => { disconnectCount += 1; },
+        addEventListener: () => undefined,
+        start: () => undefined,
+        stop: () => { stopCount += 1; }
+      };
+    },
+    createGain() {
+      return {
+        gain: {
+          setValueAtTime: () => undefined,
+          exponentialRampToValueAtTime: () => undefined
+        },
+        connect: () => undefined,
+        disconnect: () => { disconnectCount += 1; }
+      };
+    }
+  };
+  const notifier = new Notifier({
+    audioContext,
+    autoUnlock: false,
+    repeatIntervalMs: 50
+  });
+  const first = await notifier.startAlarm("complete", { mode: "sound", sound: "digital" });
+  assert.equal(first.repeating, true);
+  assert.equal(notifier.isAlarmActive, true);
+  await new Promise((resolve) => setTimeout(resolve, 125));
+  assert.ok(oscillatorCount >= 8, `expected repeated notes, got ${oscillatorCount}`);
+  assert.equal(notifier.suspendAlarm(), true);
+  const countAtSuspend = oscillatorCount;
+  await new Promise((resolve) => setTimeout(resolve, 80));
+  assert.equal(oscillatorCount, countAtSuspend);
+  assert.equal(notifier.refreshAlarm(), true);
+  await new Promise((resolve) => setTimeout(resolve, 70));
+  assert.ok(oscillatorCount > countAtSuspend);
+  const countAtStop = oscillatorCount;
+  const stopsBeforeStop = stopCount;
+  assert.equal(notifier.stopAlarm({ reason: "test" }), true);
+  assert.equal(notifier.isAlarmActive, false);
+  assert.ok(stopCount > stopsBeforeStop, "explicit stop should stop already scheduled oscillators");
+  assert.ok(disconnectCount >= countAtStop * 2, "source and gain nodes should be disconnected");
+  await new Promise((resolve) => setTimeout(resolve, 80));
+  assert.equal(oscillatorCount, countAtStop);
+});
+
+test("five alarm sounds are distinct and invalid sound IDs fall back safely", async () => {
+  assert.equal(Object.keys(ALARM_SOUNDS).length, 5);
+  const signatures = Object.values(ALARM_SOUNDS).map(({ cue }) => JSON.stringify({
+    waveform: cue.waveform,
+    notes: cue.notes
+  }));
+  assert.equal(new Set(signatures).size, 5);
+  const notifier = new Notifier({ autoUnlock: false });
+  assert.equal(notifier.setSound("digital"), "digital");
+  assert.equal(notifier.setSound("not-a-sound"), "clear_chime");
+});
+
+test("unsupported vibration falls back to a visible flash", async () => {
+  const notifier = new Notifier({ navigator: {}, autoUnlock: false });
+  let flashes = 0;
+  notifier.flash = async () => {
+    flashes += 1;
+    return true;
+  };
+  const result = await notifier.notify("complete", { mode: "vibrate" });
+  assert.equal(notifier.vibrationSupported, false);
+  assert.equal(result.vibrated, false);
+  assert.equal(result.flashed, true);
+  assert.equal(flashes, 1);
+});
+
+test("notification sound and repeat preference persist with safe defaults", () => {
+  storageValues.clear();
+  resetPreferences();
+  let current = loadSettings();
+  assert.equal(current.notifications.sound, "clear_chime");
+  assert.equal(current.notifications.repeatUntilStopped, true);
+  saveSettings({ notifications: { sound: "school", repeatUntilStopped: false } });
+  current = loadSettings();
+  assert.equal(current.notifications.sound, "school");
+  assert.equal(current.notifications.repeatUntilStopped, false);
+  saveSettings({ notifications: { sound: "invalid" } });
+  assert.equal(loadSettings().notifications.sound, "clear_chime");
+});
+
 test("camera controller can start and releases its media track", async () => {
   const names = ["navigator", "document", "isSecureContext", "requestAnimationFrame", "cancelAnimationFrame"];
   const descriptors = new Map(names.map((name) => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
@@ -498,6 +596,10 @@ test("HTML references exist and every app module is present", () => {
   const ids = [...appSource.matchAll(/getElementById\(["']([^"']+)["']\)/g)].map((match) => match[1]);
   const missingIds = [...new Set(ids)].filter((id) => !html.includes(`id="${id}"`));
   assert.deepEqual(missingIds, []);
+  const soundSelect = html.match(/<select id="setting-sound">([\s\S]*?)<\/select>/)?.[1] || "";
+  assert.equal((soundSelect.match(/<option\b/g) || []).length, 5);
+  assert.ok(html.includes('id="alarm-dialog"'));
+  assert.ok(html.includes('id="stop-alarm-button"'));
   const scripts = [
     "constants.js", "storage.js", "settings.js", "timer.js", "history.js",
     "faceDetector.js", "handDetector.js", "gestureController.js",

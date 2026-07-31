@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="css/style.css?v=1">
+    <link rel="stylesheet" href="css/style.css?v=2">
   </head>
   <body>
     <a class="skip-link" href="#main-content">メイン内容へ移動</a>
@@ -206,8 +206,11 @@
           <div class="section-heading"><h3 id="notification-settings-title">通知</h3></div>
           <div class="setting-list">
             <label class="select-row"><span><strong>終了通知</strong></span><select id="setting-notification"><option value="sound">音</option><option value="vibration">バイブレーション</option><option value="flash">画面点滅</option><option value="sound_flash">音＋画面点滅</option><option value="silent">無音</option></select></label>
+            <label class="select-row"><span><strong>通知音</strong><small>終了時に鳴る音</small></span><select id="setting-sound"><option value="clear_chime">クリアチャイム</option><option value="bell">ベル</option><option value="digital">デジタル</option><option value="school">スクールベル</option><option value="gentle">やさしい音</option></select></label>
             <label class="select-row"><span><strong>通知音量</strong></span><select id="setting-volume"><option value="low">小</option><option value="medium">中</option><option value="high">大</option></select></label>
+            <label class="toggle-row"><span><strong>停止するまで繰り返す</strong><small>画面を開いている間、停止ボタンを押すまで通知</small></span><input id="setting-repeat-alarm" type="checkbox"><i aria-hidden="true"></i></label>
             <label class="toggle-row"><span><strong>ジェスチャー確認音</strong></span><input id="setting-gesture-sound" type="checkbox"><i aria-hidden="true"></i></label>
+            <p id="vibration-support-note" class="capability-note" role="status"></p>
             <button class="text-button test-sound-button" type="button" id="test-notification"><span aria-hidden="true">♪</span> 通知を試す</button>
           </div>
         </section>
@@ -367,6 +370,16 @@
       </form>
     </dialog>
 
+    <dialog id="alarm-dialog" class="app-dialog alarm-dialog" aria-labelledby="alarm-title" aria-describedby="alarm-message">
+      <div class="dialog-body alarm-dialog-body">
+        <div class="alarm-pulse" aria-hidden="true"><span>♪</span></div>
+        <p class="eyebrow">TIMER COMPLETE</p>
+        <h2 id="alarm-title">時間になりました</h2>
+        <p id="alarm-message">停止ボタンを押すまで通知を繰り返します。</p>
+        <button class="primary-button stop-alarm-button" type="button" id="stop-alarm-button">通知を停止</button>
+      </div>
+    </dialog>
+
     <dialog id="break-dialog" class="app-dialog">
       <form method="dialog">
         <p class="dialog-icon" aria-hidden="true">☕</p>
@@ -420,6 +433,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="js/app.js?v=1"></script>
+    <script type="module" src="js/app.js?v=2"></script>
   </body>
 </html>

@@ -1016,6 +1016,16 @@ html[data-theme="dark"] .primary-button {
   justify-self: start;
 }
 
+.capability-note {
+  margin: 8px 0 2px;
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
 .settings-camera-preview {
   margin-top: 14px;
   overflow: hidden;
@@ -1383,6 +1393,49 @@ html[data-theme="dark"] .primary-button {
 
 .wide-dialog {
   width: min(680px, calc(100% - 24px));
+}
+
+.alarm-dialog {
+  width: min(420px, calc(100% - 24px));
+  text-align: center;
+}
+
+.alarm-dialog::backdrop {
+  background: rgba(13, 18, 16, 0.72);
+}
+
+.alarm-dialog-body {
+  justify-items: center;
+  padding: 28px !important;
+}
+
+.alarm-dialog-body .eyebrow {
+  color: var(--accent);
+}
+
+.alarm-pulse {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 2rem;
+  animation: alarm-pulse 1.45s ease-out infinite;
+}
+
+.stop-alarm-button {
+  width: 100%;
+  min-height: 54px;
+  margin-top: 6px;
+  font-size: 1rem;
+}
+
+@keyframes alarm-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 32%, transparent); }
+  72%, 100% { box-shadow: 0 0 0 18px transparent; }
 }
 
 .calibration-layout {

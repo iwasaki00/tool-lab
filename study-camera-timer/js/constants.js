@@ -5,7 +5,7 @@
  * on real iPhones without hunting through implementation modules.
  */
 
-export const APP_SCHEMA_VERSION = 1;
+export const APP_SCHEMA_VERSION = 2;
 
 export const TIMER_STATES = Object.freeze({
   IDLE: "idle",
@@ -115,6 +115,14 @@ export const NOTIFICATION_VOLUMES = Object.freeze({
   HIGH: "high",
 });
 
+export const NOTIFICATION_SOUNDS = Object.freeze({
+  CLEAR_CHIME: "clear_chime",
+  BELL: "bell",
+  DIGITAL: "digital",
+  SCHOOL: "school",
+  GENTLE: "gentle",
+});
+
 export const NOTIFICATION_VOLUME_GAIN = Object.freeze({
   [NOTIFICATION_VOLUMES.LOW]: 0.25,
   [NOTIFICATION_VOLUMES.MEDIUM]: 0.55,
@@ -152,4 +160,3 @@ export const TIMER_EVENTS = Object.freeze({
   CONFIG_CHANGE: "configchange",
   RESET: "reset",
 });
-

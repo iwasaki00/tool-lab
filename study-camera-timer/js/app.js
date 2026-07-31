@@ -81,7 +81,8 @@ const camera = new CameraController({
 const attendance = new AttendanceController(attendanceOptions());
 const notifier = createNotifier({
   mode: settings.notifications.endMethod,
-  volume: settings.notifications.volume
+  volume: settings.notifications.volume,
+  sound: settings.notifications.sound
 });
 const wakeLock = createWakeLockManager();
 const debugTools = createDebugTools({ enabled: debugEnabled });
@@ -201,13 +202,13 @@ function bindTimerEvents() {
 
   timer.addEventListener(TIMER_EVENTS.TARGET_REACHED, (event) => {
     currentSnapshot = event.detail.snapshot;
-    notifyTimerCompletion();
+    notifyTimerCompletion("設定時間になりました");
     ui.showToast("設定時間になりました。超過時間を計測中です。", 3000);
   });
 
   timer.addEventListener(TIMER_EVENTS.COMPLETED, (event) => {
     currentSnapshot = event.detail.snapshot;
-    if (event.detail.reason === "duration_elapsed") notifyTimerCompletion();
+    if (event.detail.reason === "duration_elapsed") notifyTimerCompletion("学習時間が終了しました");
     void persistCompletedSession(currentSnapshot);
     updateRuntimeActivity(currentSnapshot);
   });
@@ -215,10 +216,10 @@ function bindTimerEvents() {
   timer.addEventListener(TIMER_EVENTS.PHASE_CHANGE, (event) => {
     const previousKind = event.detail.previousPhase?.kind;
     if (previousKind === POMODORO_PHASES.STUDY) {
-      notifyTimerCompletion();
+      notifyTimerCompletion("勉強時間が終了しました");
       ui.showToast("勉強時間が終了しました。休憩へ進みます。", 3000);
     } else {
-      notifier.notifyEvent("breakComplete", notificationOptions());
+      startCompletionNotification("breakComplete", "休憩が終了しました");
       ui.showToast("休憩が終了しました。次の勉強へ進みます。", 3000);
     }
   });
@@ -551,11 +552,7 @@ function bindSettingsControls() {
   });
   document.getElementById("test-notification").addEventListener("click", async () => {
     await notifier.unlock();
-    const result = await notifier.notifyEvent("complete", notificationOptions());
-    if (!result.sounded && !result.flashed && ["sound", "sound_flash"].includes(settings.notifications.endMethod)) {
-      ui.showToast("音声が制限されたため、画面で通知しました");
-      await notifier.flash();
-    }
+    startCompletionNotification("complete", "通知のテスト中です");
   });
 
   document.getElementById("subject-form").addEventListener("submit", (event) => {
@@ -609,6 +606,12 @@ async function handleSettingChange(control) {
       break;
     case "setting-volume":
       patch = { notifications: { volume: control.value } };
+      break;
+    case "setting-sound":
+      patch = { notifications: { sound: control.value } };
+      break;
+    case "setting-repeat-alarm":
+      patch = { notifications: { repeatUntilStopped: control.checked } };
       break;
     case "setting-gesture-sound":
       patch = { notifications: { gestureSoundEnabled: control.checked } };
@@ -666,6 +669,7 @@ function applySettingsSideEffects(changedId = "") {
   ui.applyTheme(settings.appearance);
   notifier.setMode(settings.notifications.endMethod);
   notifier.setVolume(settings.notifications.volume);
+  notifier.setSound(settings.notifications.sound);
   ui.setCameraPreviewVisible(settings.camera.previewEnabled && camera.getSnapshot().active);
   syncPreviewStreams();
   document.getElementById("settings-camera-preview").hidden = !settings.camera.previewEnabled;
@@ -701,6 +705,8 @@ function populateSettingsForm() {
   setValue("setting-camera-preview", settings.camera.previewEnabled);
   setValue("setting-notification", settings.notifications.endMethod);
   setValue("setting-volume", settings.notifications.volume);
+  setValue("setting-sound", settings.notifications.sound);
+  setValue("setting-repeat-alarm", settings.notifications.repeatUntilStopped);
   setValue("setting-gesture-sound", settings.notifications.gestureSoundEnabled);
   setValue("setting-font-size", settings.appearance.fontSize);
   setValue("setting-theme", settings.appearance.theme);
@@ -722,6 +728,17 @@ function populateSettingsForm() {
   const wakeNote = document.getElementById("wake-lock-note");
   wakeControl.disabled = !capability.supported;
   wakeNote.textContent = capability.supported ? "対応しています" : "この環境では利用できません";
+
+  const vibrationOptions = document.querySelectorAll('select option[value="vibration"]');
+  const vibrationNote = document.getElementById("vibration-support-note");
+  vibrationOptions.forEach((option) => {
+    option.textContent = notifier.vibrationSupported
+      ? "バイブレーション"
+      : "バイブレーション（画面点滅で代替）";
+  });
+  vibrationNote.textContent = notifier.vibrationSupported
+    ? "このブラウザでは端末のバイブレーションを利用できます。"
+    : "このブラウザはバイブレーションに対応していないため、選択時は画面点滅で通知します。";
 
   const cameraNote = document.getElementById("camera-capability-note");
   if (!window.isSecureContext) cameraNote.textContent = "カメラにはHTTPSまたはlocalhostが必要です。";
@@ -878,12 +895,16 @@ async function resetAllPreferences() {
   });
   if (!confirmed) return;
   if (hasActiveSession) timer.finish(Date.now(), { completed: false, force: true });
+  notifier.stopAlarm({ reason: "settings-reset" });
   await disableCamera({ persist: false });
   preferences = resetPreferences();
   settings = preferences.settings;
   subjects = preferences.subjects;
   quickTimers = preferences.quickTimers;
   populateSettingsForm();
+  notifier.setMode(settings.notifications.endMethod);
+  notifier.setVolume(settings.notifications.volume);
+  notifier.setSound(settings.notifications.sound);
   ui.applyTheme(settings.appearance);
   renderSubjectsAndQuickTimers();
   rebuildTimer();
@@ -953,6 +974,12 @@ function bindDialogs() {
     document.getElementById("session-memo").value = memo;
     activeSessionMetadata = { ...(activeSessionMetadata || captureSessionMetadata()), memo };
     timer.finish(Date.now(), { force: true });
+  });
+
+  const alarmDialog = document.getElementById("alarm-dialog");
+  alarmDialog.addEventListener("cancel", (event) => event.preventDefault());
+  document.getElementById("stop-alarm-button").addEventListener("click", () => {
+    notifier.stopAlarm({ reason: "user" });
   });
 }
 
@@ -1156,7 +1183,7 @@ function updateRuntimeActivity(snapshot) {
     now: Date.now(),
     reason: "timer_state"
   });
-  wakeLock.setRunning(Boolean(settings.wakeLock.enabled && advancing));
+  wakeLock.setRunning(Boolean(settings.wakeLock.enabled && (advancing || notifier.isAlarmActive)));
 }
 
 function updateCameraPresentation(cameraSnapshot = camera.getSnapshot()) {
@@ -1211,16 +1238,42 @@ function updateCalibrationPresentation() {
 function notificationOptions() {
   return {
     mode: settings.notifications.endMethod,
-    volume: settings.notifications.volume
+    volume: settings.notifications.volume,
+    sound: settings.notifications.sound,
+    fallbackToFlash: true
   };
 }
 
-function notifyTimerCompletion() {
+function notifyTimerCompletion(title = "時間になりました") {
   const options = currentSnapshot?.mode === TIMER_MODES.EXAM && settings.exam.visualOnly
-    ? { mode: "flash", volume: settings.notifications.volume }
+    ? { ...notificationOptions(), mode: "flash" }
     : notificationOptions();
-  notifier.notifyEvent("complete", options).then((result) => {
-    if (!result.sounded && !result.flashed && ["sound", "sound_flash"].includes(options.mode)) notifier.flash();
+  startCompletionNotification("complete", title, options);
+}
+
+function startCompletionNotification(eventName, title, suppliedOptions = null) {
+  const options = suppliedOptions || notificationOptions();
+  const repeats = Boolean(settings.notifications.repeatUntilStopped && options.mode !== "silent");
+
+  if (!repeats) {
+    void notifier.notifyEvent(eventName, options).then((result) => {
+      if (!result.sounded && !result.vibrated && !result.flashed && options.mode !== "silent") {
+        ui.showToast("通知を再生できなかったため、完了表示でお知らせします");
+      }
+    });
+    return;
+  }
+
+  document.getElementById("alarm-title").textContent = title;
+  document.getElementById("alarm-message").textContent = notifier.vibrationSupported
+    ? "停止ボタンを押すまで通知を繰り返します。"
+    : "停止ボタンを押すまで通知を繰り返します。バイブレーション非対応時は画面を点滅します。";
+  notifier.stopAlarm({ reason: "replaced" });
+  ui.openDialog("alarm-dialog");
+  void notifier.startAlarm(eventName, { ...options, repeat: true }).then((result) => {
+    if (!result.sounded && !result.vibrated && !result.flashed && notifier.isAlarmActive) {
+      ui.showToast("音声が制限されています。停止ボタンは画面に表示されています。", 3600);
+    }
   });
 }
 
@@ -1273,12 +1326,18 @@ function bindLifecycle() {
   document.addEventListener("visibilitychange", () => {
     const snapshot = timer.getSnapshot();
     if (document.visibilityState === "hidden") {
+      notifier.suspendAlarm();
       if (ACTIVE_STATES.has(snapshot.state)) timer.enterBackground(Date.now());
       if (snapshot.state !== TIMER_STATES.ABSENCE_PAUSED) {
         attendance.reset({ monitoring: false });
       }
     } else if (snapshot.background) {
       timer.leaveBackground(Date.now());
+    }
+    if (document.visibilityState === "visible") {
+      notifier.bindUnlock(document);
+      notifier.refreshAlarm();
+      updateRuntimeActivity(timer.getSnapshot());
     }
   });
   window.addEventListener("pagehide", () => {
@@ -1287,6 +1346,7 @@ function bindLifecycle() {
       timer.enterBackground(Date.now());
     }
     releaseTimerFromCameraDependency(Date.now());
+    notifier.suspendAlarm();
     attendance.reset({ monitoring: false });
     camera.stop().catch(() => undefined);
     wakeLock.release("pagehide").catch(() => undefined);
@@ -1296,10 +1356,21 @@ function bindLifecycle() {
     if (snapshot.background && document.visibilityState === "visible") {
       timer.leaveBackground(Date.now());
     }
+    if (document.visibilityState === "visible") {
+      notifier.bindUnlock(document);
+      notifier.refreshAlarm();
+      updateRuntimeActivity(timer.getSnapshot());
+    }
   });
 }
 
 function bindErrorHandling() {
+  notifier.addEventListener("alarmstart", () => updateRuntimeActivity(timer.getSnapshot()));
+  notifier.addEventListener("alarmstop", () => {
+    const dialog = document.getElementById("alarm-dialog");
+    if (dialog.open) ui.closeDialog("alarm-dialog", "stopped");
+    updateRuntimeActivity(timer.getSnapshot());
+  });
   notifier.addEventListener("error", (event) => {
     console.warn("[Focus Lens] notification fallback", event.detail.error || event.detail);
   });

@@ -4,6 +4,7 @@ import {
   DEFAULT_POMODORO,
   EXAM_WARNING_THRESHOLDS_MS,
   NOTIFICATION_METHODS,
+  NOTIFICATION_SOUNDS,
   NOTIFICATION_VOLUMES,
   RESUME_MODES,
   STORAGE_KEYS,
@@ -51,6 +52,8 @@ export const DEFAULT_SETTINGS = deepFreeze({
   notifications: {
     endMethod: NOTIFICATION_METHODS.SOUND,
     volume: NOTIFICATION_VOLUMES.MEDIUM,
+    sound: NOTIFICATION_SOUNDS.CLEAR_CHIME,
+    repeatUntilStopped: true,
     gestureSoundEnabled: true,
   },
   appearance: {
@@ -132,16 +135,36 @@ function unwrap(raw, fallback) {
 
 export function loadSettings() {
   const raw = safeGetJSON(STORAGE_KEYS.settings, null);
-  return mergeKnown(DEFAULT_SETTINGS, unwrap(raw, DEFAULT_SETTINGS));
+  return normalizeSettings(mergeKnown(DEFAULT_SETTINGS, unwrap(raw, DEFAULT_SETTINGS)));
 }
 
 /** Deep-merge a partial update into the current validated settings. */
 export function saveSettings(update) {
   const current = loadSettings();
   const mergedInput = mergePartial(current, update);
-  const next = mergeKnown(DEFAULT_SETTINGS, mergedInput);
+  const next = normalizeSettings(mergeKnown(DEFAULT_SETTINGS, mergedInput));
   safeSetJSON(STORAGE_KEYS.settings, envelope(next));
   return clone(next);
+}
+
+function normalizeSettings(value) {
+  const next = clone(value);
+  const methodValues = Object.values(NOTIFICATION_METHODS);
+  const volumeValues = Object.values(NOTIFICATION_VOLUMES);
+  const soundValues = Object.values(NOTIFICATION_SOUNDS);
+  if (!methodValues.includes(next.notifications.endMethod)) {
+    next.notifications.endMethod = DEFAULT_SETTINGS.notifications.endMethod;
+  }
+  if (!volumeValues.includes(next.notifications.volume)) {
+    next.notifications.volume = DEFAULT_SETTINGS.notifications.volume;
+  }
+  if (!soundValues.includes(next.notifications.sound)) {
+    next.notifications.sound = DEFAULT_SETTINGS.notifications.sound;
+  }
+  if (typeof next.notifications.repeatUntilStopped !== "boolean") {
+    next.notifications.repeatUntilStopped = DEFAULT_SETTINGS.notifications.repeatUntilStopped;
+  }
+  return next;
 }
 
 export function resetSettings() {

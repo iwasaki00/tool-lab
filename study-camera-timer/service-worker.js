@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_VERSION = "focus-lens-2026-08-01-v1";
+const CACHE_VERSION = "focus-lens-2026-08-01-v2";
 const CACHE_PREFIX = "focus-lens";
 const STATIC_CACHE = CACHE_PREFIX + "-static-" + CACHE_VERSION;
 const RUNTIME_CACHE = CACHE_PREFIX + "-runtime-" + CACHE_VERSION;
