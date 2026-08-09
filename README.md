@@ -6,6 +6,7 @@
 
 `index.html` をブラウザで開くと、Tool Lab のトップメニューを表示します。
 トップメニューから学習タイマーや乗車券購入シミュレーションツールを選択できます。
+ハモリ練習ツールでは、iPhoneのマイクを使って単音・フレーズ・つられ耐性を練習できます。
 HTML / CSS / JavaScript のみで動作するため、GitHub Pages にそのまま配置できます。
 
 ## GitHub Pages
@@ -39,6 +40,8 @@ node study-camera-timer/tests/run-tests.mjs
 
 - `index.html`: Tool Lab のトップメニュー
 - `style.css`: トップメニューの画面スタイル
+- `harmony-trainer/`: iPhone向けハモリ練習ツール（マイク音程検出・PWA対応）
+- `harmony-trainer/data/exercises.js`: 追加しやすいフレーズ練習問題
 - `study-camera-timer/`: カメラ連動型・学習タイマー（PWA対応）
 - `study-camera-timer/js/`: タイマー、カメラ検出、履歴、設定などのモジュール
 - `ticket-simulator/`: 乗車券購入シミュレーション
