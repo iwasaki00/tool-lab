@@ -1,4 +1,4 @@
-const CACHE_NAME = "water-strobe-v1";
+const CACHE_NAME = "water-strobe-v1.2.0";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,6 +10,7 @@ const ASSETS = [
   "./js/recorder.js",
   "./js/diagnostics.js",
   "./js/storage.js",
+  "./js/version.js",
   "./manifest.json",
   "./og.png"
 ];

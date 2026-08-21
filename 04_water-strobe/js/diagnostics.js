@@ -1,4 +1,5 @@
 import { stabilityLabel } from "./strobe.js";
+import { APP_VERSION, BUILD_DATE } from "./version.js";
 
 const pretty = (value) => JSON.stringify(value, null, 2);
 const fixed = (value, digits = 2) => value === null ? "未測定" : value.toFixed(digits);
@@ -7,6 +8,9 @@ export function diagnosticText({ camera, torch, strobe, recorder, state, logs })
   const cameraData = camera.snapshot();
   const stats = strobe.stats();
   return `Water Strobe Diagnostic
+
+App Version: ${APP_VERSION}
+Build Date: ${BUILD_DATE}
 
 UserAgent:
 ${navigator.userAgent}

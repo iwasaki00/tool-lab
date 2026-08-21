@@ -4,6 +4,7 @@ import { StrobeController, clampFrequency } from "./strobe.js";
 import { RecorderController } from "./recorder.js";
 import { diagnosticText, copyText } from "./diagnostics.js";
 import { loadState, saveState, makePresetName } from "./storage.js";
+import { APP_VERSION, BUILD_DATE } from "./version.js";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -346,6 +347,7 @@ globalThis.addEventListener("beforeunload", () => {
   camera.stop();
 });
 
+$("#app-version").textContent = `Version ${APP_VERSION} (${BUILD_DATE})`;
 strobe.configure({ frequency: state.frequency, duty: state.duty, autoStopSeconds: state.autoStop });
 updateMain();
 setStatus("NOT READY", "idle");

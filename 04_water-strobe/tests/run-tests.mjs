@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { clampFrequency, calculateStats, stabilityLabel } from "../js/strobe.js";
 import { loadState, makePresetName } from "../js/storage.js";
 import { TorchController } from "../js/torch.js";
+import { APP_VERSION, BUILD_DATE } from "../js/version.js";
 import fs from "node:fs";
 
 assert.equal(clampFrequency(0), 0.5);
@@ -26,6 +27,7 @@ assert.equal(makePresetName([{ name: "Preset 1" }, { name: "Preset 3" }]), "Pres
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../css/style.css", import.meta.url), "utf8");
+const serviceWorker = fs.readFileSync(new URL("../service-worker.js", import.meta.url), "utf8");
 for (const label of ["ライトを準備", "ストロボ開始", "詳細設定", "診断", "録画開始"]) {
   assert.ok(html.includes(label), `missing UI label: ${label}`);
 }
@@ -34,6 +36,10 @@ assert.ok(app.includes('camera.track.addEventListener("ended"'));
 assert.ok(css.includes("touch-action: manipulation"), "double-tap zoom prevention is missing");
 assert.ok(html.includes("名前を付けて設定を保存"));
 assert.ok(html.includes("動画撮影を使用"));
+assert.match(APP_VERSION, /^\d+\.\d+\.\d+$/);
+assert.match(BUILD_DATE, /^\d{4}-\d{2}-\d{2}$/);
+assert.ok(serviceWorker.includes(`water-strobe-v${APP_VERSION}`), "cache version must match app version");
+assert.ok(serviceWorker.includes('"./js/version.js"'), "version module must be cached");
 
 const calls = [];
 const mockTrack = {
