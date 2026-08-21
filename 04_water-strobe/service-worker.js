@@ -1,4 +1,4 @@
-const CACHE_NAME = "water-strobe-v1.2.0";
+const CACHE_NAME = "water-strobe-v1.3.0";
 const ASSETS = [
   "./",
   "./index.html",

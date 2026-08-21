@@ -98,6 +98,48 @@ function setDuty(value) {
   updateMain();
 }
 
+function bindPressAndHold(button) {
+  let holdTimer = null;
+  let repeatTimer = null;
+  let releaseTimer = null;
+  let pointerHandled = false;
+  const adjust = () => setFrequency(state.frequency + Number(button.dataset.adjust));
+  const clearTimers = () => {
+    clearTimeout(holdTimer);
+    clearInterval(repeatTimer);
+    holdTimer = null;
+    repeatTimer = null;
+  };
+
+  button.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    clearTimeout(releaseTimer);
+    pointerHandled = true;
+    button.setPointerCapture?.(event.pointerId);
+    adjust();
+    holdTimer = setTimeout(() => {
+      repeatTimer = setInterval(adjust, 90);
+    }, 350);
+  });
+  button.addEventListener("pointerup", () => {
+    clearTimers();
+    releaseTimer = setTimeout(() => { pointerHandled = false; }, 400);
+  });
+  button.addEventListener("pointercancel", () => {
+    clearTimers();
+    clearTimeout(releaseTimer);
+    pointerHandled = false;
+  });
+  button.addEventListener("click", (event) => {
+    if (pointerHandled) {
+      event.preventDefault();
+      return;
+    }
+    adjust();
+  });
+  button.addEventListener("contextmenu", (event) => event.preventDefault());
+}
+
 async function prepareCamera() {
   clearError();
   $("#prepare-button").disabled = true;
@@ -285,7 +327,7 @@ recorder.addEventListener("error", (event) => {
 
 $("#prepare-button").addEventListener("click", prepareCamera);
 $("#strobe-button").addEventListener("click", toggleStrobe);
-$$("[data-adjust]").forEach((button) => button.addEventListener("click", () => setFrequency(state.frequency + Number(button.dataset.adjust))));
+$$("[data-adjust]").forEach(bindPressAndHold);
 $$("[data-duty]").forEach((button) => button.addEventListener("click", () => setDuty(button.dataset.duty)));
 $("#water-down").addEventListener("click", () => setFrequency(state.frequency - 0.01));
 $("#water-up").addEventListener("click", () => setFrequency(state.frequency + 0.01));

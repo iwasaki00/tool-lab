@@ -44,13 +44,13 @@ body {
   padding: calc(26px + env(safe-area-inset-top)) 20px calc(30px + env(safe-area-inset-bottom));
 }
 
-.brand { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0 0 24px; }
+.brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 14px; }
 .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; color: var(--cyan); font-size: 24px; border: 1px solid rgba(82, 221, 244, .35); border-radius: 50%; box-shadow: 0 0 26px rgba(82, 221, 244, .18); }
 .brand h1, .brand p { margin: 0; }
 .brand h1 { font-size: 21px; letter-spacing: .02em; }
 .brand p { margin-top: 2px; color: var(--muted); font-size: 12px; letter-spacing: .12em; }
 
-.status-row { display: flex; align-items: center; justify-content: center; min-height: 26px; gap: 10px; margin-bottom: 16px; }
+.status-row { display: flex; align-items: center; justify-content: center; min-height: 24px; gap: 10px; margin-bottom: 8px; }
 .status { color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .2em; }
 .status[data-tone="ready"] { color: var(--green); }
 .status[data-tone="active"] { color: var(--cyan-bright); }
@@ -77,31 +77,31 @@ button:active { transform: translateY(1px); }
 .prepare-button { width: min(100%, 330px); min-height: 60px; margin-top: 12px; font-size: 17px; letter-spacing: .04em; }
 .quiet-link { min-height: 44px; margin-top: 12px; padding: 0 18px; color: var(--muted); background: transparent; border-color: transparent; }
 
-.frequency-block { padding: 20px 0 8px; text-align: center; }
+.frequency-block { padding: 10px 0 4px; text-align: center; }
 .label { margin: 0 0 10px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
 .frequency { display: flex; align-items: baseline; justify-content: center; gap: 9px; font-variant-numeric: tabular-nums; }
-.frequency span { font-size: clamp(58px, 19vw, 86px); font-weight: 260; letter-spacing: -.06em; line-height: 1; text-shadow: 0 0 30px rgba(82, 221, 244, .12); }
+.frequency span { font-size: clamp(52px, 17vw, 76px); font-weight: 260; letter-spacing: -.06em; line-height: 1; text-shadow: 0 0 30px rgba(82, 221, 244, .12); }
 .frequency small { color: var(--cyan); font-size: 18px; font-weight: 800; }
 
-.adjust-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 26px; }
-.adjust-grid button { min-height: 58px; color: #bcd1d8; font-size: 16px; font-weight: 700; background: rgba(17, 31, 38, .78); }
-.adjust-grid button span { margin-right: 4px; color: var(--cyan); font-size: 21px; }
-.duty-section { margin-bottom: 18px; }
+.adjust-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 12px 0 16px; }
+.adjust-grid button { min-width: 0; min-height: 48px; padding: 0 4px; color: #bcd1d8; font-size: 13px; font-weight: 700; background: rgba(17, 31, 38, .78); user-select: none; -webkit-user-select: none; }
+.adjust-grid button span { margin-right: 1px; color: var(--cyan); font-size: 17px; }
+.duty-section { margin-bottom: 12px; }
 .segmented { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.segmented button { min-height: 50px; color: var(--muted); font-weight: 750; }
+.segmented button { min-height: 44px; color: var(--muted); font-weight: 750; }
 .segmented button.is-selected { color: #071116; background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 18px rgba(82, 221, 244, .18); }
 
-.strobe-button { width: 100%; min-height: 68px; margin: 8px 0 24px; color: #061217; background: linear-gradient(135deg, #90efff, #4dccdf); border: 0; font-size: 18px; font-weight: 900; letter-spacing: .06em; box-shadow: 0 14px 34px rgba(82, 221, 244, .18); }
+.strobe-button { width: 100%; min-height: 58px; margin: 6px 0 14px; color: #061217; background: linear-gradient(135deg, #90efff, #4dccdf); border: 0; font-size: 17px; font-weight: 900; letter-spacing: .06em; box-shadow: 0 14px 34px rgba(82, 221, 244, .18); }
 .strobe-button.is-active { color: #fff; background: linear-gradient(135deg, #e5515c, #bb3341); box-shadow: 0 14px 34px rgba(229, 81, 92, .2); }
-.water-controls { padding: 17px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.water-controls { padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .water-grid { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; }
-.water-grid button { min-height: 60px; display: grid; place-items: center; gap: 2px; color: var(--muted); font-size: 12px; }
+.water-grid button { min-height: 52px; display: grid; place-items: center; gap: 2px; color: var(--muted); font-size: 12px; }
 .water-grid button span { color: var(--cyan); font-size: 23px; line-height: 1; }
 .water-grid .stop-button { color: var(--text); border-color: rgba(82, 221, 244, .3); }
 .water-grid .stop-button span { font-size: 14px; }
 .stop-point { display: flex; align-items: center; justify-content: space-between; margin: 12px 0 0; padding: 15px 17px; border-radius: 14px; background: rgba(82, 221, 244, .08); color: var(--muted); font-size: 12px; }
 .stop-point strong { color: var(--cyan-bright); font-size: 17px; font-variant-numeric: tabular-nums; }
-.sub-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; }
+.sub-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
 .sub-actions button { background: transparent; color: var(--muted); }
 
 .error-box { margin: 12px 0 20px; padding: 16px; border: 1px solid rgba(255, 107, 117, .25); border-radius: 16px; background: rgba(255, 107, 117, .08); text-align: center; }

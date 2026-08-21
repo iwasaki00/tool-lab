@@ -34,6 +34,8 @@ for (const label of ["ライトを準備", "ストロボ開始", "詳細設定",
 assert.ok(app.includes('document.addEventListener("visibilitychange"'));
 assert.ok(app.includes('camera.track.addEventListener("ended"'));
 assert.ok(css.includes("touch-action: manipulation"), "double-tap zoom prevention is missing");
+assert.ok(css.includes("grid-template-columns: repeat(4"), "frequency controls must be in one row");
+assert.ok(app.includes("bindPressAndHold"), "press-and-hold frequency adjustment is missing");
 assert.ok(html.includes("名前を付けて設定を保存"));
 assert.ok(html.includes("動画撮影を使用"));
 assert.match(APP_VERSION, /^\d+\.\d+\.\d+$/);
