@@ -4,7 +4,7 @@ iPhone Safariで使える、ハモリ感覚と「主旋律につられない耳�
 
 ## 起動方法
 
-マイクとService WorkerにはHTTPSまたはlocalhostが必要です。リポジトリ直下で次を実行し、`http://127.0.0.1:8042/harmony-trainer/` を開いてください。
+マイクとService WorkerにはHTTPSまたはlocalhostが必要です。リポジトリ直下で次を実行し、`http://127.0.0.1:8042/03_harmony-trainer/` を開いてください。
 
 ```powershell
 py -3 -m http.server 8042 --bind 127.0.0.1

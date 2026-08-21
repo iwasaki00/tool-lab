@@ -1,0 +1,12 @@
+{
+  "name": "Water Strobe — 水滴ストロボ",
+  "short_name": "Water Strobe",
+  "description": "水滴の周期運動を観察するためのストロボツール",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#071015",
+  "theme_color": "#081116"
+}
+

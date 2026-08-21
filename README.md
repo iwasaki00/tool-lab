@@ -7,6 +7,7 @@
 `index.html` をブラウザで開くと、Tool Lab のトップメニューを表示します。
 トップメニューから学習タイマーや乗車券購入シミュレーションツールを選択できます。
 ハモリ練習ツールでは、iPhoneのマイクを使って単音・フレーズ・つられ耐性を練習できます。
+Water Strobeでは、対応するiPhoneの背面カメラ用ライトを周期点滅させ、水滴などの動きを観察できます。
 HTML / CSS / JavaScript のみで動作するため、GitHub Pages にそのまま配置できます。
 
 ## GitHub Pages
@@ -24,7 +25,7 @@ GitHub の `Settings` → `Pages` で、`Build and deployment` の `Source` を 
 py -3 -m http.server 8042 --bind 127.0.0.1
 ```
 
-起動後に `http://127.0.0.1:8042/study-camera-timer/` を開きます。通常のタイマー機能はカメラなしでも利用でき、カメラは画面上の操作後にのみ許可を求めます。
+起動後に `http://127.0.0.1:8042/02_study-camera-timer/` を開きます。通常のタイマー機能はカメラなしでも利用でき、カメラは画面上の操作後にのみ許可を求めます。
 カメラの初回利用時はMediaPipe本体と検出モデルを取得するため、インターネット接続が必要です。デバッグ表示はURL末尾に `?debug=1` を付けて有効にできます。
 
 終了通知はローカルに生成した5種類のWAV音源から選択でき、既定では画面上の「通知を停止」を押すまで繰り返します。Webブラウザの制約により、Safariをバックグラウンドへ移動した場合やiPhoneをロックした場合は、音の継続を保証できません。
@@ -33,19 +34,21 @@ py -3 -m http.server 8042 --bind 127.0.0.1
 ロジックと静的構成の回帰テストは次で実行できます。
 
 ```powershell
-node study-camera-timer/tests/run-tests.mjs
+node 02_study-camera-timer/tests/run-tests.mjs
 ```
 
 ## Structure
 
 - `index.html`: Tool Lab のトップメニュー
 - `style.css`: トップメニューの画面スタイル
-- `harmony-trainer/`: iPhone向けハモリ練習ツール（マイク音程検出・PWA対応）
-- `harmony-trainer/data/exercises.js`: 追加しやすいフレーズ練習問題
-- `study-camera-timer/`: カメラ連動型・学習タイマー（PWA対応）
-- `study-camera-timer/js/`: タイマー、カメラ検出、履歴、設定などのモジュール
-- `ticket-simulator/`: 乗車券購入シミュレーション
-- `ticket-simulator/index.html`: シミュレーション画面
-- `ticket-simulator/style.css`: シミュレーション画面スタイル
-- `ticket-simulator/script.js`: 日付生成、シミュレーション、CSV出力
+- `01_ticket-simulator/`: 乗車券購入シミュレーション
+- `01_ticket-simulator/index.html`: シミュレーション画面
+- `01_ticket-simulator/style.css`: シミュレーション画面スタイル
+- `01_ticket-simulator/script.js`: 日付生成、シミュレーション、CSV出力
+- `02_study-camera-timer/`: カメラ連動型・学習タイマー（PWA対応）
+- `02_study-camera-timer/js/`: タイマー、カメラ検出、履歴、設定などのモジュール
+- `03_harmony-trainer/`: iPhone向けハモリ練習ツール（マイク音程検出・PWA対応）
+- `03_harmony-trainer/data/exercises.js`: 追加しやすいフレーズ練習問題
+- `04_water-strobe/`: iPhone Safari向け水滴ストロボ（診断・録画・PWA対応）
+- `04_water-strobe/js/`: カメラ、Torch、周期制御、録画、診断、保存の各モジュール
 - `.nojekyll`: GitHub Pagesで静的ファイルをそのまま配信するための設定
