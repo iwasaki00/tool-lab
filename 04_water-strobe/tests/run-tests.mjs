@@ -25,11 +25,15 @@ assert.equal(makePresetName([{ name: "Preset 1" }, { name: "Preset 3" }]), "Pres
 
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const app = fs.readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+const css = fs.readFileSync(new URL("../css/style.css", import.meta.url), "utf8");
 for (const label of ["ライトを準備", "ストロボ開始", "詳細設定", "診断", "録画開始"]) {
   assert.ok(html.includes(label), `missing UI label: ${label}`);
 }
 assert.ok(app.includes('document.addEventListener("visibilitychange"'));
 assert.ok(app.includes('camera.track.addEventListener("ended"'));
+assert.ok(css.includes("touch-action: manipulation"), "double-tap zoom prevention is missing");
+assert.ok(html.includes("名前を付けて設定を保存"));
+assert.ok(html.includes("動画撮影を使用"));
 
 const calls = [];
 const mockTrack = {

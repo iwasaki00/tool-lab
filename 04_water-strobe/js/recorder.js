@@ -29,6 +29,10 @@ export class RecorderController extends EventTarget {
     this.recorder.addEventListener("dataavailable", (event) => {
       if (event.data.size) this.chunks.push(event.data);
     });
+    this.recorder.addEventListener("error", (event) => {
+      this.log(`Recording error: ${event.error?.message || "unknown error"}`);
+      this.dispatchEvent(new CustomEvent("error", { detail: event.error || new Error("Recording failed") }));
+    });
     this.recorder.addEventListener("stop", () => {
       if (this.url) URL.revokeObjectURL(this.url);
       const blob = new Blob(this.chunks, { type: this.recorder.mimeType || this.mimeType });
@@ -48,4 +52,3 @@ export class RecorderController extends EventTarget {
     return this.recorder?.state === "recording";
   }
 }
-

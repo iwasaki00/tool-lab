@@ -16,8 +16,10 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+html, body { touch-action: manipulation; }
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
+button, a, input, select, label { touch-action: manipulation; }
 
 body {
   margin: 0;
@@ -131,6 +133,7 @@ select, .save-row input { width: 100%; min-height: 48px; padding: 0 13px; color:
 .switch-row input:checked + i::after { transform: translateX(21px); background: var(--cyan); }
 .save-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 .save-row button { padding: 0 18px; color: #061217; background: var(--cyan); font-weight: 800; }
+.save-status { min-height: 18px; margin: 8px 0 0; color: var(--green); font-size: 12px; }
 .saved-list { display: grid; gap: 8px; margin: 13px 0 0; padding: 0; list-style: none; }
 .saved-list li { position: relative; display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .saved-list li > button:first-child { flex: 1; display: grid; gap: 3px; min-width: 0; padding: 11px 13px; text-align: left; background: transparent; border: 0; }

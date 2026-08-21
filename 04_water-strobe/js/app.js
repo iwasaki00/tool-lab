@@ -219,6 +219,7 @@ function savePreset() {
   const name = $("#preset-name").value.trim() || makePresetName(state.presets);
   state.presets.push({ name, frequency: state.frequency, duty: state.duty });
   $("#preset-name").value = "";
+  $("#preset-save-status").textContent = `「${name}」を保存しました`;
   persist();
   renderPresets();
 }
@@ -274,6 +275,12 @@ recorder.addEventListener("ready", (event) => {
   $("#save-video").download = `water-strobe-${new Date().toISOString().replace(/[:.]/g, "-")}.${extension}`;
   updateMain();
 });
+recorder.addEventListener("error", (event) => {
+  state.recording = false;
+  setError("動画の撮影を続けられませんでした");
+  log(`Recorder error: ${event.detail.message}`);
+  updateMain();
+});
 
 $("#prepare-button").addEventListener("click", prepareCamera);
 $("#strobe-button").addEventListener("click", toggleStrobe);
@@ -293,6 +300,12 @@ $("#recording-enabled").checked = state.recordingEnabled;
 $("#recording-enabled").addEventListener("change", (event) => { state.recordingEnabled = event.target.checked; persist(); updateMain(); });
 $("#record-button").addEventListener("click", toggleRecording);
 $("#preset-save").addEventListener("click", savePreset);
+$("#preset-name").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    savePreset();
+  }
+});
 $("#preset-list").addEventListener("click", (event) => {
   const apply = event.target.closest("[data-preset-index]");
   const remove = event.target.closest("[data-delete-preset]");
