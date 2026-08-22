@@ -83,8 +83,8 @@ button:active { transform: translateY(1px); }
 .frequency span { font-size: clamp(52px, 17vw, 76px); font-weight: 260; letter-spacing: -.06em; line-height: 1; text-shadow: 0 0 30px rgba(82, 221, 244, .12); }
 .frequency small { color: var(--cyan); font-size: 18px; font-weight: 800; }
 
-.adjust-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 12px 0 16px; }
-.adjust-grid button { min-width: 0; min-height: 48px; padding: 0 4px; color: #bcd1d8; font-size: 13px; font-weight: 700; background: rgba(17, 31, 38, .78); user-select: none; -webkit-user-select: none; }
+.adjust-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin: 12px 0 16px; }
+.adjust-grid button { min-width: 0; min-height: 48px; padding: 0 2px; color: #bcd1d8; font-size: 11px; font-weight: 700; background: rgba(17, 31, 38, .78); user-select: none; -webkit-user-select: none; }
 .adjust-grid button span { margin-right: 1px; color: var(--cyan); font-size: 17px; }
 .duty-section { margin-bottom: 12px; }
 .segmented { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
