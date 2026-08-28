@@ -43,45 +43,77 @@
             <span id="thresholdMarker" class="threshold-marker" aria-hidden="true"></span>
           </div>
           <p class="meter-note"><span class="threshold-key"></span> 線を超える声で録音を始めます</p>
+          <canvas id="liveWaveCanvas" class="wave-canvas live-wave" width="640" height="100" aria-label="リアルタイム音声波形"></canvas>
         </div>
 
         <section class="panel" aria-labelledby="voiceHeading">
           <div class="section-heading">
-            <h2 id="voiceHeading">声の高さ</h2>
-            <output id="rateValue" for="rateSlider">1.25×</output>
+            <h2 id="voiceHeading">声</h2>
+            <span id="currentMode" class="voice-badge">オウム</span>
           </div>
-          <div class="range-labels" aria-hidden="true"><span>低い</span><span>高い</span></div>
-          <input id="rateSlider" class="range" type="range" min="0.5" max="2" step="0.05" value="1.25" aria-label="再生速度と声の高さ">
-          <div id="pitchPresets" class="pitch-presets" aria-label="声の高さプリセット">
-            <button type="button" data-rate="0.65">超低音</button>
-            <button type="button" data-rate="0.8">低音</button>
-            <button type="button" data-rate="1">普通</button>
-            <button class="selected" type="button" data-rate="1.25">高音</button>
-            <button type="button" data-rate="1.5">超高音</button>
-          </div>
-          <p class="current-mode">現在：<strong id="currentMode">オウム</strong></p>
+          <p id="voiceAnnouncement" class="voice-announcement" aria-live="polite">🦜 オウムの声で返します</p>
           <div id="modeGrid" class="mode-grid" aria-label="音声モード">
-            <button type="button" data-mode="normal" data-rate="1">普通</button>
-            <button class="selected" type="button" data-mode="parrot" data-rate="1.25">オウム</button>
-            <button type="button" data-mode="tiny" data-rate="1.6">チビ声</button>
-            <button type="button" data-mode="monster" data-rate="0.7">怪物</button>
-            <button type="button" data-mode="fast" data-rate="1.5">早口</button>
-            <button type="button" data-mode="slow" data-rate="0.65">スロー</button>
-            <button type="button" data-mode="random">ランダム</button>
+            <button type="button" data-mode="normal">普通</button>
+            <button class="selected" type="button" data-mode="parrot">オウム</button>
+            <button type="button" data-mode="tiny">チビ</button>
+            <button type="button" data-mode="monster">怪物</button>
+            <button type="button" data-mode="robot">ロボット</button>
+            <button type="button" data-mode="alien">宇宙人</button>
+            <button type="button" data-mode="cave">洞窟</button>
+            <button type="button" data-mode="telephone">電話</button>
+            <button type="button" data-mode="slow-monster">スロー怪物</button>
+            <button type="button" data-mode="hyper">ハイパー</button>
+            <button type="button" data-mode="reverse">逆再生</button>
+            <button type="button" data-mode="custom">カスタム</button>
+            <button class="special" type="button" data-mode="random">🎲 ランダム</button>
+            <button class="chaos" type="button" data-mode="chaos">⚡ カオス</button>
+          </div>
+          <div class="dual-controls">
+            <label>Pitch <output id="pitchValue">+5 semitone</output>
+              <input id="pitchSlider" class="range" type="range" min="-12" max="12" step="1" value="5">
+            </label>
+            <label>Speed <output id="speedValue">1.05×</output>
+              <input id="speedSlider" class="range" type="range" min="0.5" max="2" step="0.05" value="1.05">
+            </label>
           </div>
         </section>
 
-        <section class="panel echo-row" aria-labelledby="echoHeading">
-          <div>
-            <h2 id="echoHeading">山びこ</h2>
-            <p>小さくしながら繰り返します</p>
+        <details class="panel details-panel custom-panel">
+          <summary>音声加工</summary>
+          <p class="details-copy">変更するとカスタム音声として保存されます。</p>
+          <div class="effect-grid">
+            <label>Echo <output id="customEchoValue">0%</output><input id="customEchoInput" type="range" min="0" max="1" step="0.05" value="0"></label>
+            <label>Reverb <output id="customReverbValue">0%</output><input id="customReverbInput" type="range" min="0" max="1" step="0.05" value="0"></label>
+            <label>Tremolo <output id="customTremoloValue">0%</output><input id="customTremoloInput" type="range" min="0" max="1" step="0.05" value="0"></label>
+            <label>Low Pass <output id="customLowPassValue">OFF</output><input id="customLowPassInput" type="range" min="0" max="16000" step="100" value="0"></label>
+            <label>High Pass <output id="customHighPassValue">OFF</output><input id="customHighPassInput" type="range" min="0" max="2000" step="50" value="0"></label>
+            <label>Volume <output id="customVolumeValue">100%</output><input id="customVolumeInput" type="range" min="0.2" max="1.5" step="0.05" value="1"></label>
           </div>
-          <label class="switch">
-            <input id="echoToggle" type="checkbox">
-            <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only">山びこを有効にする</span>
-          </label>
+          <div class="toggle-grid">
+            <label><input id="customRobotInput" type="checkbox"> Robot</label>
+            <label><input id="customReverseInput" type="checkbox"> Reverse</label>
+          </div>
+        </details>
+
+        <section class="panel compact-options" aria-label="オウムの性格と動作">
+          <label>感情<select id="emotionSelect"><option value="normal">普通</option><option value="happy">ごきげん</option><option value="angry">怒り</option><option value="sleepy">眠い</option><option value="panic">パニック</option></select></label>
+          <label>リアクション<select id="reactionSelect"><option value="off">OFF</option><option value="few">少ない</option><option value="normal" selected>普通</option><option value="many">多い</option></select></label>
+          <label>アプリモード<select id="appModeSelect"><option value="normal">NORMAL</option><option value="game">GAME（準備中）</option></select></label>
+          <label class="inline-toggle"><input id="randomBehaviorToggle" type="checkbox"> ランダム行動</label>
         </section>
+
+        <section id="latestWavePanel" class="panel" aria-labelledby="latestWaveHeading" hidden>
+          <div class="section-heading"><h2 id="latestWaveHeading">いまの声</h2><span id="latestDuration">0.0秒</span></div>
+          <canvas id="resultWaveCanvas" class="wave-canvas result-wave" width="640" height="120" aria-label="録音結果の波形"></canvas>
+        </section>
+
+        <details id="historyPanel" class="panel details-panel">
+          <summary>履歴・お気に入り <span id="historyCount">0</span></summary>
+          <h2 class="subheading">直近の録音</h2>
+          <div id="historyList" class="audio-list"><p class="empty-message">録音はまだありません</p></div>
+          <h2 class="subheading">★ お気に入り</h2>
+          <div id="favoriteList" class="audio-list"><p class="empty-message">お気に入りはまだありません</p></div>
+        </details>
 
         <details class="panel details-panel">
           <summary>詳細設定</summary>
@@ -95,8 +127,6 @@
             <label>最大録音時間 <span><input id="maxRecordingInput" type="number" min="3" max="60" step="1" value="15"> 秒</span></label>
             <label>返事までの間 <span><input id="responseDelayInput" type="number" min="0" max="1500" step="50" value="250"> ms</span></label>
             <label>マイク再開待ち <span><input id="restartDelayInput" type="number" min="0" max="2000" step="50" value="500"> ms</span></label>
-            <label>山びこ回数 <span><input id="echoCountInput" type="number" min="1" max="5" step="1" value="3"> 回</span></label>
-            <label>山びこ間隔 <span><input id="echoIntervalInput" type="number" min="100" max="1500" step="50" value="400"> ms</span></label>
           </div>
           <button id="resetSettingsButton" class="text-button" type="button">初期値に戻す</button>
         </details>
@@ -113,7 +143,14 @@
             <div><dt>無音継続時間</dt><dd id="debugSilence">0 ms</dd></div>
             <div><dt>録音開始時刻</dt><dd id="debugStartedAt">—</dd></div>
             <div><dt>録音時間</dt><dd id="debugDuration">0 ms</dd></div>
-            <div><dt>playbackRate</dt><dd id="debugRate">1.25</dd></div>
+            <div><dt>Pitch Shift方式</dt><dd id="debugPitchMethod">Granular OLA</dd></div>
+            <div><dt>AudioBuffer</dt><dd id="debugBuffer">—</dd></div>
+            <div><dt>Context sampleRate</dt><dd id="debugSampleRate">—</dd></div>
+            <div><dt>AudioNode概算</dt><dd id="debugNodeCount">0</dd></div>
+            <div><dt>Effect Chain</dt><dd id="debugEffectChain">なし</dd></div>
+            <div><dt>プリセット</dt><dd id="debugPreset">オウム</dd></div>
+            <div><dt>IndexedDB</dt><dd id="debugIndexedDb">未確認</dd></div>
+            <div><dt>履歴件数</dt><dd id="debugHistoryCount">0</dd></div>
             <div><dt>Blobサイズ</dt><dd id="debugBlobSize">0 B</dd></div>
             <div><dt>MIMEタイプ</dt><dd id="debugMime">—</dd></div>
             <div class="debug-error"><dt>エラー</dt><dd id="debugError">なし</dd></div>
@@ -128,6 +165,8 @@
       <p class="privacy-note">音声はこの端末の中だけで処理され、外部には送信されません。</p>
     </main>
 
+    <script src="js/audio-effects.js" defer></script>
+    <script src="js/storage.js" defer></script>
     <script src="js/main.js" defer></script>
   </body>
 </html>
