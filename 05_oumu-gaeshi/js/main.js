@@ -12,6 +12,7 @@
   });
   const DEFAULTS = Object.freeze({
     threshold: 0.055,
+    preRollMs: 400,
     silenceMs: 800,
     minRecordingMs: 300,
     maxRecordingSeconds: 15,
@@ -43,7 +44,7 @@
     meterTrack: byId("meterTrack"), meterFill: byId("meterFill"), thresholdMarker: byId("thresholdMarker"), levelValue: byId("levelValue"),
     rateSlider: byId("rateSlider"), rateValue: byId("rateValue"), pitchPresets: byId("pitchPresets"), currentMode: byId("currentMode"), modeGrid: byId("modeGrid"),
     echoToggle: byId("echoToggle"), thresholdInput: byId("thresholdInput"), thresholdOutput: byId("thresholdOutput"),
-    silenceInput: byId("silenceInput"), minRecordingInput: byId("minRecordingInput"), maxRecordingInput: byId("maxRecordingInput"),
+    preRollInput: byId("preRollInput"), silenceInput: byId("silenceInput"), minRecordingInput: byId("minRecordingInput"), maxRecordingInput: byId("maxRecordingInput"),
     responseDelayInput: byId("responseDelayInput"), restartDelayInput: byId("restartDelayInput"),
     echoCountInput: byId("echoCountInput"), echoIntervalInput: byId("echoIntervalInput"), resetSettingsButton: byId("resetSettingsButton"),
     clearLogButton: byId("clearLogButton"), debugLog: byId("debugLog"),
@@ -61,8 +62,15 @@
   let analyser = null;
   let analyserData = null;
   let mediaRecorder = null;
+  let captureMode = "none";
+  let captureNode = null;
+  let captureMuteNode = null;
   let animationFrame = 0;
   let recordingChunks = [];
+  let preRollChunks = [];
+  let preRollSampleCount = 0;
+  let recordingPcmChunks = [];
+  let recordingPcmSampleCount = 0;
   let recordingStartedAt = 0;
   let silenceStartedAt = 0;
   let speechCandidateAt = 0;
@@ -97,6 +105,7 @@
   }
 
   function setState(nextState, hint) {
+    if (nextState === STATES.LISTENING) resetPreRoll();
     state = nextState;
     document.body.dataset.state = nextState;
     const [label, defaultHint] = STATUS[nextState];
@@ -136,7 +145,9 @@
 
   function updateDebug() {
     ui.debugAudioContext.textContent = audioContext ? audioContext.state : "未作成";
-    ui.debugRecorder.textContent = mediaRecorder ? mediaRecorder.state : "未作成";
+    if (captureMode === "audio-worklet") ui.debugRecorder.textContent = "PCM / AudioWorklet";
+    else if (captureMode === "script-processor") ui.debugRecorder.textContent = "PCM / ScriptProcessor";
+    else ui.debugRecorder.textContent = mediaRecorder ? `MediaRecorder / ${mediaRecorder.state}` : "未作成";
     ui.debugLevel.textContent = smoothedLevel.toFixed(3);
     ui.debugThreshold.textContent = effectiveThreshold.toFixed(3);
     ui.debugSilence.textContent = silenceStartedAt ? `${Math.round(performance.now() - silenceStartedAt)} ms` : "0 ms";
@@ -153,6 +164,7 @@
     ui.echoToggle.checked = settings.echoEnabled;
     ui.thresholdInput.value = settings.threshold;
     ui.thresholdOutput.textContent = `${(settings.threshold * 100).toFixed(1)}%`;
+    ui.preRollInput.value = settings.preRollMs;
     ui.silenceInput.value = settings.silenceMs;
     ui.minRecordingInput.value = settings.minRecordingMs;
     ui.maxRecordingInput.value = settings.maxRecordingSeconds;
@@ -180,7 +192,94 @@
 
   function chooseMimeType() {
     const candidates = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
-    return candidates.find((type) => MediaRecorder.isTypeSupported?.(type)) || "";
+    return candidates.find((type) => window.MediaRecorder?.isTypeSupported?.(type)) || "";
+  }
+
+  function resetPreRoll() {
+    preRollChunks = [];
+    preRollSampleCount = 0;
+  }
+
+  function pushPreRoll(chunk) {
+    preRollChunks.push(chunk);
+    preRollSampleCount += chunk.length;
+    const maximumSamples = Math.ceil((audioContext.sampleRate * settings.preRollMs) / 1000);
+    while (preRollSampleCount > maximumSamples && preRollChunks.length > 1) {
+      const removed = preRollChunks.shift();
+      preRollSampleCount -= removed.length;
+    }
+    const overflow = preRollSampleCount - maximumSamples;
+    if (overflow > 0 && preRollChunks.length) {
+      preRollChunks[0] = preRollChunks[0].slice(overflow);
+      preRollSampleCount -= overflow;
+    }
+  }
+
+  function handlePcmChunk(chunk) {
+    if (!chunk?.length) return;
+    if (state === STATES.LISTENING) {
+      pushPreRoll(chunk);
+    } else if (state === STATES.RECORDING) {
+      recordingPcmChunks.push(chunk);
+      recordingPcmSampleCount += chunk.length;
+    }
+  }
+
+  async function setupCapture() {
+    captureMode = "none";
+    captureMuteNode = audioContext.createGain();
+    captureMuteNode.gain.value = 0;
+    captureMuteNode.connect(audioContext.destination);
+
+    if (audioContext.audioWorklet && window.AudioWorkletNode) {
+      try {
+        const moduleUrl = new URL("js/pcm-recorder-worklet.js", document.baseURI).href;
+        await audioContext.audioWorklet.addModule(moduleUrl);
+        captureNode = new AudioWorkletNode(audioContext, "pcm-recorder");
+        captureNode.port.onmessage = (event) => handlePcmChunk(new Float32Array(event.data));
+        sourceNode.connect(captureNode);
+        captureNode.connect(captureMuteNode);
+        captureMode = "audio-worklet";
+        log(`pre-roll ready (${settings.preRollMs} ms, AudioWorklet)`);
+        return;
+      } catch (error) {
+        console.warn("AudioWorklet initialization failed; using fallback", error);
+        log("AudioWorklet unavailable; trying compatibility capture");
+      }
+    }
+
+    if (audioContext.createScriptProcessor) {
+      captureNode = audioContext.createScriptProcessor(2048, 1, 1);
+      captureNode.onaudioprocess = (event) => {
+        handlePcmChunk(new Float32Array(event.inputBuffer.getChannelData(0)));
+      };
+      sourceNode.connect(captureNode);
+      captureNode.connect(captureMuteNode);
+      captureMode = "script-processor";
+      log(`pre-roll ready (${settings.preRollMs} ms, compatibility mode)`);
+      return;
+    }
+
+    captureMuteNode.disconnect();
+    captureMuteNode = null;
+    if (!window.MediaRecorder) throw new Error("このブラウザは音声録音に対応していません。");
+    captureMode = "media-recorder";
+    log("pre-roll unavailable; using MediaRecorder fallback");
+  }
+
+  function disconnectCapture() {
+    if (captureNode) {
+      if ("onaudioprocess" in captureNode) captureNode.onaudioprocess = null;
+      if (captureNode.port) captureNode.port.onmessage = null;
+      try { captureNode.disconnect(); } catch (_) { /* already disconnected */ }
+    }
+    try { captureMuteNode?.disconnect(); } catch (_) { /* already disconnected */ }
+    captureNode = null;
+    captureMuteNode = null;
+    captureMode = "none";
+    resetPreRoll();
+    recordingPcmChunks = [];
+    recordingPcmSampleCount = 0;
   }
 
   async function queryPermission() {
@@ -203,7 +302,6 @@
         throw new Error("マイクを使うにはHTTPSでページを開いてください。");
       }
       if (!navigator.mediaDevices?.getUserMedia) throw new Error("このブラウザではマイクを利用できません。");
-      if (!window.MediaRecorder) throw new Error("このブラウザは音声録音に対応していません。");
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) throw new Error("このブラウザは音声処理に対応していません。");
 
@@ -222,6 +320,7 @@
       analyser.smoothingTimeConstant = 0.45;
       analyserData = new Float32Array(analyser.fftSize);
       sourceNode.connect(analyser);
+      await setupCapture();
       noiseFloor = 0.006;
       ui.controls.hidden = false;
       ui.startButton.hidden = true;
@@ -231,6 +330,7 @@
     } catch (error) {
       stream?.getTracks().forEach((track) => track.stop());
       stream = null;
+      disconnectCapture();
       if (audioContext && audioContext.state !== "closed") audioContext.close().catch(() => {});
       audioContext = null;
       handleError(error, microphoneErrorMessage(error));
@@ -264,7 +364,8 @@
       effectiveThreshold = Math.min(0.3, Math.max(settings.threshold, noiseFloor * 2.6 + 0.004));
       if (level >= effectiveThreshold) {
         if (!speechCandidateAt) speechCandidateAt = timestamp;
-        if (timestamp - speechCandidateAt >= 90) beginRecording();
+        const confirmationMs = captureMode === "media-recorder" ? 35 : 90;
+        if (timestamp - speechCandidateAt >= confirmationMs) beginRecording();
       } else {
         speechCandidateAt = 0;
       }
@@ -306,12 +407,18 @@
   function beginRecording() {
     if (state !== STATES.LISTENING) return;
     try {
-      recordingChunks = [];
-      mediaRecorder = createRecorder();
-      mediaRecorder.ondataavailable = (event) => { if (event.data?.size) recordingChunks.push(event.data); };
-      mediaRecorder.onerror = (event) => handleError(event.error || new Error("録音中にエラーが発生しました。"));
-      mediaRecorder.onstop = processRecording;
-      mediaRecorder.start(100);
+      if (captureMode === "audio-worklet" || captureMode === "script-processor") {
+        recordingPcmChunks = preRollChunks;
+        recordingPcmSampleCount = preRollSampleCount;
+        resetPreRoll();
+      } else {
+        recordingChunks = [];
+        mediaRecorder = createRecorder();
+        mediaRecorder.ondataavailable = (event) => { if (event.data?.size) recordingChunks.push(event.data); };
+        mediaRecorder.onerror = (event) => handleError(event.error || new Error("録音中にエラーが発生しました。"));
+        mediaRecorder.onstop = processMediaRecording;
+        mediaRecorder.start(100);
+      }
       recordingStartedAt = performance.now();
       silenceStartedAt = 0;
       speechCandidateAt = 0;
@@ -325,24 +432,46 @@
   }
 
   function stopRecording() {
-    if (state !== STATES.RECORDING || !mediaRecorder) return;
+    if (state !== STATES.RECORDING) return;
     setState(STATES.PROCESSING);
+    log("recording stopped");
     try {
-      if (mediaRecorder.state === "recording") mediaRecorder.stop();
-      log("recording stopped");
+      if (captureMode === "audio-worklet" || captureMode === "script-processor") {
+        processPcmRecording().catch((error) => handleError(error, "音声データの生成に失敗しました。"));
+      } else if (mediaRecorder?.state === "recording") {
+        mediaRecorder.stop();
+      } else {
+        throw new Error("Recorder is not active");
+      }
     } catch (error) {
       handleError(error, "録音の停止に失敗しました。");
     }
   }
 
-  async function processRecording() {
+  async function processMediaRecording() {
     const duration = Math.round(performance.now() - recordingStartedAt);
-    lastRecordingDuration = duration;
-    recordingStartedAt = 0;
-    silenceStartedAt = 0;
     const type = mediaRecorder?.mimeType || recordingChunks[0]?.type || "audio/mp4";
     const blob = new Blob(recordingChunks, { type });
     recordingChunks = [];
+    await processBlob(blob, duration);
+  }
+
+  async function processPcmRecording() {
+    const sampleRate = audioContext.sampleRate;
+    const sampleCount = recordingPcmSampleCount;
+    const chunks = recordingPcmChunks;
+    recordingPcmChunks = [];
+    recordingPcmSampleCount = 0;
+    if (!sampleCount || !chunks.length) throw new Error("PCM recording is empty");
+    const duration = Math.round((sampleCount / sampleRate) * 1000);
+    const blob = encodeWav(chunks, sampleCount, sampleRate);
+    await processBlob(blob, duration);
+  }
+
+  async function processBlob(blob, duration) {
+    lastRecordingDuration = duration;
+    recordingStartedAt = 0;
+    silenceStartedAt = 0;
     ui.debugDuration.textContent = `${duration} ms`;
     ui.debugBlobSize.textContent = formatBytes(blob.size);
     ui.debugMime.textContent = blob.type || type;
@@ -372,6 +501,39 @@
     } catch (error) {
       handleError(error, "録音した音声を再生できませんでした。");
     }
+  }
+
+  function encodeWav(chunks, sampleCount, sampleRate) {
+    const bytesPerSample = 2;
+    const buffer = new ArrayBuffer(44 + sampleCount * bytesPerSample);
+    const view = new DataView(buffer);
+    const writeText = (offset, text) => {
+      for (let index = 0; index < text.length; index += 1) view.setUint8(offset + index, text.charCodeAt(index));
+    };
+
+    writeText(0, "RIFF");
+    view.setUint32(4, 36 + sampleCount * bytesPerSample, true);
+    writeText(8, "WAVE");
+    writeText(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * bytesPerSample, true);
+    view.setUint16(32, bytesPerSample, true);
+    view.setUint16(34, 16, true);
+    writeText(36, "data");
+    view.setUint32(40, sampleCount * bytesPerSample, true);
+
+    let outputOffset = 44;
+    chunks.forEach((chunk) => {
+      for (let index = 0; index < chunk.length; index += 1) {
+        const sample = Math.max(-1, Math.min(1, chunk[index]));
+        view.setInt16(outputOffset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+        outputOffset += bytesPerSample;
+      }
+    });
+    return new Blob([buffer], { type: "audio/wav" });
   }
 
   function wait(delay) {
@@ -433,6 +595,7 @@
       try { mediaRecorder.stop(); } catch (_) { /* recorder already stopped */ }
     }
     stream?.getTracks().forEach((track) => track.stop());
+    disconnectCapture();
     sourceNode?.disconnect();
     analyser?.disconnect();
     if (audioContext && audioContext.state !== "closed") audioContext.close().catch(() => {});
@@ -494,6 +657,7 @@
   });
   ui.echoToggle.addEventListener("change", () => updateSetting("echoEnabled", ui.echoToggle.checked));
   ui.thresholdInput.addEventListener("input", () => updateSetting("threshold", clampNumber(ui.thresholdInput.value, 0.01, 0.25, DEFAULTS.threshold)));
+  ui.preRollInput.addEventListener("change", () => updateSetting("preRollMs", clampNumber(ui.preRollInput.value, 100, 1000, DEFAULTS.preRollMs)));
   ui.silenceInput.addEventListener("change", () => updateSetting("silenceMs", clampNumber(ui.silenceInput.value, 300, 3000, DEFAULTS.silenceMs)));
   ui.minRecordingInput.addEventListener("change", () => updateSetting("minRecordingMs", clampNumber(ui.minRecordingInput.value, 100, 3000, DEFAULTS.minRecordingMs)));
   ui.maxRecordingInput.addEventListener("change", () => updateSetting("maxRecordingSeconds", clampNumber(ui.maxRecordingInput.value, 3, 60, DEFAULTS.maxRecordingSeconds)));
