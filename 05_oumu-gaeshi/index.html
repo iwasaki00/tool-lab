@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#143c32">
+    <meta name="description" content="話しかけると、オウムがすぐに声をまねする端末内完結のWebツールです。">
+    <title>オウム返し | TOOL LAB</title>
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <a class="back-link" href="../" aria-label="TOOL LABへ戻る">← TOOL LAB</a>
+        <div id="parrot" class="parrot" aria-hidden="true">🦜</div>
+        <div>
+          <p class="eyebrow">TALKING PARROT</p>
+          <h1>オウム返し</h1>
+          <p class="hero-copy">話しかけると、あなたの声をすぐにまねします。</p>
+        </div>
+      </header>
+
+      <section class="status-card" aria-live="polite" aria-atomic="true">
+        <span id="statusDot" class="status-dot"></span>
+        <div>
+          <p id="statusLabel" class="status-label">準備できました</p>
+          <p id="statusHint" class="status-hint">開始するとマイクの許可を確認します</p>
+        </div>
+      </section>
+
+      <button id="startButton" class="primary-button" type="button">
+        <span aria-hidden="true">●</span> オウム返しを開始
+      </button>
+
+      <section id="controls" class="controls" hidden>
+        <div class="panel meter-panel">
+          <div class="section-heading">
+            <label for="levelMeter">マイク音量</label>
+            <output id="levelValue">0%</output>
+          </div>
+          <div id="meterTrack" class="meter-track" role="meter" aria-label="マイク音量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div id="meterFill" class="meter-fill"></div>
+            <span id="thresholdMarker" class="threshold-marker" aria-hidden="true"></span>
+          </div>
+          <p class="meter-note"><span class="threshold-key"></span> 線を超える声で録音を始めます</p>
+        </div>
+
+        <section class="panel" aria-labelledby="voiceHeading">
+          <div class="section-heading">
+            <h2 id="voiceHeading">声の高さ</h2>
+            <output id="rateValue" for="rateSlider">1.25×</output>
+          </div>
+          <div class="range-labels" aria-hidden="true"><span>低い</span><span>高い</span></div>
+          <input id="rateSlider" class="range" type="range" min="0.5" max="2" step="0.05" value="1.25" aria-label="再生速度と声の高さ">
+          <div id="pitchPresets" class="pitch-presets" aria-label="声の高さプリセット">
+            <button type="button" data-rate="0.65">超低音</button>
+            <button type="button" data-rate="0.8">低音</button>
+            <button type="button" data-rate="1">普通</button>
+            <button class="selected" type="button" data-rate="1.25">高音</button>
+            <button type="button" data-rate="1.5">超高音</button>
+          </div>
+          <p class="current-mode">現在：<strong id="currentMode">オウム</strong></p>
+          <div id="modeGrid" class="mode-grid" aria-label="音声モード">
+            <button type="button" data-mode="normal" data-rate="1">普通</button>
+            <button class="selected" type="button" data-mode="parrot" data-rate="1.25">オウム</button>
+            <button type="button" data-mode="tiny" data-rate="1.6">チビ声</button>
+            <button type="button" data-mode="monster" data-rate="0.7">怪物</button>
+            <button type="button" data-mode="fast" data-rate="1.5">早口</button>
+            <button type="button" data-mode="slow" data-rate="0.65">スロー</button>
+            <button type="button" data-mode="random">ランダム</button>
+          </div>
+        </section>
+
+        <section class="panel echo-row" aria-labelledby="echoHeading">
+          <div>
+            <h2 id="echoHeading">山びこ</h2>
+            <p>小さくしながら繰り返します</p>
+          </div>
+          <label class="switch">
+            <input id="echoToggle" type="checkbox">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">山びこを有効にする</span>
+          </label>
+        </section>
+
+        <details class="panel details-panel">
+          <summary>詳細設定</summary>
+          <div class="settings-grid">
+            <label>発話開始しきい値 <output id="thresholdOutput">5.5%</output>
+              <input id="thresholdInput" type="range" min="0.01" max="0.25" step="0.005" value="0.055">
+            </label>
+            <label>無音判定時間 <span><input id="silenceInput" type="number" min="300" max="3000" step="100" value="800"> ms</span></label>
+            <label>最小録音時間 <span><input id="minRecordingInput" type="number" min="100" max="3000" step="100" value="300"> ms</span></label>
+            <label>最大録音時間 <span><input id="maxRecordingInput" type="number" min="3" max="60" step="1" value="15"> 秒</span></label>
+            <label>返事までの間 <span><input id="responseDelayInput" type="number" min="0" max="1500" step="50" value="250"> ms</span></label>
+            <label>マイク再開待ち <span><input id="restartDelayInput" type="number" min="0" max="2000" step="50" value="500"> ms</span></label>
+            <label>山びこ回数 <span><input id="echoCountInput" type="number" min="1" max="5" step="1" value="3"> 回</span></label>
+            <label>山びこ間隔 <span><input id="echoIntervalInput" type="number" min="100" max="1500" step="50" value="400"> ms</span></label>
+          </div>
+          <button id="resetSettingsButton" class="text-button" type="button">初期値に戻す</button>
+        </details>
+
+        <details id="debugPanel" class="panel details-panel debug-panel">
+          <summary>デバッグ表示</summary>
+          <dl class="debug-grid">
+            <div><dt>マイク権限</dt><dd id="debugPermission">未確認</dd></div>
+            <div><dt>AudioContext</dt><dd id="debugAudioContext">未作成</dd></div>
+            <div><dt>MediaRecorder</dt><dd id="debugRecorder">未作成</dd></div>
+            <div><dt>現在の状態</dt><dd id="debugState">IDLE</dd></div>
+            <div><dt>現在音量</dt><dd id="debugLevel">0.000</dd></div>
+            <div><dt>実効しきい値</dt><dd id="debugThreshold">0.055</dd></div>
+            <div><dt>無音継続時間</dt><dd id="debugSilence">0 ms</dd></div>
+            <div><dt>録音開始時刻</dt><dd id="debugStartedAt">—</dd></div>
+            <div><dt>録音時間</dt><dd id="debugDuration">0 ms</dd></div>
+            <div><dt>playbackRate</dt><dd id="debugRate">1.25</dd></div>
+            <div><dt>Blobサイズ</dt><dd id="debugBlobSize">0 B</dd></div>
+            <div><dt>MIMEタイプ</dt><dd id="debugMime">—</dd></div>
+            <div class="debug-error"><dt>エラー</dt><dd id="debugError">なし</dd></div>
+          </dl>
+          <div class="log-heading"><h2>ログ</h2><button id="clearLogButton" class="text-button" type="button">クリア</button></div>
+          <pre id="debugLog" class="debug-log" aria-label="デバッグログ">ログはまだありません</pre>
+        </details>
+
+        <button id="stopButton" class="stop-button" type="button">■ 停止</button>
+      </section>
+
+      <p class="privacy-note">音声はこの端末の中だけで処理され、外部には送信されません。</p>
+    </main>
+
+    <script src="js/main.js" defer></script>
+  </body>
+</html>
