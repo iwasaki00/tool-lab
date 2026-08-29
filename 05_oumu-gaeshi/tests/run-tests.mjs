@@ -39,6 +39,40 @@ for (let index = 0; index < 200; index += 1) {
   assert.ok(!(chaos.robot && chaos.tremolo), "chaos should avoid stacked robot+tremolo");
 }
 
+const audioParam = () => ({ value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} });
+class FakeNode {
+  constructor() { this.gain = audioParam(); this.frequency = audioParam(); this.Q = audioParam(); this.delayTime = audioParam(); this.pan = audioParam(); }
+  connect(target) { return target; }
+  disconnect() {}
+}
+class FakeSource extends FakeNode {
+  constructor() { super(); this.playbackRate = audioParam(); }
+  start() { queueMicrotask(() => this.onended?.()); }
+  stop() {}
+}
+class FakeOscillator extends FakeNode { start() {} stop() {} }
+const fakeContext = {
+  destination: new FakeNode(),
+  sampleRate: 48000,
+  createBuffer(channels, length, sampleRate) {
+    const data = Array.from({ length: channels }, () => new Float32Array(length));
+    return { numberOfChannels: channels, length, sampleRate, duration: length / sampleRate, getChannelData: (channel) => data[channel] };
+  },
+  createBufferSource: () => new FakeSource(),
+  createGain: () => new FakeNode(),
+  createBiquadFilter: () => new FakeNode(),
+  createWaveShaper: () => new FakeNode(),
+  createDelay: () => new FakeNode(),
+  createStereoPanner: () => new FakeNode(),
+  createConvolver: () => new FakeNode(),
+  createOscillator: () => new FakeOscillator(),
+};
+const testBuffer = fakeContext.createBuffer(1, 4096, 48000);
+await effects.applyEffect(fakeContext, testBuffer, effects.resolvePreset("telephone", {}, "normal"));
+assert.match(effects.getDiagnostics().chain, /highpass 300Hz/);
+assert.match(effects.getDiagnostics().chain, /lowpass 3400Hz/);
+assert.equal(effects.getDiagnostics().activeNodes, 0, "effect nodes must be released");
+
 let WorkletProcessor;
 const sent = [];
 class AudioWorkletProcessorMock {

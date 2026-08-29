@@ -8,7 +8,7 @@
 トップメニューから学習タイマーや乗車券購入シミュレーションツールを選択できます。
 ハモリ練習ツールでは、iPhoneのマイクを使って単音・フレーズ・つられ耐性を練習できます。
 Water Strobeでは、対応するiPhoneの背面カメラ用ライトを周期点滅させ、水滴などの動きを観察できます。
-オウム返しでは、話し終わりを自動検出し、声の高さを変えてすぐにまねして再生します。
+オウム返しでは、話し終わりを自動検出し、Pitch Shiftやロボット・宇宙人・逆再生などの声でまねします。履歴とお気に入りにも対応しています。
 HTML / CSS / JavaScript のみで動作するため、GitHub Pages にそのまま配置できます。
 
 ## GitHub Pages
@@ -52,6 +52,8 @@ node 02_study-camera-timer/tests/run-tests.mjs
 - `03_harmony-trainer/data/exercises.js`: 追加しやすいフレーズ練習問題
 - `04_water-strobe/`: iPhone Safari向け水滴ストロボ（診断・録画・PWA対応）
 - `04_water-strobe/js/`: カメラ、Torch、周期制御、録画、診断、保存の各モジュール
-- `05_oumu-gaeshi/`: iPhone Safari向けオウム返し（自動録音・声色変更・山びこ対応）
-- `05_oumu-gaeshi/js/main.js`: 音声検出、状態管理、録音、再生、設定保存
+- `05_oumu-gaeshi/`: iPhone Safari向けオウム返し（自動録音・Pitch Shift・音声エフェクト・履歴対応）
+- `05_oumu-gaeshi/js/main.js`: 音声検出、状態管理、録音、波形、履歴UI
+- `05_oumu-gaeshi/js/audio-effects.js`: Pitch Shift、フィルター、特殊効果、空間系エフェクト
+- `05_oumu-gaeshi/js/storage.js`: IndexedDBを利用したお気に入り音声の保存
 - `.nojekyll`: GitHub Pagesで静的ファイルをそのまま配信するための設定

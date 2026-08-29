@@ -107,14 +107,6 @@
           <canvas id="resultWaveCanvas" class="wave-canvas result-wave" width="640" height="120" aria-label="録音結果の波形"></canvas>
         </section>
 
-        <details id="historyPanel" class="panel details-panel">
-          <summary>履歴・お気に入り <span id="historyCount">0</span></summary>
-          <h2 class="subheading">直近の録音</h2>
-          <div id="historyList" class="audio-list"><p class="empty-message">録音はまだありません</p></div>
-          <h2 class="subheading">★ お気に入り</h2>
-          <div id="favoriteList" class="audio-list"><p class="empty-message">お気に入りはまだありません</p></div>
-        </details>
-
         <details class="panel details-panel">
           <summary>詳細設定</summary>
           <div class="settings-grid">
@@ -161,6 +153,14 @@
 
         <button id="stopButton" class="stop-button" type="button">■ 停止</button>
       </section>
+
+      <details id="historyPanel" class="panel details-panel library-panel">
+        <summary>履歴・お気に入り <span id="historyCount">0</span></summary>
+        <h2 class="subheading">直近の録音</h2>
+        <div id="historyList" class="audio-list"><p class="empty-message">録音はまだありません</p></div>
+        <h2 class="subheading">★ お気に入り</h2>
+        <div id="favoriteList" class="audio-list"><p class="empty-message">お気に入りはまだありません</p></div>
+      </details>
 
       <p class="privacy-note">音声はこの端末の中だけで処理され、外部には送信されません。</p>
     </main>

@@ -211,6 +211,7 @@ body[data-state="ERROR"] .status-dot { background: #c83f45; }
 .compact-options .inline-toggle { display: flex; align-items: center; border-radius: 0.65rem; background: #f0f5f1; padding: 0.65rem; color: var(--ink); }
 
 .subheading { margin: 1rem 0 0.55rem; font-size: 0.8rem; }
+.library-panel { margin-top: 0.85rem; }
 .audio-list { display: grid; gap: 0.55rem; }
 .empty-message { margin: 0; border-radius: 0.65rem; background: #f2f5f3; padding: 0.8rem; color: var(--muted); font-size: 0.72rem; text-align: center; }
 .audio-item { display: grid; grid-template-columns: 1fr auto; gap: 0.45rem; border: 1px solid var(--line); border-radius: 0.75rem; padding: 0.7rem; background: #fafcfa; }
