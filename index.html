@@ -2,68 +2,159 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f4f6f7">
-    <title>TOOL LAB</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f2eee5">
+    <meta name="description" content="実験的なWebゲームとツールを集めた、TOOL LABのプレイグラウンド。">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="TOOL LAB — Web Playground">
+    <meta property="og:description" content="小さな実験、すぐ遊べる。5つのWebゲームとツールを公開中。">
+    <title>TOOL LAB — Web Playground</title>
+    <link rel="stylesheet" href="style.css?v=20260901-1">
+    <script src="home.js?v=20260901-1" defer></script>
   </head>
   <body>
-    <main class="site-shell">
+    <div class="site-shell">
       <header class="site-header">
-        <p class="eyebrow">TOOL LAB</p>
-        <h1>小さなWebツール置き場</h1>
-        <p>
-          HTML / CSS / JavaScriptで作成したツールをまとめて公開するための入口です。
-          今後追加するツールもここから開けるようにしていきます。
-        </p>
+        <a class="brand" href="./" aria-label="TOOL LAB ホーム">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span><b>TOOL LAB</b><small>WEB PLAYGROUND</small></span>
+        </a>
+        <span class="project-count">05 PROJECTS</span>
       </header>
 
-      <section class="tool-grid" aria-label="ツール一覧">
-        <a class="tool-card" href="05_oumu-gaeshi/">
-          <span class="tool-card-tag">iPhone + Microphone + Web Audio</span>
-          <span class="tool-card-title">オウム返し</span>
-          <span class="tool-card-text">
-            話し終わった声を自動で聞き取り、声色を変えたオウムがすぐにまねして返します。
-          </span>
-          <span class="tool-card-button">話しかける</span>
-        </a>
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <div>
+            <p class="eyebrow">PICK &amp; PLAY</p>
+            <h1 id="page-title">小さな実験、<br>すぐ遊べる。</h1>
+          </div>
+          <div class="intro-copy">
+            <p>気になるアイコンをタップしてスタート。</p>
+            <p class="hold-hint"><span aria-hidden="true">◎</span> 長押しで詳しく</p>
+          </div>
+        </section>
 
-        <a class="tool-card" href="04_water-strobe/">
-          <span class="tool-card-tag">iPhone + Camera Torch + PWA</span>
-          <span class="tool-card-title">Water Strobe 水滴ストロボ</span>
-          <span class="tool-card-text">
-            背面カメラのライトを細かく点滅させ、水滴などの周期運動が止まる瞬間を探せます。
-          </span>
-          <span class="tool-card-button">試してみる</span>
-        </a>
+        <section class="game-grid" aria-label="ゲームとツールの一覧">
+          <article class="game-card game-card--parrot">
+            <a
+              class="game-link"
+              href="05_oumu-gaeshi/"
+              data-title="オウム返し"
+              data-category="音声であそぶ"
+              data-description="話し終わりを自動で見つけ、声色を変えたオウムがすぐにまねします。ロボット、宇宙人、逆再生など、いろいろな声を試せます。"
+              data-features="14種類の声|録音履歴|お気に入り保存"
+            >
+              <span class="game-art">
+                <img src="assets/game-icons/oumu-gaeshi.webp" width="640" height="640" alt="オウムと音声の波を表現したアイコン">
+                <span class="game-number">05</span>
+              </span>
+              <span class="game-meta">VOICE PLAY</span>
+              <span class="game-title">オウム返し</span>
+              <span class="game-arrow" aria-hidden="true">↗</span>
+            </a>
+            <button class="detail-trigger" type="button" aria-label="オウム返しの詳細を見る"><span aria-hidden="true">i</span></button>
+          </article>
 
-        <a class="tool-card" href="03_harmony-trainer/">
-          <span class="tool-card-tag">iPhone + Microphone + PWA</span>
-          <span class="tool-card-title">HamoLab ハモリ練習</span>
-          <span class="tool-card-text">
-            単音・短いフレーズ・つられ耐性の練習で、主旋律を聴きながら別の音を保つ耳を育てます。
-          </span>
-          <span class="tool-card-button">練習する</span>
-        </a>
+          <article class="game-card game-card--strobe">
+            <a
+              class="game-link"
+              href="04_water-strobe/"
+              data-title="Water Strobe"
+              data-category="光で観察する"
+              data-description="iPhoneのカメラライトを細かく点滅させ、水滴などの周期運動が止まって見える瞬間を探す実験ツールです。"
+              data-features="周波数を微調整|録画・診断|PWA対応"
+            >
+              <span class="game-art">
+                <img src="assets/game-icons/water-strobe.webp" width="640" height="640" alt="ストロボ光で静止して見える水滴のアイコン">
+                <span class="game-number">04</span>
+              </span>
+              <span class="game-meta">LIGHT LAB</span>
+              <span class="game-title">Water Strobe</span>
+              <span class="game-arrow" aria-hidden="true">↗</span>
+            </a>
+            <button class="detail-trigger" type="button" aria-label="Water Strobeの詳細を見る"><span aria-hidden="true">i</span></button>
+          </article>
 
-        <a class="tool-card" href="02_study-camera-timer/">
-          <span class="tool-card-tag">iPhone + Camera + PWA</span>
-          <span class="tool-card-title">Focus Lens 学習タイマー</span>
-          <span class="tool-card-text">
-            正確な計時、ポモドーロ、履歴に加え、端末内の顔・手の検出で離席停止と手のひら操作を行えます。
-          </span>
-          <span class="tool-card-button">開く</span>
-        </a>
+          <article class="game-card game-card--harmony">
+            <a
+              class="game-link"
+              href="03_harmony-trainer/"
+              data-title="HamoLab"
+              data-category="耳をトレーニング"
+              data-description="主旋律につられず、別の音を保つ耳を育てます。単音、短いフレーズ、つられ耐性などを少しずつ練習できます。"
+              data-features="単音・フレーズ練習|音程判定|録音・履歴"
+            >
+              <span class="game-art">
+                <img src="assets/game-icons/hamolab.webp" width="640" height="640" alt="二つの旋律と音叉を表現したアイコン">
+                <span class="game-number">03</span>
+              </span>
+              <span class="game-meta">EAR TRAINING</span>
+              <span class="game-title">HamoLab</span>
+              <span class="game-arrow" aria-hidden="true">↗</span>
+            </a>
+            <button class="detail-trigger" type="button" aria-label="HamoLabの詳細を見る"><span aria-hidden="true">i</span></button>
+          </article>
 
-        <a class="tool-card" href="01_ticket-simulator/index.html#ticket-simulator">
-          <span class="tool-card-tag">HTML + CSS + JavaScript</span>
-          <span class="tool-card-title">乗車券購入シミュレーション</span>
-          <span class="tool-card-text">
-            通勤・通学などの日付リストを作成し、乗車券と定期券の最安購入パターンを計算します。
-          </span>
-          <span class="tool-card-button">開く</span>
-        </a>
-      </section>
-    </main>
+          <article class="game-card game-card--focus">
+            <a
+              class="game-link"
+              href="02_study-camera-timer/"
+              data-title="Focus Lens"
+              data-category="集中をつづける"
+              data-description="カウントダウン、ポモドーロ、試験に対応した学習タイマー。カメラを使えば、離席検出や手のひら操作も利用できます。"
+              data-features="4つのタイマーモード|離席・手のひら検出|学習履歴"
+            >
+              <span class="game-art">
+                <img src="assets/game-icons/focus-lens.webp" width="640" height="640" alt="カメラレンズとタイマーを組み合わせたアイコン">
+                <span class="game-number">02</span>
+              </span>
+              <span class="game-meta">FOCUS TIMER</span>
+              <span class="game-title">Focus Lens</span>
+              <span class="game-arrow" aria-hidden="true">↗</span>
+            </a>
+            <button class="detail-trigger" type="button" aria-label="Focus Lensの詳細を見る"><span aria-hidden="true">i</span></button>
+          </article>
+
+          <article class="game-card game-card--ticket">
+            <a
+              class="game-link"
+              href="01_ticket-simulator/index.html#ticket-simulator"
+              data-title="乗車券シミュレーター"
+              data-category="料金をくらべる"
+              data-description="通勤・通学の日付をもとに、乗車券と定期券の組み合わせを比較。最安の購入パターンを計算し、結果をCSVで書き出せます。"
+              data-features="乗車券・定期券を比較|日付リスト作成|CSV出力"
+            >
+              <span class="game-art">
+                <img src="assets/game-icons/ticket-simulator.webp" width="640" height="640" alt="乗車券と電車と計算機のアイコン">
+                <span class="game-number">01</span>
+              </span>
+              <span class="game-meta">FARE SIMULATOR</span>
+              <span class="game-title">乗車券<br>シミュレーター</span>
+              <span class="game-arrow" aria-hidden="true">↗</span>
+            </a>
+            <button class="detail-trigger" type="button" aria-label="乗車券シミュレーターの詳細を見る"><span aria-hidden="true">i</span></button>
+          </article>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <p>Built with HTML, CSS &amp; JavaScript</p>
+        <p>TOOL LAB © 2026</p>
+      </footer>
+    </div>
+
+    <dialog class="detail-dialog" id="detail-dialog" aria-labelledby="dialog-title">
+      <div class="dialog-panel">
+        <button class="dialog-close" id="dialog-close" type="button" aria-label="詳細を閉じる">×</button>
+        <img class="dialog-icon" id="dialog-icon" src="assets/game-icons/oumu-gaeshi.webp" width="640" height="640" alt="">
+        <div class="dialog-body">
+          <p class="dialog-category" id="dialog-category"></p>
+          <h2 id="dialog-title"></h2>
+          <p class="dialog-description" id="dialog-description"></p>
+          <ul class="feature-list" id="feature-list"></ul>
+          <a class="dialog-open" id="dialog-open" href="">このゲームを開く <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </dialog>
   </body>
 </html>

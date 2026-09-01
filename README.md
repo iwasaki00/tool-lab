@@ -5,7 +5,7 @@
 ## Usage
 
 `index.html` をブラウザで開くと、Tool Lab のトップメニューを表示します。
-トップメニューから学習タイマーや乗車券購入シミュレーションツールを選択できます。
+ゲームアイコンをタップすると各ツールを開き、長押しすると機能の詳細を確認できます。
 ハモリ練習ツールでは、iPhoneのマイクを使って単音・フレーズ・つられ耐性を練習できます。
 Water Strobeでは、対応するiPhoneの背面カメラ用ライトを周期点滅させ、水滴などの動きを観察できます。
 オウム返しでは、話し終わりを自動検出し、Pitch Shiftやロボット・宇宙人・逆再生などの声でまねします。履歴とお気に入りにも対応しています。
@@ -42,6 +42,8 @@ node 02_study-camera-timer/tests/run-tests.mjs
 
 - `index.html`: Tool Lab のトップメニュー
 - `style.css`: トップメニューの画面スタイル
+- `home.js`: トップメニューの長押し・詳細表示
+- `assets/game-icons/`: トップメニュー用のゲームアイコン
 - `01_ticket-simulator/`: 乗車券購入シミュレーション
 - `01_ticket-simulator/index.html`: シミュレーション画面
 - `01_ticket-simulator/style.css`: シミュレーション画面スタイル
