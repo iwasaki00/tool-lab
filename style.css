@@ -180,7 +180,7 @@ a {
 
 .game-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(10px, 1.5vw, 17px);
 }
 

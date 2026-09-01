@@ -43,6 +43,8 @@ node 02_study-camera-timer/tests/run-tests.mjs
 - `index.html`: Tool Lab のトップメニュー
 - `style.css`: トップメニューの画面スタイル
 - `home.js`: トップメニューの長押し・詳細表示
+- `favicon.svg` / `favicon-64.png`: ブラウザ用ファビコン
+- `apple-touch-icon.png`: iPhoneホーム画面用アイコン
 - `assets/game-icons/`: トップメニュー用のゲームアイコン
 - `01_ticket-simulator/`: 乗車券購入シミュレーション
 - `01_ticket-simulator/index.html`: シミュレーション画面
