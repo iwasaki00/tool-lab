@@ -76,8 +76,13 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
 }
 
 function isGrounded(scene: Scene, camera: UniversalCamera): boolean {
-  const feetDistance = camera.ellipsoid.y - camera.ellipsoidOffset.y;
-  const ray = new Ray(camera.position, Vector3.Down(), feetDistance + .22);
+  // FreeCamera._collideWithWorld()と同じ座標変換でコライダー中心を求める。
+  // camera.position（目線位置）から直接短いRayを飛ばすと、負の
+  // ellipsoidOffset分だけ足元へ届かず、常に未接地と判定されてしまう。
+  const colliderCenter = camera.position
+    .subtract(new Vector3(0, camera.ellipsoid.y, 0))
+    .add(camera.ellipsoidOffset);
+  const ray = new Ray(colliderCenter, Vector3.Down(), camera.ellipsoid.y + .3);
   const hit = scene.pickWithRay(ray, (mesh) => mesh.checkCollisions);
   return Boolean(hit?.hit);
 }
