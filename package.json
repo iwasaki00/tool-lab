@@ -1,0 +1,18 @@
+{
+  "name": "tool-lab-3d-space-laboratory",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite 06_3d-space-lab",
+    "build": "tsc -p 06_3d-space-lab/tsconfig.json && vite build 06_3d-space-lab",
+    "preview": "vite preview 06_3d-space-lab"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^8.26.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5"
+  }
+}

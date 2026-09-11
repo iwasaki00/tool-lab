@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#071018" />
+    <meta name="description" content="Babylon.jsとコードだけで構築した、歩き回れる3D空間実験室。" />
+    <title>3D空間実験室 — TOOL LAB 06</title>
+  </head>
+  <body>
+    <canvas id="render-canvas" aria-label="3D空間実験室"></canvas>
+
+    <div class="vignette" aria-hidden="true"></div>
+    <div class="crosshair" aria-hidden="true"><span></span><span></span></div>
+
+    <header class="brand-plate">
+      <span class="brand-index">06</span>
+      <span><strong>3D 空間実験室</strong><small>PROCEDURAL FIELD / BABYLON.JS</small></span>
+    </header>
+
+    <div class="status-bar" aria-live="polite">
+      <span class="status-dot"></span>
+      <span id="mode-label">DAY CYCLE</span>
+      <span class="status-divider"></span>
+      <span id="object-count">OBJECTS 000</span>
+    </div>
+
+    <section class="start-guide" id="start-guide" aria-label="操作案内">
+      <p class="guide-kicker">FIELD READY</p>
+      <h1>クリックして探索を開始</h1>
+      <p>マウスで見回す・ESCで解除</p>
+      <div class="key-guide">
+        <span><kbd>WASD</kbd> 移動</span>
+        <span><kbd>SPACE</kbd> ジャンプ</span>
+        <span><kbd>SHIFT</kbd> ダッシュ</span>
+      </div>
+    </section>
+
+    <aside class="control-panel" aria-label="実験コントロール">
+      <div class="panel-heading">
+        <span>SCENE CONTROL</span>
+        <span class="live-badge">LIVE</span>
+      </div>
+      <div class="mode-switch" role="group" aria-label="時間帯">
+        <button type="button" data-action="day" class="is-active">昼</button>
+        <button type="button" data-action="night">夜</button>
+      </div>
+      <div class="control-grid">
+        <button type="button" data-action="box"><span>＋</span> 箱</button>
+        <button type="button" data-action="sphere"><span>＋</span> 球</button>
+        <button type="button" data-action="building"><span>＋</span> 建物</button>
+        <button type="button" data-action="random"><span>↗</span> ランダム</button>
+      </div>
+      <button type="button" class="reset-button" data-action="reset">シーン初期化</button>
+    </aside>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
