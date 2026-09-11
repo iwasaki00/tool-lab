@@ -13,6 +13,8 @@ export interface PlayerController {
 }
 
 export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: boolean): PlayerController {
+  const jumpSpeed = 6.2;
+  const jumpGravity = 9;
   const camera = new UniversalCamera("player-camera", new Vector3(0, 2.1, -12), scene);
   camera.minZ = .1;
   camera.maxZ = 180;
@@ -24,7 +26,9 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
   camera.keysLeft = [65];
   camera.keysRight = [68];
   camera.checkCollisions = true;
-  camera.applyGravity = true;
+  // Babylon標準の重力はフレーム単位で加算されるため、ジャンプだけは
+  // deltaTime基準の速度計算にして端末ごとのFPS差を受けにくくする。
+  camera.applyGravity = false;
   camera.needMoveForGravity = true;
   camera.ellipsoid = new Vector3(.43, .88, .43);
   camera.ellipsoidOffset = new Vector3(0, -.78, 0);
@@ -36,13 +40,25 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
   let moveX = 0;
   let moveY = 0;
   let sprinting = false;
+  let verticalVelocity = 0;
   scene.onBeforeRenderObservable.add(() => {
-    if (!mobile || (!moveX && !moveY)) return;
-    const speed = (sprinting ? .007 : .004) * scene.getEngine().getDeltaTime();
-    const forward = Vector3.TransformNormal(Vector3.Forward(), Matrix.RotationY(camera.rotation.y));
-    const right = Vector3.TransformNormal(Vector3.Right(), Matrix.RotationY(camera.rotation.y));
-    camera.cameraDirection.addInPlace(forward.scale(moveY * speed));
-    camera.cameraDirection.addInPlace(right.scale(moveX * speed));
+    const deltaTime = Math.min(scene.getEngine().getDeltaTime() / 1000, .05);
+
+    if (verticalVelocity <= 0 && isGrounded(scene, camera)) {
+      verticalVelocity = 0;
+      camera.cameraDirection.y = -.02;
+    } else {
+      verticalVelocity -= jumpGravity * deltaTime;
+      camera.cameraDirection.y = verticalVelocity * deltaTime;
+    }
+
+    if (mobile && (moveX || moveY)) {
+      const speed = (sprinting ? 7 : 4) * deltaTime;
+      const forward = Vector3.TransformNormal(Vector3.Forward(), Matrix.RotationY(camera.rotation.y));
+      const right = Vector3.TransformNormal(Vector3.Right(), Matrix.RotationY(camera.rotation.y));
+      camera.cameraDirection.addInPlace(forward.scale(moveY * speed));
+      camera.cameraDirection.addInPlace(right.scale(moveX * speed));
+    }
   });
 
   scene.onKeyboardObservable.add((info) => {
@@ -58,9 +74,7 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
   });
 
   function jump(): void {
-    // FreeCameraは毎フレームcameraDirectionへscene.gravityを加算してから
-    // inertiaを適用するため、重力値を十分に上回る初速が必要になる。
-    if (isGrounded(scene, camera)) camera.cameraDirection.y = .9;
+    if (verticalVelocity <= 0 && isGrounded(scene, camera)) verticalVelocity = jumpSpeed;
   }
 
   return {
