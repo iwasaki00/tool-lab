@@ -28,16 +28,18 @@ function cardData(card) {
     description: link.dataset.description,
     features: link.dataset.features.split("|"),
     href: link.href,
-    iconSrc: icon.src,
-    iconAlt: icon.alt,
+    iconSrc: icon?.src ?? "",
+    iconAlt: icon?.alt ?? "",
   };
 }
 
 function openDetails(card) {
   const game = cardData(card);
 
+  dialogIcon.hidden = !game.iconSrc;
   dialogIcon.src = game.iconSrc;
   dialogIcon.alt = game.iconAlt;
+  dialogIcon.closest(".dialog-panel").classList.toggle("has-no-icon", !game.iconSrc);
   dialogCategory.textContent = game.category;
   dialogTitle.textContent = game.title;
   dialogDescription.textContent = game.description;

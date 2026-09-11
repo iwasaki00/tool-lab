@@ -3,6 +3,7 @@ import { createBoundaryWall, createBuilding, createStairs } from "../objects/bui
 import { createGround, createLamp, createRoad, createSky } from "../objects/environment";
 import { createBox, createCylinder, createPillar, createPlatform, createSphere, type ObjectContext } from "../objects/primitives";
 import { createPlayer } from "../player/createPlayer";
+import { createRandomScene, randomOpenPosition } from "./generators";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -12,6 +13,7 @@ export interface LaboratoryApi {
   addBuilding: () => void;
   randomize: () => void;
   objectCount: () => number;
+  telemetry: () => { x: number; z: number; mode: "day" | "night" };
 }
 
 export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement): LaboratoryApi {
@@ -31,6 +33,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement)
   shadows.useBlurExponentialShadowMap = true;
   shadows.blurKernel = 24;
   const skyMaterial = createSky(scene);
+  let currentMode: "day" | "night" = "day";
 
   const dynamicRoots: Mesh[] = [];
   const registerDynamic = (mesh: Mesh) => dynamicRoots.push(mesh);
@@ -49,6 +52,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement)
   };
 
   const setDayMode = (isDay: boolean) => {
+    currentMode = isDay ? "day" : "night";
     if (isDay) {
       scene.clearColor = new Color4(.38, .65, .82, 1);
       skyMaterial.diffuseColor = new Color3(.34, .62, .82);
@@ -70,21 +74,9 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement)
     addBox: () => createBox(ctx, spawnAhead(.85), 1.7, true),
     addSphere: () => createSphere(ctx, spawnAhead(.85), 1.7, true),
     addBuilding: () => createBuilding(ctx, { position: randomOpenPosition(15, 27), width: 6.5, depth: 5.5, color: new Color3(.28, .58, .66), rotation: Math.random() * Math.PI * 2, dynamic: true }),
-    randomize: () => {
-      dynamicRoots.splice(0).forEach((mesh) => {
-        mesh.getChildMeshes().forEach((child) => child.material?.dispose());
-        mesh.material?.dispose();
-        mesh.dispose(false, true);
-      });
-      for (let i = 0; i < 18; i += 1) {
-        const position = randomOpenPosition(10, 28);
-        const type = i % 3;
-        if (type === 0) createBox(ctx, position.set(position.x, .5 + Math.random(), position.z), 1 + Math.random() * 1.4, true);
-        else if (type === 1) createSphere(ctx, position.set(position.x, .65 + Math.random() * .4, position.z), 1.2 + Math.random(), true);
-        else createCylinder(ctx, position.set(position.x, 1.1, position.z), 2.2, 1.1, true);
-      }
-    },
+    randomize: () => createRandomScene(ctx, dynamicRoots),
     objectCount: () => scene.meshes.filter((mesh) => mesh.name !== "sky").length,
+    telemetry: () => ({ x: camera.position.x, z: camera.position.z, mode: currentMode }),
   };
 }
 
@@ -107,10 +99,4 @@ function createInitialField(ctx: ObjectContext): void {
     createLamp(ctx.scene, ctx.shadows, new Vector3(-4.5, 0, z));
     createLamp(ctx.scene, ctx.shadows, new Vector3(4.5, 0, z));
   }
-}
-
-function randomOpenPosition(minRadius: number, maxRadius: number): Vector3 {
-  const angle = Math.random() * Math.PI * 2;
-  const radius = minRadius + Math.random() * (maxRadius - minRadius);
-  return new Vector3(Math.cos(angle) * radius, 1, Math.sin(angle) * radius);
 }

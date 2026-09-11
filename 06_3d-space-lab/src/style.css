@@ -154,7 +154,7 @@ button:focus-visible { outline: 2px solid #72e1ff; outline-offset: 2px; }
 @media (max-width: 640px) {
   .brand-plate { top: 15px; left: 15px; }
   .status-bar { top: 22px; right: 15px; }
-  #object-count, .status-divider { display: none; }
+  #object-count, #performance-label, .status-divider { display: none; }
   .control-panel { right: 12px; bottom: 12px; width: 218px; padding: 11px; }
   .key-guide { flex-wrap: wrap; gap: 12px; }
   .start-guide { padding-inline: 17px; }
