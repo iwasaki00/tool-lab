@@ -1,70 +1,151 @@
 import "@babylonjs/core/Collisions/collisionCoordinator";
-import { Engine } from "@babylonjs/core";
+import { Engine } from "@babylonjs/core/Engines/engine";
 import "./style.css";
+import { attachMobileControls } from "./player/mobileControls";
 import { createLaboratoryScene, type LaboratoryApi } from "./scene/createScene";
 import { createControls } from "./ui/createControls";
+import { updateDebugReadout } from "./ui/debugReadout";
 import { registerWebMcp } from "./ui/registerWebMcp";
+
+const mobile = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+document.body.classList.add(mobile ? "is-mobile" : "is-desktop");
+configureGuide(mobile);
 
 const canvas = document.querySelector<HTMLCanvasElement>("#render-canvas");
 if (!canvas) throw new Error("Rendering canvas was not found.");
 
-const engine = new Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
-let laboratory: LaboratoryApi = createLaboratoryScene(engine, canvas);
+let engine: Engine | undefined;
+let laboratory: LaboratoryApi | undefined;
+let detachMobileControls: () => void = () => undefined;
+let debugMode = false;
 
-const controls = createControls({
-  day: () => setTime("day"),
-  night: () => setTime("night"),
-  box: () => { laboratory.addBox(); refresh("箱を追加しました"); },
-  sphere: () => { laboratory.addSphere(); refresh("球を追加しました"); },
-  building: () => { laboratory.addBuilding(); refresh("建物を生成しました"); },
-  random: () => { laboratory.randomize(); refresh("実験オブジェクトを再配置しました"); },
-  reset: () => {
-    laboratory.scene.dispose();
-    laboratory = createLaboratoryScene(engine, canvas);
-    controls.setMode("day");
-    refresh("シーンを初期化しました");
-  },
-});
+try {
+  if (!Engine.IsSupported) throw new Error("このブラウザではWebGLを利用できません。");
 
-function refresh(message: string): void {
-  controls.updateCount(laboratory.objectCount());
-  controls.showToast(message);
-}
+  // Babylon EngineはWebGL2を優先し、利用できない端末ではWebGLへ自動フォールバックする。
+  engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: false }, false);
+  engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
+  laboratory = createLaboratoryScene(engine, canvas, mobile);
+  if (mobile) detachMobileControls = attachMobileControls(laboratory.player);
 
-controls.updateCount(laboratory.objectCount());
-let lastTelemetryUpdate = 0;
-engine.runRenderLoop(() => {
-  laboratory.scene.render();
-  const now = performance.now();
-  if (now - lastTelemetryUpdate > 250) {
-    const telemetry = laboratory.telemetry();
-    controls.updateTelemetry(engine.getFps(), telemetry.x, telemetry.z);
-    lastTelemetryUpdate = now;
+  const controls = createControls({
+    day: () => setTime("day"),
+    night: () => setTime("night"),
+    box: () => { getLaboratory().addBox(); refresh("箱を追加しました"); },
+    sphere: () => { getLaboratory().addSphere(); refresh("球を追加しました"); },
+    building: () => { getLaboratory().addBuilding(); refresh("建物を生成しました"); },
+    random: () => { getLaboratory().randomize(); refresh("実験オブジェクトを再配置しました"); },
+    debug: () => {
+      debugMode = !debugMode;
+      getLaboratory().setDebugMode(debugMode);
+      controls.showToast(debugMode ? "描画テスト：赤いBoxを表示" : "描画テストを終了しました");
+    },
+    reset: () => {
+      detachMobileControls();
+      getLaboratory().scene.dispose();
+      laboratory = createLaboratoryScene(getEngine(), canvas, mobile);
+      if (mobile) detachMobileControls = attachMobileControls(laboratory.player);
+      debugMode = false;
+      controls.setMode("day");
+      refresh("シーンを初期化しました");
+    },
+  });
+
+  function refresh(message: string): void {
+    controls.updateCount(getLaboratory().objectCount());
+    controls.showToast(message);
+    updateDebugReadout(getEngine(), getLaboratory(), mobile);
   }
-});
-window.addEventListener("resize", () => engine.resize());
 
-canvas.addEventListener("click", () => {
-  if (document.pointerLockElement !== canvas) canvas.requestPointerLock();
-});
-document.addEventListener("pointerlockchange", () => {
-  document.querySelector("#start-guide")?.classList.toggle("is-hidden", document.pointerLockElement === canvas);
-});
+  function setTime(mode: "day" | "night"): void {
+    getLaboratory().setDayMode(mode === "day");
+    controls.setMode(mode);
+    controls.showToast(mode === "day" ? "昼モードに切り替えました" : "夜モードに切り替えました");
+  }
 
-function setTime(mode: "day" | "night"): void {
-  laboratory.setDayMode(mode === "day");
-  controls.setMode(mode);
-  controls.showToast(mode === "day" ? "昼モードに切り替えました" : "夜モードに切り替えました");
+  resizeEngine();
+  controls.updateCount(laboratory.objectCount());
+  let lastTelemetryUpdate = 0;
+  engine.runRenderLoop(() => {
+    getLaboratory().scene.render();
+    const now = performance.now();
+    if (now - lastTelemetryUpdate > 250) {
+      const telemetry = getLaboratory().telemetry();
+      controls.updateTelemetry(getEngine().getFps(), telemetry.x, telemetry.z);
+      updateDebugReadout(getEngine(), getLaboratory(), mobile);
+      lastTelemetryUpdate = now;
+    }
+  });
+
+  const resize = () => requestAnimationFrame(resizeEngine);
+  window.addEventListener("resize", resize, { passive: true });
+  window.addEventListener("orientationchange", resize, { passive: true });
+  window.visualViewport?.addEventListener("resize", resize, { passive: true });
+
+  if (!mobile) {
+    canvas.addEventListener("click", () => {
+      if (document.pointerLockElement !== canvas) void canvas.requestPointerLock();
+    });
+    document.addEventListener("pointerlockchange", () => {
+      document.querySelector("#start-guide")?.classList.toggle("is-hidden", document.pointerLockElement === canvas);
+    });
+  } else {
+    document.querySelector("#start-guide")?.addEventListener("pointerdown", () => {
+      document.querySelector("#start-guide")?.classList.add("is-hidden");
+    });
+  }
+
+  document.addEventListener("gesturestart", (event) => event.preventDefault(), { passive: false });
+  registerWebMcp({
+    addObject: (type) => {
+      if (type === "box") getLaboratory().addBox();
+      else if (type === "sphere") getLaboratory().addSphere();
+      else getLaboratory().addBuilding();
+      refresh(`${type} を追加しました`);
+    },
+    setTime,
+    randomize: () => { getLaboratory().randomize(); refresh("実験オブジェクトを再配置しました"); },
+    getStatus: () => ({ objectCount: getLaboratory().objectCount(), ...getLaboratory().telemetry() }),
+  });
+} catch (error) {
+  showInitializationError(error);
 }
 
-registerWebMcp({
-  addObject: (type) => {
-    if (type === "box") laboratory.addBox();
-    else if (type === "sphere") laboratory.addSphere();
-    else laboratory.addBuilding();
-    refresh(`${type} を追加しました`);
-  },
-  setTime,
-  randomize: () => { laboratory.randomize(); refresh("実験オブジェクトを再配置しました"); },
-  getStatus: () => ({ objectCount: laboratory.objectCount(), ...laboratory.telemetry() }),
-});
+window.addEventListener("error", (event) => showInitializationError(event.error ?? event.message));
+window.addEventListener("unhandledrejection", (event) => showInitializationError(event.reason));
+
+function resizeEngine(): void {
+  if (!engine) return;
+  engine.resize();
+  requestAnimationFrame(() => {
+    engine?.resize();
+    if (laboratory && engine) updateDebugReadout(engine, laboratory, mobile);
+  });
+}
+
+function getEngine(): Engine {
+  if (!engine) throw new Error("3D Engine is not initialized.");
+  return engine;
+}
+
+function getLaboratory(): LaboratoryApi {
+  if (!laboratory) throw new Error("3D Scene is not initialized.");
+  return laboratory;
+}
+
+function configureGuide(isMobile: boolean): void {
+  if (!isMobile) return;
+  const title = document.querySelector("#guide-title");
+  const description = document.querySelector("#guide-description");
+  if (title) title.textContent = "タップして探索を開始";
+  if (description) description.textContent = "左スティックで移動・右画面をドラッグして見回す";
+  document.querySelector("#desktop-guide")?.remove();
+}
+
+function showInitializationError(error: unknown): void {
+  console.error("3D INITIALIZE ERROR", error);
+  const panel = document.querySelector<HTMLElement>("#error-panel");
+  const message = document.querySelector<HTMLElement>("#error-message");
+  if (message) message.textContent = error instanceof Error ? error.message : String(error);
+  if (panel) panel.hidden = false;
+}

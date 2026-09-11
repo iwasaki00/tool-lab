@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-本番ビルドは `npm run build` です。
+本番ビルドは `npm run build` です。静的ホスティング用ファイルは `06_3d-space-lab/app/` に生成され、TOOL LABトップページからもこの公開用ページを開きます。
 
 ## 操作
 

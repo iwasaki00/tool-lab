@@ -4,7 +4,6 @@ Thumbs.db
 .vscode/
 node_modules/
 dist/
-06_3d-space-lab/dist/
 
 # Logs
 *.log

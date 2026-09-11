@@ -1,27 +1,40 @@
-import { Color3, Color4, DirectionalLight, Engine, HemisphericLight, Mesh, Scene, ShadowGenerator, Vector3 } from "@babylonjs/core";
+import type { Engine } from "@babylonjs/core/Engines/engine";
+import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
+import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { ShadowGenerator } from "@babylonjs/core/Lights/Shadows/shadowGenerator";
+import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
+import { Scene } from "@babylonjs/core/scene";
 import { createBoundaryWall, createBuilding, createStairs } from "../objects/building";
 import { createGround, createLamp, createRoad, createSky } from "../objects/environment";
 import { createBox, createCylinder, createPillar, createPlatform, createSphere, type ObjectContext } from "../objects/primitives";
-import { createPlayer } from "../player/createPlayer";
+import { createPlayer, type PlayerController } from "../player/createPlayer";
+import { createMaterial } from "../utils/materials";
 import { createRandomScene, randomOpenPosition } from "./generators";
 
 export interface LaboratoryApi {
   scene: Scene;
+  player: PlayerController;
   setDayMode: (isDay: boolean) => void;
   addBox: () => void;
   addSphere: () => void;
   addBuilding: () => void;
   randomize: () => void;
+  setDebugMode: (enabled: boolean) => void;
   objectCount: () => number;
-  telemetry: () => { x: number; z: number; mode: "day" | "night" };
+  telemetry: () => { x: number; y: number; z: number; mode: "day" | "night" };
 }
 
-export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement): LaboratoryApi {
+export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement, mobile: boolean): LaboratoryApi {
   const scene = new Scene(engine);
   scene.clearColor = new Color4(.38, .65, .82, 1);
   scene.gravity = new Vector3(0, -.22, 0);
   scene.collisionsEnabled = true;
-  const camera = createPlayer(scene, canvas);
+  const player = createPlayer(scene, canvas, mobile);
+  const camera = player.camera;
 
   const ambient = new HemisphericLight("ambient", new Vector3(0, 1, 0), scene);
   ambient.intensity = .68;
@@ -29,7 +42,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement)
   const sun = new DirectionalLight("sun", new Vector3(-.55, -1, .35), scene);
   sun.position = new Vector3(25, 38, -25);
   sun.intensity = 1.15;
-  const shadows = new ShadowGenerator(2048, sun);
+  const shadows = new ShadowGenerator(mobile ? 1024 : 2048, sun);
   shadows.useBlurExponentialShadowMap = true;
   shadows.blurKernel = 24;
   const skyMaterial = createSky(scene);
@@ -39,10 +52,17 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement)
   const registerDynamic = (mesh: Mesh) => dynamicRoots.push(mesh);
   const ctx: ObjectContext = { scene, shadows, registerDynamic };
 
-  createGround(scene);
+  const ground = createGround(scene);
   createRoad(scene, new Vector3(0, .035, 1), 7, 76);
   createRoad(scene, new Vector3(0, .04, 8), 5, 52, Math.PI / 2);
   createInitialField(ctx);
+
+  const debugBox = MeshBuilder.CreateBox("debug-red-box", { size: 3 }, scene);
+  debugBox.position = new Vector3(0, 1.5, -4);
+  debugBox.material = createMaterial(scene, "debug-red-material", new Color3(1, 0, 0));
+  debugBox.isVisible = false;
+  debugBox.isPickable = false;
+  const groundMaterial = ground.material as StandardMaterial;
 
   const spawnAhead = (height: number): Vector3 => {
     const direction = camera.getForwardRay().direction.clone();
@@ -70,13 +90,24 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement)
 
   return {
     scene,
+    player,
     setDayMode,
     addBox: () => createBox(ctx, spawnAhead(.85), 1.7, true),
     addSphere: () => createSphere(ctx, spawnAhead(.85), 1.7, true),
     addBuilding: () => createBuilding(ctx, { position: randomOpenPosition(15, 27), width: 6.5, depth: 5.5, color: new Color3(.28, .58, .66), rotation: Math.random() * Math.PI * 2, dynamic: true }),
     randomize: () => createRandomScene(ctx, dynamicRoots),
+    setDebugMode: (enabled) => {
+      debugBox.isVisible = enabled;
+      groundMaterial.diffuseColor = enabled ? new Color3(.12, .72, .22) : new Color3(.25, .34, .28);
+      if (enabled) {
+        skyMaterial.diffuseColor = new Color3(.12, .55, .95);
+        skyMaterial.emissiveColor = new Color3(.12, .55, .95);
+      } else {
+        setDayMode(currentMode === "day");
+      }
+    },
     objectCount: () => scene.meshes.filter((mesh) => mesh.name !== "sky").length,
-    telemetry: () => ({ x: camera.position.x, z: camera.position.z, mode: currentMode }),
+    telemetry: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, mode: currentMode }),
   };
 }
 

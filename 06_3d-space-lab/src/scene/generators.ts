@@ -1,4 +1,5 @@
-import { Mesh, Vector3 } from "@babylonjs/core";
+import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { createBox, createCylinder, createSphere, type ObjectContext } from "../objects/primitives";
 
 export function createRandomScene(ctx: ObjectContext, dynamicRoots: Mesh[], amount = 18): void {

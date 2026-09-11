@@ -5,6 +5,7 @@ export interface ControlActions {
   sphere: () => void;
   building: () => void;
   random: () => void;
+  debug: () => void;
   reset: () => void;
 }
 
