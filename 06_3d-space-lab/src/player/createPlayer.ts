@@ -25,6 +25,7 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
   camera.keysRight = [68];
   camera.checkCollisions = true;
   camera.applyGravity = true;
+  camera.needMoveForGravity = true;
   camera.ellipsoid = new Vector3(.43, .88, .43);
   camera.ellipsoidOffset = new Vector3(0, -.78, 0);
   camera.attachControl(canvas, true);
@@ -57,7 +58,9 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
   });
 
   function jump(): void {
-    if (isGrounded(scene, camera)) camera.cameraDirection.y = .28;
+    // FreeCameraは毎フレームcameraDirectionへscene.gravityを加算してから
+    // inertiaを適用するため、重力値を十分に上回る初速が必要になる。
+    if (isGrounded(scene, camera)) camera.cameraDirection.y = .9;
   }
 
   return {
@@ -73,7 +76,8 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
 }
 
 function isGrounded(scene: Scene, camera: UniversalCamera): boolean {
-  const ray = new Ray(camera.position.add(new Vector3(0, -.65, 0)), Vector3.Down(), 1.25);
+  const feetDistance = camera.ellipsoid.y - camera.ellipsoidOffset.y;
+  const ray = new Ray(camera.position, Vector3.Down(), feetDistance + .22);
   const hit = scene.pickWithRay(ray, (mesh) => mesh.checkCollisions);
   return Boolean(hit?.hit);
 }
