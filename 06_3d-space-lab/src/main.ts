@@ -26,6 +26,7 @@ try {
   engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: false }, false);
   engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
   laboratory = createLaboratoryScene(engine, canvas, mobile);
+  hideInitializationError();
   if (mobile) detachMobileControls = attachMobileControls(laboratory.player);
 
   const controls = createControls({
@@ -44,6 +45,7 @@ try {
       detachMobileControls();
       getLaboratory().scene.dispose();
       laboratory = createLaboratoryScene(getEngine(), canvas, mobile);
+      hideInitializationError();
       if (mobile) detachMobileControls = attachMobileControls(laboratory.player);
       debugMode = false;
       controls.setMode("day");
@@ -148,4 +150,9 @@ function showInitializationError(error: unknown): void {
   const message = document.querySelector<HTMLElement>("#error-message");
   if (message) message.textContent = error instanceof Error ? error.message : String(error);
   if (panel) panel.hidden = false;
+}
+
+function hideInitializationError(): void {
+  const panel = document.querySelector<HTMLElement>("#error-panel");
+  if (panel) panel.hidden = true;
 }

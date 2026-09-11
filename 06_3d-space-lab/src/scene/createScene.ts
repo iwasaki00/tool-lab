@@ -1,3 +1,4 @@
+import "@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent";
 import type { Engine } from "@babylonjs/core/Engines/engine";
 import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
