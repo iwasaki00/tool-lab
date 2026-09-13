@@ -65,7 +65,7 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
     const event = info.event;
     if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
       sprinting = info.type === KeyboardEventTypes.KEYDOWN;
-      camera.speed = sprinting ? .55 : .32;
+      camera.speed = sprinting ? .96 : .32;
     }
     if (info.type === KeyboardEventTypes.KEYDOWN && event.code === "Space") {
       jump();
