@@ -18,6 +18,9 @@ import { createRandomScene, randomOpenPosition } from "./generators";
 import { setStreetLightsEnabled } from "../objects/streetLight";
 import { createCity } from "../world/cityGenerator";
 import { DEFAULT_CITY_SETTINGS, type CitySettings, type CityStats, type WorldMode } from "../world/types";
+import { createDemoScenario, type GameplayCallbacks } from "../gameplay/createDemoScenario";
+import type { InteractionFocus } from "../interaction/Interactable";
+import type { InventoryEntry } from "../gameplay/InventoryManager";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -32,11 +35,16 @@ export interface LaboratoryApi {
   telemetry: () => { x: number; y: number; z: number; mode: "day" | "night"; worldMode: WorldMode; seed?: number; style?: string };
   cityStats: () => CityStats | undefined;
   disposeWorld: () => void;
+  interact: () => void;
+  interactionDebug: () => InteractionFocus | undefined;
+  inventory: () => InventoryEntry[];
+  objective: () => string;
 }
 
 export interface SceneOptions {
   worldMode?: WorldMode;
   citySettings?: CitySettings;
+  gameplayCallbacks?: GameplayCallbacks;
 }
 
 export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement, mobile: boolean, options: SceneOptions = {}): LaboratoryApi {
@@ -78,6 +86,12 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     createRoad(scene, new Vector3(0, .04, 8), 5, 52, Math.PI / 2);
     createInitialField(ctx);
   }
+
+  const callbacks = options.gameplayCallbacks ?? {
+    onFocus: () => undefined, onMessage: () => undefined, onObjective: () => undefined,
+    onInventory: () => undefined, onMissionComplete: () => undefined,
+  };
+  const demoScenario = createDemoScenario(ctx, camera, camera.position.clone(), callbacks);
 
   const debugBox = MeshBuilder.CreateBox("debug-red-box", { size: 3 }, scene);
   debugBox.position = new Vector3(0, 1.5, -4);
@@ -132,7 +146,11 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     objectCount: () => scene.meshes.filter((mesh) => mesh.name !== "sky").length,
     telemetry: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, mode: currentMode, worldMode, seed: generatedCity?.stats.seed, style: generatedCity?.stats.styleLabel }),
     cityStats: () => generatedCity?.stats,
-    disposeWorld: () => generatedCity?.dispose(),
+    disposeWorld: () => { demoScenario.dispose(); generatedCity?.dispose(); },
+    interact: () => demoScenario.interact(),
+    interactionDebug: () => demoScenario.focus(),
+    inventory: () => demoScenario.inventory(),
+    objective: () => demoScenario.objective(),
   };
 }
 

@@ -6,6 +6,7 @@ import { createLaboratoryScene, type LaboratoryApi } from "./scene/createScene";
 import { createControls } from "./ui/createControls";
 import { updateDebugReadout } from "./ui/debugReadout";
 import { registerWebMcp } from "./ui/registerWebMcp";
+import { createGameplayUi } from "./ui/gameplayUi";
 import { loadCitySettings, saveCitySettings } from "./world/citySettingsStorage";
 import { type CitySettings, type WorldMode } from "./world/types";
 
@@ -15,6 +16,7 @@ configureGuide(mobile);
 
 const canvas = document.querySelector<HTMLCanvasElement>("#render-canvas");
 if (!canvas) throw new Error("Rendering canvas was not found.");
+const gameplayUi = createGameplayUi(mobile);
 
 let engine: Engine | undefined;
 let laboratory: LaboratoryApi | undefined;
@@ -30,7 +32,8 @@ try {
   // Babylon EngineはWebGL2を優先し、利用できない端末ではWebGLへ自動フォールバックする。
   engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: false }, false);
   engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
-  laboratory = createLaboratoryScene(engine, canvas, mobile, { worldMode: currentWorld, citySettings });
+  laboratory = createLaboratoryScene(engine, canvas, mobile, { worldMode: currentWorld, citySettings, gameplayCallbacks: gameplayUi.callbacks });
+  gameplayUi.setInteractHandler(() => getLaboratory().interact());
   hideInitializationError();
   if (mobile) detachMobileControls = attachMobileControls(laboratory.player);
 
@@ -79,7 +82,8 @@ try {
     detachMobileControls();
     getLaboratory().disposeWorld();
     getLaboratory().scene.dispose();
-    laboratory = createLaboratoryScene(getEngine(), canvas!, mobile, { worldMode: mode, citySettings: settings });
+    laboratory = createLaboratoryScene(getEngine(), canvas!, mobile, { worldMode: mode, citySettings: settings, gameplayCallbacks: gameplayUi.callbacks });
+    gameplayUi.setInteractHandler(() => getLaboratory().interact());
     laboratory.setDayMode(currentTime === "day");
     hideInitializationError();
     if (mobile) detachMobileControls = attachMobileControls(laboratory.player);

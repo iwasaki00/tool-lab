@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#071018" />
-    <meta name="description" content="街の雰囲気や文章からルールベースで3D都市を生成するBabylon.js 3D空間実験室 Ver.3。" />
-    <title>3D空間実験室 Ver.3 — 街スタイル生成</title>
-    <script type="module" crossorigin src="./assets/index-Ci05vJmW.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-EfNxPr8j.css">
+    <meta name="description" content="触る・調べる・操作する・取得するための共通基盤を備えたBabylon.js 3D空間実験室 Ver.4。" />
+    <title>3D空間実験室 Ver.4 — インタラクション基盤</title>
+    <script type="module" crossorigin src="./assets/index-DyO3S5he.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BxmJ__X2.css">
   </head>
   <body>
     <canvas id="render-canvas" aria-label="3D空間実験室"></canvas>
@@ -17,7 +17,7 @@
 
     <header class="brand-plate">
       <span class="brand-index">06</span>
-      <span><strong>3D 空間実験室 <em>VER.3</em></strong><small>CITY STYLE GENERATOR / BABYLON.JS</small></span>
+      <span><strong>3D 空間実験室 <em>VER.4</em></strong><small>INTERACTION FOUNDATION / BABYLON.JS</small></span>
     </header>
 
     <div class="compact-status" aria-live="polite">
@@ -48,6 +48,9 @@
         <div><dt>Roads</dt><dd id="road-count-value">0</dd></div>
         <div><dt>Objects</dt><dd id="city-object-count-value">0</dd></div>
         <div><dt>Generation</dt><dd id="generation-time-value">—</dd></div>
+        <div><dt>Focus</dt><dd id="focus-value">—</dd></div>
+        <div><dt>Type</dt><dd id="interaction-type-value">—</dd></div>
+        <div><dt>Distance</dt><dd id="interaction-distance-value">—</dd></div>
         <div class="interpretation-row"><dt>Rules</dt><dd id="interpretation-value">—</dd></div>
       </dl>
     </div>
@@ -60,8 +63,19 @@
         <span><kbd>WASD</kbd> 移動</span>
         <span><kbd>SPACE</kbd> ジャンプ</span>
         <span><kbd>SHIFT</kbd> ダッシュ</span>
+        <span><kbd>E</kbd> 操作</span>
+        <span><kbd>I</kbd> Inventory</span>
       </div>
     </section>
+
+    <section class="objective-hud" aria-live="polite">
+      <span>OBJECTIVE</span>
+      <strong id="objective-text">鍵を探す</strong>
+    </section>
+    <div class="interaction-prompt" id="interaction-prompt" hidden></div>
+    <button type="button" class="interact-button" id="interact-button" hidden>操作</button>
+    <div class="gameplay-message" id="gameplay-message" role="status" aria-live="polite"></div>
+    <div class="mission-complete" id="mission-complete" role="status"><span>MISSION COMPLETE</span><small>インタラクションデモ完了</small></div>
 
     <aside class="control-panel" id="control-panel" aria-label="実験コントロール">
       <div class="panel-heading">
@@ -100,6 +114,11 @@
         <button type="button" data-action="random"><span>↗</span> ランダム</button>
         <button type="button" data-action="debug"><span>!</span> 描画テスト</button>
       </div>
+      <button type="button" class="inventory-toggle" id="inventory-toggle" aria-expanded="false"><span>▣</span> INVENTORY <kbd>I</kbd></button>
+      <section class="inventory-panel" id="inventory-panel" hidden>
+        <p>所持アイテム</p>
+        <ul id="inventory-list"><li class="inventory-empty">所持アイテムなし</li></ul>
+      </section>
       <button type="button" class="reset-button" data-action="reset">シーン初期化</button>
     </aside>
 
