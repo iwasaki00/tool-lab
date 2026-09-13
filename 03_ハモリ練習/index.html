@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#102d2a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="主旋律につられず、耳でハモる力を育てるiPhone向け練習アプリ">
+    <meta property="og:title" content="HamoLab｜ハモリ練習">
+    <meta property="og:description" content="耳でつくる、もうひとつの旋律。主旋律につられない耳を育てます。">
+    <meta property="og:image" content="https://iwasaki00.github.io/tool-lab/03_%E3%83%8F%E3%83%A2%E3%83%AA%E7%B7%B4%E7%BF%92/assets/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <title>HamoLab｜ハモリ練習</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <button class="brand" id="homeButton" type="button" aria-label="ホームへ戻る">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span><b>HamoLab</b><small>耳でつくる、もうひとつの旋律</small></span>
+        </button>
+        <button class="icon-button" id="settingsButton" type="button" aria-label="設定を開く">設定</button>
+      </header>
+
+      <main>
+        <section class="view home-view is-active" id="homeView" aria-labelledby="homeTitle">
+          <div class="hero">
+            <p class="eyebrow">HARMONY TRAINING</p>
+            <h1 id="homeTitle">主旋律に、<br><em>つられない耳</em>を育てる。</h1>
+            <p class="hero-copy">音を聴く、ハモリを確かめる、自分で歌う。短い練習を重ねて、頭の中に別の旋律を描けるように。</p>
+            <button class="primary-button hero-start" id="quickStartButton" type="button">
+              <span>今日の練習を始める</span><b>3度上・単音</b>
+            </button>
+            <p class="privacy-note">マイク音声は端末内だけで処理され、送信されません。</p>
+          </div>
+
+          <section class="section-block" aria-labelledby="modesTitle">
+            <div class="section-heading">
+              <div><p class="eyebrow">TRAINING</p><h2 id="modesTitle">練習メニュー</h2></div>
+              <span class="section-note">1日5分から</span>
+            </div>
+            <div class="mode-grid">
+              <button class="mode-card featured" type="button" data-mode="single">
+                <span class="mode-number">01</span><span class="mode-icon" aria-hidden="true">♬</span>
+                <strong>単音ハモリ</strong><small>鳴った音の3度上・下を歌う基本練習</small><span class="card-link">練習する →</span>
+              </button>
+              <button class="mode-card" type="button" data-mode="phrase">
+                <span class="mode-number">02</span><span class="mode-icon" aria-hidden="true">⌁</span>
+                <strong>フレーズハモリ</strong><small>短い旋律を覚えて、流れの中で歌う</small><span class="card-link">練習する →</span>
+              </button>
+              <button class="mode-card resistance" type="button" data-mode="resistance">
+                <span class="mode-number">03</span><span class="mode-icon" aria-hidden="true">≋</span>
+                <strong>つられ耐性</strong><small>主旋律を聴きながら、別の音を保つ</small><span class="card-link">練習する →</span>
+              </button>
+              <button class="mode-card" type="button" data-mode="free">
+                <span class="mode-number">04</span><span class="mode-icon" aria-hidden="true">∞</span>
+                <strong>フリーハモリ</strong><small>正解を隠して、自由な響きを試す</small><span class="card-link">試してみる →</span>
+              </button>
+              <button class="mode-card" type="button" data-mode="recording">
+                <span class="mode-number">05</span><span class="mode-icon" aria-hidden="true">●</span>
+                <strong>録音・聴き比べ</strong><small>自分の声を録音して、耳で振り返る</small><span class="card-link">録音する →</span>
+              </button>
+              <button class="mode-card" type="button" data-mode="history">
+                <span class="mode-number">06</span><span class="mode-icon" aria-hidden="true">↗</span>
+                <strong>練習履歴</strong><small>最近の精度と、つられた回数を確認</small><span class="card-link">履歴を見る →</span>
+              </button>
+            </div>
+          </section>
+        </section>
+
+        <section class="view practice-view" id="practiceView" aria-labelledby="practiceTitle">
+          <button class="back-button" id="backButton" type="button">← メニュー</button>
+          <div class="practice-head">
+            <div><p class="eyebrow" id="practiceEyebrow">SINGLE NOTE</p><h1 id="practiceTitle">単音ハモリ</h1></div>
+            <div class="streak"><small>STREAK</small><b id="streakValue">0</b></div>
+          </div>
+
+          <div class="config-card" id="singleConfig">
+            <div class="segmented" role="group" aria-label="音程の種類">
+              <button class="is-selected" type="button" data-interval="4">3度上</button>
+              <button type="button" data-interval="-4">3度下</button>
+              <button type="button" data-interval="random">ランダム</button>
+              <button type="button" data-interval="5">4度</button>
+              <button type="button" data-interval="7">5度</button>
+              <button type="button" data-interval="9">6度</button>
+            </div>
+          </div>
+
+          <div class="config-card phrase-config" id="phraseConfig" hidden>
+            <label>BPM <output id="bpmOutput">80</output><input id="bpmSlider" type="range" min="60" max="120" step="5" value="80"></label>
+            <label>難易度<select id="levelSelect"><option value="1">LEVEL 1｜主旋律 小さめ</option><option value="2">LEVEL 2｜主旋律 普通</option><option value="3">LEVEL 3｜主旋律 大きめ</option><option value="4">LEVEL 4｜ガイドなし</option><option value="5">LEVEL 5｜初回だけガイド</option></select></label>
+          </div>
+
+          <div class="pitch-stage">
+            <div class="instruction"><span id="modeHint">主旋律を聴いて</span><strong id="instructionText">3度上を歌ってください</strong><small>おすすめの母音：ラー</small></div>
+            <div class="notes-row">
+              <div><small>主旋律</small><b id="melodyNote">ド<em>C4</em></b></div>
+              <span class="interval-line" aria-hidden="true"><i></i><b id="intervalLabel">3度上</b></span>
+              <div><small>目標</small><b id="targetNote">ミ<em>E4</em></b></div>
+            </div>
+            <div class="live-note">
+              <small>現在の音</small><b id="detectedSolfeggio">—</b><span id="detectedNote">マイク待機中</span><em id="frequencyValue">— Hz</em>
+            </div>
+            <div class="tuner" id="tuner" aria-label="音程差メーター">
+              <div class="tuner-scale"><span>-50</span><span>低い</span><i></i><span>高い</span><span>+50</span></div>
+              <div class="tuner-track"><div class="tuner-good"></div><div class="tuner-needle" id="tunerNeedle"></div></div>
+              <div class="cent-value"><b id="centValue">—</b><span>cent</span></div>
+              <div class="judgement waiting" id="judgement">声を出すと判定します</div>
+            </div>
+            <canvas id="pitchCanvas" width="720" height="240" aria-label="目標と声の音程ライン" hidden></canvas>
+            <div class="count-in" id="countIn" aria-live="assertive" hidden>3</div>
+          </div>
+
+          <div class="transport" id="previewControls">
+            <button class="secondary-button" id="playMelodyButton" type="button">主旋律を聴く</button>
+            <button class="secondary-button" id="playGuideButton" type="button">正解ハモリを聴く</button>
+            <button class="secondary-button phrase-only" id="playTogetherButton" type="button" hidden>一緒に聴く</button>
+          </div>
+          <button class="primary-button practice-start" id="practiceStartButton" type="button">マイクを使って練習開始</button>
+          <button class="danger-button" id="practiceStopButton" type="button" hidden>練習を終了</button>
+          <p class="status-line" id="statusLine" role="status">開始するとマイクの利用許可を確認します。</p>
+        </section>
+
+        <section class="view history-view" id="historyView" aria-labelledby="historyTitle">
+          <button class="back-button history-back" type="button">← メニュー</button>
+          <p class="eyebrow">PROGRESS</p><h1 id="historyTitle">練習履歴</h1>
+          <div class="summary-grid">
+            <div><small>直近10回の平均</small><b id="averageScore">—</b><span>点</span></div>
+            <div><small>最高得点</small><b id="bestScore">—</b><span>点</span></div>
+            <div><small>つられた回数</small><b id="pulledCount">—</b><span>回</span></div>
+          </div>
+          <div class="history-list" id="historyList"></div>
+        </section>
+
+        <section class="view recording-view" id="recordingView" aria-labelledby="recordingTitle">
+          <button class="back-button recording-back" type="button">← メニュー</button>
+          <p class="eyebrow">RECORD & REVIEW</p><h1 id="recordingTitle">録音・聴き比べ</h1>
+          <div class="record-card">
+            <div class="record-orb" id="recordOrb"><span></span></div>
+            <p id="recordStatus">自分のハモリを録音して、客観的に聴き返しましょう。</p>
+            <div class="record-actions">
+              <button class="primary-button" id="recordStartButton" type="button">録音開始</button>
+              <button class="danger-button" id="recordStopButton" type="button" hidden>停止</button>
+            </div>
+            <audio id="recordPlayback" controls hidden></audio>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="settingsDialog">
+      <form method="dialog" class="dialog-card">
+        <div class="dialog-head"><div><p class="eyebrow">SETTINGS</p><h2>設定・マイクテスト</h2></div><button value="cancel" aria-label="閉じる">×</button></div>
+        <label class="setting-row"><span>音名表示<small>練習画面の表記</small></span><select id="noteNameSetting"><option value="both">ドレミ＋英語</option><option value="solfege">ドレミ</option><option value="letter">C D E</option></select></label>
+        <label class="setting-row"><span>音域<small>問題を歌いやすい高さに調整</small></span><select id="rangeSetting"><option value="low">低い</option><option value="mid" selected>普通</option><option value="high">高い</option></select></label>
+        <div class="mic-test">
+          <div><strong>マイクテスト</strong><small id="micTestReadout">声を出すと音程を表示します</small></div>
+          <div class="level-meter"><i id="micLevel"></i></div>
+          <button class="secondary-button" id="micTestButton" type="button">テスト開始</button>
+        </div>
+        <button class="primary-button" value="save" id="saveSettingsButton">設定を保存</button>
+      </form>
+    </dialog>
+
+    <dialog id="resultDialog">
+      <div class="dialog-card result-card">
+        <p class="eyebrow">SESSION COMPLETE</p><h2>今回のスコア</h2>
+        <div class="total-score"><b id="resultTotal">84</b><span>点</span></div>
+        <div class="score-bars" id="scoreBars"></div>
+        <p class="result-comment" id="resultComment"></p>
+        <button class="primary-button" id="resultCloseButton" type="button">メニューへ戻る</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

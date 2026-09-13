@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite 06_3d-space-lab",
-    "build": "tsc -p 06_3d-space-lab/tsconfig.json && vite build 06_3d-space-lab",
-    "preview": "vite preview 06_3d-space-lab"
+    "dev": "vite 06_3D空間実験室",
+    "build": "tsc -p 06_3D空間実験室/tsconfig.json && vite build 06_3D空間実験室",
+    "preview": "vite preview 06_3D空間実験室"
   },
   "dependencies": {
     "@babylonjs/core": "^8.26.0"

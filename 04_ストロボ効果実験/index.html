@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#081116">
+    <meta name="color-scheme" content="dark">
+    <meta name="description" content="iPhone Safariのカメラライトで水滴の動きを観察するストロボツール">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://iwasaki00.github.io/tool-lab/04_%E3%82%B9%E3%83%88%E3%83%AD%E3%83%9C%E5%8A%B9%E6%9E%9C%E5%AE%9F%E9%A8%93/">
+    <meta property="og:title" content="Water Strobe — 水滴を止めて見る">
+    <meta property="og:description" content="カメラライトの点滅で、水滴などの周期運動を観察するストロボツール">
+    <meta property="og:image" content="https://iwasaki00.github.io/tool-lab/04_%E3%82%B9%E3%83%88%E3%83%AD%E3%83%9C%E5%8A%B9%E6%9E%9C%E5%AE%9F%E9%A8%93/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Water Strobe — 水滴を止めて見る">
+    <meta name="twitter:description" content="カメラライトの点滅で、水滴などの周期運動を観察するストロボツール">
+    <meta name="twitter:image" content="https://iwasaki00.github.io/tool-lab/04_%E3%82%B9%E3%83%88%E3%83%AD%E3%83%9C%E5%8A%B9%E6%9E%9C%E5%AE%9F%E9%A8%93/og.png">
+    <title>Water Strobe — 水滴を止めて見る</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <main class="app-shell">
+      <section id="main-view">
+        <header class="brand">
+          <span class="brand-mark" aria-hidden="true">◉</span>
+          <div>
+            <h1>Water Strobe</h1>
+            <p>水滴を止めて見る</p>
+          </div>
+        </header>
+
+        <div class="status-row">
+          <span id="status" class="status" data-tone="idle">NOT READY</span>
+          <span id="active-badge" class="live-badge" hidden><i></i> ACTIVE</span>
+          <span id="recording-badge" class="recording-badge" hidden><i></i> REC</span>
+        </div>
+
+        <section id="prepare-panel" class="prepare-panel">
+          <div class="drop-visual" aria-hidden="true"><span></span></div>
+          <h2>ライトを使う準備</h2>
+          <p>タップするまでカメラへのアクセスは行いません。</p>
+          <button id="prepare-button" class="button primary prepare-button" type="button">ライトを準備</button>
+          <button id="prepare-diagnostics" class="quiet-link" type="button">診断を開く</button>
+          <p class="requirement">iPhone Safari・HTTPS環境での利用を推奨</p>
+        </section>
+
+        <div id="error-box" class="error-box" hidden role="alert">
+          <p id="error-message"></p>
+          <button id="diagnostics-button" type="button">診断を見る</button>
+        </div>
+
+        <section id="controls-panel" hidden>
+          <div class="frequency-block">
+            <p class="label">周波数</p>
+            <div class="frequency"><span id="frequency-value">10.00</span><small>Hz</small></div>
+          </div>
+
+          <div class="adjust-grid" aria-label="周波数の微調整">
+            <button type="button" data-adjust="-1" aria-label="周波数を1ヘルツ下げる。長押しで連続変更"><span>−</span>1</button>
+            <button type="button" data-adjust="-0.1" aria-label="周波数を0.1ヘルツ下げる。長押しで連続変更"><span>−</span>0.1</button>
+            <button type="button" data-adjust="-0.01" aria-label="周波数を0.01ヘルツ下げる。長押しで連続変更"><span>−</span>0.01</button>
+            <button type="button" data-adjust="0.01" aria-label="周波数を0.01ヘルツ上げる。長押しで連続変更"><span>＋</span>0.01</button>
+            <button type="button" data-adjust="0.1" aria-label="周波数を0.1ヘルツ上げる。長押しで連続変更"><span>＋</span>0.1</button>
+            <button type="button" data-adjust="1" aria-label="周波数を1ヘルツ上げる。長押しで連続変更"><span>＋</span>1</button>
+          </div>
+
+          <div class="duty-section">
+            <p class="label">Duty</p>
+            <div class="segmented" aria-label="Duty比">
+              <button type="button" data-duty="50">50%</button>
+              <button type="button" data-duty="25">25%</button>
+              <button type="button" data-duty="10">10%</button>
+              <button type="button" data-duty="5">5%</button>
+            </div>
+          </div>
+
+          <button id="strobe-button" class="button strobe-button" type="button">ストロボ開始</button>
+
+          <div class="water-controls">
+            <p class="label">水滴の見え方を微調整</p>
+            <div class="water-grid">
+              <button id="water-down" type="button"><span>↓</span> 下へ</button>
+              <button id="save-stop" class="stop-button" type="button"><span>●</span> 静止</button>
+              <button id="water-up" type="button"><span>↑</span> 上へ</button>
+            </div>
+          </div>
+
+          <div id="last-stop" class="stop-point" hidden>
+            <span>静止ポイント</span>
+            <strong id="last-stop-value">—</strong>
+          </div>
+
+          <section id="recording-controls" class="recording-controls" hidden>
+            <div id="camera-preview-wrap" class="preview-wrap">
+              <video id="camera-preview" autoplay muted playsinline></video>
+            </div>
+            <button id="record-button" class="button secondary" type="button">録画開始</button>
+            <div id="recording-result" hidden>
+              <video id="recording-preview" controls playsinline></video>
+              <a id="save-video" class="button secondary" href="#">動画を保存</a>
+            </div>
+          </section>
+
+          <div class="sub-actions">
+            <button id="details-button" type="button">詳細設定</button>
+            <button id="diagnostics-button-secondary" type="button">診断</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="details-panel" class="secondary-view" hidden>
+        <header class="view-header">
+          <button class="back-button" type="button" data-back aria-label="戻る">←</button>
+          <div><p class="eyebrow">WATER STROBE</p><h2>詳細設定</h2></div>
+        </header>
+
+        <div class="setting-card">
+          <label for="frequency-range">周波数 <strong>0.5–60 Hz</strong></label>
+          <input id="frequency-range" type="range" min="0.5" max="60" step="0.01">
+          <div class="number-field"><input id="frequency-input" type="number" min="0.5" max="60" step="0.01"><span>Hz</span></div>
+        </div>
+
+        <div class="setting-card">
+          <p class="setting-title">周波数プリセット</p>
+          <div class="preset-grid">
+            <button type="button" data-frequency="1">1</button><button type="button" data-frequency="2">2</button>
+            <button type="button" data-frequency="5">5</button><button type="button" data-frequency="10">10</button>
+            <button type="button" data-frequency="15">15</button><button type="button" data-frequency="20">20</button>
+            <button type="button" data-frequency="30">30</button><button type="button" data-frequency="40">40</button>
+            <button type="button" data-frequency="60">60</button>
+          </div>
+        </div>
+
+        <div class="setting-card">
+          <label for="auto-stop">自動停止</label>
+          <select id="auto-stop">
+            <option value="10">10秒</option><option value="30">30秒</option><option value="60">60秒</option>
+            <option value="120">120秒</option><option value="0">無制限</option>
+          </select>
+          <label class="switch-row"><span>画面をスリープさせない<small>対応ブラウザのみ</small></span><input id="wake-lock" type="checkbox"><i></i></label>
+          <label class="switch-row"><span>動画撮影を使用<small>メイン画面に録画操作を表示</small></span><input id="recording-enabled" type="checkbox"><i></i></label>
+        </div>
+
+        <div class="setting-card">
+          <p class="setting-title">名前を付けて設定を保存</p>
+          <div class="save-row"><input id="preset-name" type="text" maxlength="30" placeholder="名前（例：細い水流）"><button id="preset-save" type="button">保存</button></div>
+          <p id="preset-save-status" class="save-status" aria-live="polite"></p>
+          <ul id="preset-list" class="saved-list"></ul>
+        </div>
+
+        <div class="setting-card">
+          <p class="setting-title">静止ポイント</p>
+          <ul id="stop-point-list" class="saved-list"></ul>
+        </div>
+      </section>
+
+      <section id="diagnostics-view" class="secondary-view diagnostics" hidden>
+        <header class="view-header">
+          <button class="back-button" type="button" data-back aria-label="戻る">←</button>
+          <div><p class="eyebrow">WATER STROBE</p><h2>診断</h2></div>
+        </header>
+        <p class="diagnostic-note">「LED実発光周波数」は端末だけでは測定できません。表示される周波数はJavaScriptの実行周期です。</p>
+        <div class="diagnostic-actions">
+          <button id="torch-on" type="button">ライトON</button><button id="torch-off" type="button">ライトOFF</button>
+        </div>
+        <pre id="diagnostic-output" tabindex="0"></pre>
+        <div class="diagnostic-actions wrap">
+          <button id="copy-diagnostics" type="button">診断結果をコピー</button>
+          <button id="copy-log" type="button">ログコピー</button>
+          <button id="clear-log" type="button">ログクリア</button>
+        </div>
+      </section>
+
+      <footer class="app-version" aria-label="アプリのバージョン情報">
+        <span>Water Strobe</span>
+        <span id="app-version">Version —</span>
+      </footer>
+    </main>
+
+    <dialog id="safety-dialog">
+      <div class="dialog-icon" aria-hidden="true">!</div>
+      <h2>使用前にご確認ください</h2>
+      <p>点滅する光を使用します。光を長時間直視しないでください。体調に異常を感じた場合は、すぐに使用を停止してください。</p>
+      <div class="dialog-actions"><button id="safety-cancel" type="button">キャンセル</button><button id="safety-accept" class="primary" type="button">確認して開始</button></div>
+    </dialog>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
