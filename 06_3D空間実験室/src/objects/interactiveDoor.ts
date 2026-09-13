@@ -1,3 +1,4 @@
+import "@babylonjs/core/Animations/animatable";
 import { Animation } from "@babylonjs/core/Animations/animation";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";

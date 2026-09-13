@@ -18,7 +18,7 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
   const camera = new UniversalCamera("player-camera", new Vector3(0, 2.1, -12), scene);
   camera.minZ = .1;
   camera.maxZ = 180;
-  camera.speed = .32;
+  camera.speed = .96;
   camera.angularSensibility = 2800;
   camera.inertia = .45;
   camera.keysUp = [87];
@@ -65,7 +65,7 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
     const event = info.event;
     if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
       sprinting = info.type === KeyboardEventTypes.KEYDOWN;
-      camera.speed = sprinting ? .96 : .32;
+      camera.speed = sprinting ? .32 : .96;
     }
     if (info.type === KeyboardEventTypes.KEYDOWN && event.code === "Space") {
       jump();

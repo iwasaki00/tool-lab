@@ -18,7 +18,7 @@ npm run dev
 - `W` `A` `S` `D`: 移動
 - マウス: 視点移動（画面クリックでPointer Lock）
 - `Space`: ジャンプ
-- `Shift`: ダッシュ
+- `Shift`: 低速移動（通常移動の1/3）
 - `Esc`: Pointer Lock解除
 - `E`: 正面の対象を操作
 - `I`: Inventoryを開閉
