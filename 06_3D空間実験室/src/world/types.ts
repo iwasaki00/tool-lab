@@ -1,4 +1,5 @@
 import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import type { InteriorBuildingSite } from "../interior/Room";
 
 export type WorldMode = "field" | "city";
 export type CitySize = "small" | "medium" | "large";
@@ -31,6 +32,7 @@ export interface GeneratedCity {
   lampMaterials: StandardMaterial[];
   spawn: { x: number; y: number; z: number };
   dispose: () => void;
+  interiorSites: InteriorBuildingSite[];
 }
 
 export const DEFAULT_CITY_SETTINGS: CitySettings = {

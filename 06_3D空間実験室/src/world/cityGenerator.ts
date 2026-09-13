@@ -12,6 +12,7 @@ import { createPark, createPlaza } from "./parkGenerator";
 import { createIntersection, createRoad } from "./roadGenerator";
 import { createLandmark, createStyleDecoration, createWaterfront } from "./styleObjects";
 import type { CitySettings, GeneratedCity, HeightProfile } from "./types";
+import type { InteriorBuildingSite } from "../interior/Room";
 
 const ROOFS: RoofShape[] = ["flat", "gable", "stepped"];
 
@@ -22,6 +23,7 @@ export function createCity(ctx: ObjectContext, settings: CitySettings, mobile: b
   const extent = settings.size === "small" ? 24 : settings.size === "medium" ? 32 : 40;
   const roadWidth = style.roadWidth;
   const lampMaterials: StandardMaterial[] = [];
+  const interiorSites: InteriorBuildingSite[] = [];
   const meshStart = ctx.scene.meshes.length;
   const materialStart = ctx.scene.materials.length;
   const xRoads = [0];
@@ -50,16 +52,23 @@ export function createCity(ctx: ObjectContext, settings: CitySettings, mobile: b
     ? new Vector3(-extent + 7, .08, 0)
     : new Vector3(-extent + 8, .08, -extent + 8);
   const lotPositions = makeLots(extent, roadWidth, style.sidewalkWidth, style.lotSpacing, target, xRoads, zRoads, random);
+  const missionCenter = new Vector3(-15, 0, extent === 24 ? -12 : extent === 32 ? 0 : -11);
   let buildingCount = 0;
   for (const lot of lotPositions) {
     if (distance2D(lot.position, parkCenter) < 12 || distance2D(lot.position, plazaCenter) < 11) continue;
     if (lot.position.x > shoreX - 5) continue;
+    if (Math.abs(lot.position.x - missionCenter.x) < 12 && Math.abs(lot.position.z - missionCenter.z) < 8) continue;
     const type = selectType(random, settings.height, style);
     const floors = selectFloors(random, type, mobile, style);
-    createBuilding(ctx, {
+    const buildingId = `building_${String(buildingCount + 1).padStart(3, "0")}`;
+    const interiorRoll = random.next();
+    const hasInterior = buildingCount === 0 || interiorRoll < .25;
+    const width = Math.max(hasInterior ? 6.4 : 0, random.range(type === "tower" ? 5.2 : 4.8, type === "warehouse" ? 8.5 : 7.1));
+    const depth = Math.max(hasInterior ? 8.5 : 0, random.range(5.2, type === "warehouse" ? 10 : 7.4));
+    const root = createBuilding(ctx, {
       position: lot.position,
-      width: random.range(type === "tower" ? 5.2 : 4.8, type === "warehouse" ? 8.5 : 7.1),
-      depth: random.range(5.2, type === "warehouse" ? 10 : 7.4),
+      width,
+      depth,
       floors,
       color: Color3.FromHexString(random.pick(style.colors.buildings)).scale(shade),
       windowColumns: random.integer(2, type === "office" || type === "tower" ? 5 : 3),
@@ -67,8 +76,11 @@ export function createCity(ctx: ObjectContext, settings: CitySettings, mobile: b
       roofShape: type === "house" ? "gable" : random.pick(ROOFS),
       type,
       rotation: lot.rotation,
-      interiorMode: buildingCount % 5 === 0 ? "interior-ready" : "exterior",
+      interiorMode: hasInterior ? "interior-ready" : "exterior",
+      hasInterior,
+      buildingId,
     });
+    if (hasInterior) interiorSites.push({ id: buildingId, root, width, depth, floors: Math.min(floors, mobile ? 2 : 3), floorHeight: 2.7, seed: settings.seed + buildingCount * 7919, state: "NOT_GENERATED" });
     buildingCount += 1;
     if (buildingCount >= target) break;
   }
@@ -99,6 +111,7 @@ export function createCity(ctx: ObjectContext, settings: CitySettings, mobile: b
       generatedMeshes.forEach((mesh) => { if (!mesh.isDisposed()) mesh.dispose(false, false); });
       generatedMaterials.forEach((material) => material.dispose());
     },
+    interiorSites,
     stats: {
       seed: settings.seed,
       buildingCount,

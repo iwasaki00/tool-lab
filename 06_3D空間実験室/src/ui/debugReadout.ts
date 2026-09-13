@@ -12,6 +12,7 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   const telemetry = laboratory.telemetry();
   const city = laboratory.cityStats();
   const interaction = laboratory.interactionDebug();
+  const interior = laboratory.interiorDebug();
   setText("renderer-value", getRendererName(engine));
   setText("canvas-value", canvas ? `${canvas.width} × ${canvas.height}` : "0 × 0");
   setText("viewport-value", `${Math.round(window.visualViewport?.width ?? window.innerWidth)} × ${Math.round(window.visualViewport?.height ?? window.innerHeight)}`);
@@ -29,6 +30,9 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   setText("focus-value", interaction?.id ?? "—");
   setText("interaction-type-value", interaction?.type ?? "—");
   setText("interaction-distance-value", interaction ? `${interaction.distance.toFixed(2)} m` : "—");
+  setText("current-building-value", interior?.building ?? "—");
+  setText("current-floor-value", interior ? String(interior.floor) : "—");
+  setText("current-room-value", interior?.room ?? "—");
 }
 
 function setText(id: string, value: string): void {

@@ -21,6 +21,7 @@ import { DEFAULT_CITY_SETTINGS, type CitySettings, type CityStats, type WorldMod
 import { createDemoScenario, type GameplayCallbacks } from "../gameplay/createDemoScenario";
 import type { InteractionFocus } from "../interaction/Interactable";
 import type { InventoryEntry } from "../gameplay/InventoryManager";
+import type { InteriorNavigation } from "../interior/Room";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -39,6 +40,7 @@ export interface LaboratoryApi {
   interactionDebug: () => InteractionFocus | undefined;
   inventory: () => InventoryEntry[];
   objective: () => string;
+  interiorDebug: () => InteriorNavigation | undefined;
 }
 
 export interface SceneOptions {
@@ -91,7 +93,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     onFocus: () => undefined, onMessage: () => undefined, onObjective: () => undefined,
     onInventory: () => undefined, onMissionComplete: () => undefined,
   };
-  const demoScenario = createDemoScenario(ctx, camera, camera.position.clone(), callbacks);
+  const demoScenario = createDemoScenario(ctx, camera, camera.position.clone(), callbacks, generatedCity?.interiorSites, citySettings.seed);
 
   const debugBox = MeshBuilder.CreateBox("debug-red-box", { size: 3 }, scene);
   debugBox.position = new Vector3(0, 1.5, -4);
@@ -110,6 +112,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   const setDayMode = (isDay: boolean) => {
     currentMode = isDay ? "day" : "night";
     if (generatedCity) setStreetLightsEnabled(generatedCity.lampMaterials, !isDay);
+    demoScenario.setDayMode(isDay);
     if (isDay) {
       scene.clearColor = new Color4(.38, .65, .82, 1);
       skyMaterial.diffuseColor = new Color3(.34, .62, .82);
@@ -151,6 +154,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     interactionDebug: () => demoScenario.focus(),
     inventory: () => demoScenario.inventory(),
     objective: () => demoScenario.objective(),
+    interiorDebug: () => demoScenario.navigation(),
   };
 }
 
