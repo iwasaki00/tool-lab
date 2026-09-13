@@ -8,7 +8,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import { createMaterial } from "../utils/materials";
 
 export function createGround(scene: Scene): Mesh {
-  const ground = MeshBuilder.CreateGround("experiment-ground", { width: 90, height: 90, subdivisions: 2 }, scene);
+  const ground = MeshBuilder.CreateGround("experiment-ground", { width: 120, height: 120, subdivisions: 2 }, scene);
   const material = createMaterial(scene, "ground-material", new Color3(0.25, 0.34, 0.28), 0.05);
   material.diffuseTexture = null;
   ground.material = material;

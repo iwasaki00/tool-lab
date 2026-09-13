@@ -6,6 +6,7 @@ import { createLaboratoryScene, type LaboratoryApi } from "./scene/createScene";
 import { createControls } from "./ui/createControls";
 import { updateDebugReadout } from "./ui/debugReadout";
 import { registerWebMcp } from "./ui/registerWebMcp";
+import { DEFAULT_CITY_SETTINGS, type CitySettings, type WorldMode } from "./world/types";
 
 const mobile = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
 document.body.classList.add(mobile ? "is-mobile" : "is-desktop");
@@ -18,6 +19,9 @@ let engine: Engine | undefined;
 let laboratory: LaboratoryApi | undefined;
 let detachMobileControls: () => void = () => undefined;
 let debugMode = false;
+let currentWorld: WorldMode = "city";
+let citySettings: CitySettings = { ...DEFAULT_CITY_SETTINGS };
+let currentTime: "day" | "night" = "day";
 
 try {
   if (!Engine.IsSupported) throw new Error("このブラウザではWebGLを利用できません。");
@@ -25,7 +29,7 @@ try {
   // Babylon EngineはWebGL2を優先し、利用できない端末ではWebGLへ自動フォールバックする。
   engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: false }, false);
   engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
-  laboratory = createLaboratoryScene(engine, canvas, mobile);
+  laboratory = createLaboratoryScene(engine, canvas, mobile, { worldMode: currentWorld, citySettings });
   hideInitializationError();
   if (mobile) detachMobileControls = attachMobileControls(laboratory.player);
 
@@ -42,38 +46,57 @@ try {
       controls.showToast(debugMode ? "描画テスト：赤いBoxを表示" : "描画テストを終了しました");
     },
     reset: () => {
-      detachMobileControls();
-      getLaboratory().scene.dispose();
-      laboratory = createLaboratoryScene(getEngine(), canvas, mobile);
-      hideInitializationError();
-      if (mobile) detachMobileControls = attachMobileControls(laboratory.player);
-      debugMode = false;
-      controls.setMode("day");
-      refresh("シーンを初期化しました");
+      rebuildWorld(currentWorld, citySettings, "シーンを初期化しました");
+    },
+    selectWorld: (mode, settings) => {
+      currentWorld = mode;
+      if (mode === "city") citySettings = settings;
+      rebuildWorld(mode, citySettings, mode === "city" ? "街生成モードへ切り替えました" : "実験フィールドへ切り替えました");
+    },
+    regenerateCity: (settings) => {
+      currentWorld = "city";
+      citySettings = settings;
+      controls.setWorldMode("city");
+      rebuildWorld("city", settings, `Seed ${settings.seed} で街を生成しました`);
     },
   });
 
   function refresh(message: string): void {
-    controls.updateCount(getLaboratory().objectCount());
     controls.showToast(message);
     updateDebugReadout(getEngine(), getLaboratory(), mobile);
   }
 
   function setTime(mode: "day" | "night"): void {
+    currentTime = mode;
     getLaboratory().setDayMode(mode === "day");
     controls.setMode(mode);
     controls.showToast(mode === "day" ? "昼モードに切り替えました" : "夜モードに切り替えました");
   }
 
+  function rebuildWorld(mode: WorldMode, settings: CitySettings, message: string): void {
+    detachMobileControls();
+    getLaboratory().scene.dispose();
+    laboratory = createLaboratoryScene(getEngine(), canvas!, mobile, { worldMode: mode, citySettings: settings });
+    laboratory.setDayMode(currentTime === "day");
+    hideInitializationError();
+    if (mobile) detachMobileControls = attachMobileControls(laboratory.player);
+    debugMode = false;
+    controls.setWorldMode(mode);
+    updateGuideMode(mode);
+    refresh(message);
+  }
+
   resizeEngine();
-  controls.updateCount(laboratory.objectCount());
+  controls.setWorldMode(currentWorld);
+  controls.setMode(currentTime);
+  updateGuideMode(currentWorld);
   let lastTelemetryUpdate = 0;
   engine.runRenderLoop(() => {
     getLaboratory().scene.render();
     const now = performance.now();
     if (now - lastTelemetryUpdate > 250) {
       const telemetry = getLaboratory().telemetry();
-      controls.updateTelemetry(getEngine().getFps(), telemetry.x, telemetry.z);
+      controls.updateTelemetry(getEngine().getFps(), telemetry.worldMode, telemetry.seed);
       updateDebugReadout(getEngine(), getLaboratory(), mobile);
       lastTelemetryUpdate = now;
     }
@@ -107,7 +130,13 @@ try {
     },
     setTime,
     randomize: () => { getLaboratory().randomize(); refresh("実験オブジェクトを再配置しました"); },
-    getStatus: () => ({ objectCount: getLaboratory().objectCount(), ...getLaboratory().telemetry() }),
+    generateCity: (settings) => {
+      currentWorld = "city";
+      citySettings = settings;
+      controls.setWorldMode("city");
+      rebuildWorld("city", settings, `Seed ${settings.seed} で街を生成しました`);
+    },
+    getStatus: () => ({ objectCount: getLaboratory().objectCount(), city: getLaboratory().cityStats(), ...getLaboratory().telemetry() }),
   });
 } catch (error) {
   showInitializationError(error);
@@ -142,6 +171,11 @@ function configureGuide(isMobile: boolean): void {
   if (title) title.textContent = "タップして探索を開始";
   if (description) description.textContent = "左スティックで移動・右画面をドラッグして見回す";
   document.querySelector("#desktop-guide")?.remove();
+}
+
+function updateGuideMode(mode: WorldMode): void {
+  const label = document.querySelector("#guide-kicker");
+  if (label) label.textContent = mode === "city" ? "CITY READY" : "FIELD READY";
 }
 
 function showInitializationError(error: unknown): void {

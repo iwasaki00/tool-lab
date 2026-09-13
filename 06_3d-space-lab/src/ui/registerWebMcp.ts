@@ -21,6 +21,7 @@ export interface AgentSceneActions {
   addObject: (type: "box" | "sphere" | "building") => void;
   setTime: (mode: "day" | "night") => void;
   randomize: () => void;
+  generateCity: (settings: { seed: number; size: "small" | "medium" | "large"; density: "low" | "normal" | "high"; height: "low" | "mixed" | "high" }) => void;
   getStatus: () => Record<string, unknown>;
 }
 
@@ -72,6 +73,32 @@ export function registerWebMcp(actions: AgentSceneActions): () => void {
     execute: () => {
       actions.randomize();
       return { randomized: true, status: actions.getStatus() };
+    },
+  });
+  register({
+    name: "generate_city",
+    title: "Seedから街を生成",
+    description: "指定したSeed、街サイズ、建物密度、高さ構成でプロシージャル街を生成します。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        seed: { type: "integer", minimum: 1, maximum: 4294967295 },
+        size: { type: "string", enum: ["small", "medium", "large"] },
+        density: { type: "string", enum: ["low", "normal", "high"] },
+        height: { type: "string", enum: ["low", "mixed", "high"] },
+      },
+      required: ["seed", "size", "density", "height"],
+      additionalProperties: false,
+    },
+    annotations: mutable,
+    execute: (input) => {
+      const settings = input as { seed?: unknown; size?: unknown; density?: unknown; height?: unknown };
+      if (!Number.isInteger(settings.seed) || Number(settings.seed) < 1) throw new Error("seed must be a positive integer");
+      if (settings.size !== "small" && settings.size !== "medium" && settings.size !== "large") throw new Error("invalid city size");
+      if (settings.density !== "low" && settings.density !== "normal" && settings.density !== "high") throw new Error("invalid density");
+      if (settings.height !== "low" && settings.height !== "mixed" && settings.height !== "high") throw new Error("invalid height profile");
+      actions.generateCity({ seed: Number(settings.seed), size: settings.size, density: settings.density, height: settings.height });
+      return { generated: true, status: actions.getStatus() };
     },
   });
   register({

@@ -15,6 +15,9 @@ import { createBox, createCylinder, createPillar, createPlatform, createSphere, 
 import { createPlayer, type PlayerController } from "../player/createPlayer";
 import { createMaterial } from "../utils/materials";
 import { createRandomScene, randomOpenPosition } from "./generators";
+import { setStreetLightsEnabled } from "../objects/streetLight";
+import { createCity } from "../world/cityGenerator";
+import { DEFAULT_CITY_SETTINGS, type CitySettings, type CityStats, type WorldMode } from "../world/types";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -26,10 +29,18 @@ export interface LaboratoryApi {
   randomize: () => void;
   setDebugMode: (enabled: boolean) => void;
   objectCount: () => number;
-  telemetry: () => { x: number; y: number; z: number; mode: "day" | "night" };
+  telemetry: () => { x: number; y: number; z: number; mode: "day" | "night"; worldMode: WorldMode; seed?: number };
+  cityStats: () => CityStats | undefined;
 }
 
-export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement, mobile: boolean): LaboratoryApi {
+export interface SceneOptions {
+  worldMode?: WorldMode;
+  citySettings?: CitySettings;
+}
+
+export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement, mobile: boolean, options: SceneOptions = {}): LaboratoryApi {
+  const worldMode = options.worldMode ?? "field";
+  const citySettings = options.citySettings ?? DEFAULT_CITY_SETTINGS;
   const scene = new Scene(engine);
   scene.clearColor = new Color4(.38, .65, .82, 1);
   scene.gravity = new Vector3(0, -.22, 0);
@@ -54,9 +65,18 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   const ctx: ObjectContext = { scene, shadows, registerDynamic };
 
   const ground = createGround(scene);
-  createRoad(scene, new Vector3(0, .035, 1), 7, 76);
-  createRoad(scene, new Vector3(0, .04, 8), 5, 52, Math.PI / 2);
-  createInitialField(ctx);
+  let generatedCity: ReturnType<typeof createCity> | undefined;
+  if (worldMode === "city") {
+    // 街本体はSceneの寿命で管理し、追加オブジェクト用のdynamicRootsとは分離する。
+    // これにより既存の「ランダム配置」を使っても街全体が消えない。
+    generatedCity = createCity({ scene, shadows }, citySettings, mobile);
+    camera.position.set(generatedCity.spawn.x, generatedCity.spawn.y, generatedCity.spawn.z);
+    camera.rotation.set(0, 0, 0);
+  } else {
+    createRoad(scene, new Vector3(0, .035, 1), 7, 76);
+    createRoad(scene, new Vector3(0, .04, 8), 5, 52, Math.PI / 2);
+    createInitialField(ctx);
+  }
 
   const debugBox = MeshBuilder.CreateBox("debug-red-box", { size: 3 }, scene);
   debugBox.position = new Vector3(0, 1.5, -4);
@@ -74,6 +94,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
 
   const setDayMode = (isDay: boolean) => {
     currentMode = isDay ? "day" : "night";
+    if (generatedCity) setStreetLightsEnabled(generatedCity.lampMaterials, !isDay);
     if (isDay) {
       scene.clearColor = new Color4(.38, .65, .82, 1);
       skyMaterial.diffuseColor = new Color3(.34, .62, .82);
@@ -108,7 +129,8 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
       }
     },
     objectCount: () => scene.meshes.filter((mesh) => mesh.name !== "sky").length,
-    telemetry: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, mode: currentMode }),
+    telemetry: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, mode: currentMode, worldMode, seed: generatedCity?.stats.seed }),
+    cityStats: () => generatedCity?.stats,
   };
 }
 

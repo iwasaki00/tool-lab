@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#071018" />
-    <meta name="description" content="Babylon.jsとコードだけで構築した、歩き回れる3D空間実験室。" />
-    <title>3D空間実験室 — TOOL LAB 06</title>
+    <meta name="description" content="コードだけで街を自動生成する、歩き回れるBabylon.js 3D空間実験室 Ver.2。" />
+    <title>3D空間実験室 Ver.2 — プロシージャル街生成</title>
   </head>
   <body>
     <canvas id="render-canvas" aria-label="3D空間実験室"></canvas>
@@ -15,10 +15,21 @@
 
     <header class="brand-plate">
       <span class="brand-index">06</span>
-      <span><strong>3D 空間実験室</strong><small>PROCEDURAL FIELD / BABYLON.JS</small></span>
+      <span><strong>3D 空間実験室 <em>VER.2</em></strong><small>PROCEDURAL CITY / BABYLON.JS</small></span>
     </header>
 
-    <div class="debug-readout" aria-live="polite">
+    <div class="compact-status" aria-live="polite">
+      <span><i></i><b id="compact-fps">0 FPS</b></span>
+      <span id="compact-mode">実験フィールド</span>
+      <span id="compact-seed">SEED —</span>
+    </div>
+
+    <div class="top-actions">
+      <button type="button" id="debug-toggle" aria-expanded="false">DEBUG</button>
+      <button type="button" id="menu-toggle" aria-expanded="false">MENU</button>
+    </div>
+
+    <div class="debug-readout" id="debug-readout" aria-live="polite" hidden>
       <span class="debug-title"><i></i> RENDER STATUS</span>
       <dl>
         <div><dt>Renderer</dt><dd id="renderer-value">STARTING</dd></div>
@@ -28,11 +39,16 @@
         <div><dt>FPS</dt><dd id="fps-value">0</dd></div>
         <div><dt>Meshes</dt><dd id="mesh-value">0</dd></div>
         <div><dt>Camera</dt><dd id="camera-value">0 / 0 / 0</dd></div>
+        <div><dt>Seed</dt><dd id="city-seed-value">—</dd></div>
+        <div><dt>Buildings</dt><dd id="building-count-value">0</dd></div>
+        <div><dt>Roads</dt><dd id="road-count-value">0</dd></div>
+        <div><dt>Objects</dt><dd id="city-object-count-value">0</dd></div>
+        <div><dt>Generation</dt><dd id="generation-time-value">—</dd></div>
       </dl>
     </div>
 
     <section class="start-guide" id="start-guide" aria-label="操作案内">
-      <p class="guide-kicker">FIELD READY</p>
+      <p class="guide-kicker" id="guide-kicker">CITY READY</p>
       <h1 id="guide-title">クリックして探索を開始</h1>
       <p id="guide-description">マウスで見回す・ESCで解除</p>
       <div class="key-guide" id="desktop-guide">
@@ -42,15 +58,33 @@
       </div>
     </section>
 
-    <aside class="control-panel" aria-label="実験コントロール">
+    <aside class="control-panel" id="control-panel" aria-label="実験コントロール">
       <div class="panel-heading">
-        <span>SCENE CONTROL</span>
+        <span>WORLD CONTROL</span>
         <span class="live-badge">LIVE</span>
       </div>
+      <div class="world-switch" role="group" aria-label="ワールドモード">
+        <button type="button" data-world="field" class="is-active">実験フィールド</button>
+        <button type="button" data-world="city">街生成</button>
+      </div>
+
+      <section class="city-settings" id="city-settings" hidden>
+        <label class="seed-label">Seed<input id="seed-input" type="number" inputmode="numeric" value="12345" min="1" max="4294967295"></label>
+        <button type="button" class="secondary-button" data-action="random-seed">ランダムSeed</button>
+        <div class="setting-grid">
+          <label>街サイズ<select id="city-size"><option value="small">SMALL</option><option value="medium" selected>MEDIUM</option><option value="large">LARGE</option></select></label>
+          <label>建物密度<select id="city-density"><option value="low">LOW</option><option value="normal" selected>NORMAL</option><option value="high">HIGH</option></select></label>
+          <label>高さ<select id="city-height"><option value="low">LOW RISE</option><option value="mixed" selected>MIXED</option><option value="high">HIGH RISE</option></select></label>
+        </div>
+        <button type="button" class="city-generate-button" data-action="regenerate-city">街を再生成</button>
+      </section>
+
+      <p class="panel-label">LIGHT</p>
       <div class="mode-switch" role="group" aria-label="時間帯">
         <button type="button" data-action="day" class="is-active">昼</button>
         <button type="button" data-action="night">夜</button>
       </div>
+      <p class="panel-label">LAB OBJECTS</p>
       <div class="control-grid">
         <button type="button" data-action="box"><span>＋</span> 箱</button>
         <button type="button" data-action="sphere"><span>＋</span> 球</button>
