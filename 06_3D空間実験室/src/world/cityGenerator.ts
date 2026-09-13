@@ -6,7 +6,7 @@ import type { ObjectContext } from "../objects/primitives";
 import { createStreetLight } from "../objects/streetLight";
 import { SeededRandom } from "../random/seededRandom";
 import { createMaterial } from "../utils/materials";
-import { createBuilding, type BuildingType, type RoofShape } from "./buildingGenerator";
+import { createBuilding, INTERIOR_FLOOR_HEIGHT, type BuildingType, type RoofShape } from "./buildingGenerator";
 import { resolveCityStyle, type ResolvedCityStyle } from "./cityStyles";
 import { createPark, createPlaza } from "./parkGenerator";
 import { createIntersection, createRoad } from "./roadGenerator";
@@ -80,7 +80,7 @@ export function createCity(ctx: ObjectContext, settings: CitySettings, mobile: b
       hasInterior,
       buildingId,
     });
-    if (hasInterior) interiorSites.push({ id: buildingId, root, width, depth, floors: Math.min(floors, mobile ? 2 : 3), floorHeight: 2.7, seed: settings.seed + buildingCount * 7919, state: "NOT_GENERATED" });
+    if (hasInterior) interiorSites.push({ id: buildingId, root, width, depth, floors: Math.min(floors, mobile ? 2 : 3), floorHeight: INTERIOR_FLOOR_HEIGHT, seed: settings.seed + buildingCount * 7919, state: "NOT_GENERATED" });
     buildingCount += 1;
     if (buildingCount >= target) break;
   }

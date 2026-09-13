@@ -54,7 +54,7 @@ export class InteriorManager {
   private createEntrance(site: InteriorBuildingSite): void {
     let entrance = createDoor(this.ctx, this.deps.interactions, this.deps.inventory, {
       id: `${site.id}_entrance_001`, displayName: site.mission ? "INTERIOR LAB 入口" : `${site.id} 入口`, parent: site.root,
-      position: new Vector3(-.8, 0, -site.depth / 2 - .13), width: 1.6, height: 2.4,
+      position: new Vector3(-.8, 0, -site.depth / 2 - .13), width: 1.6, height: 2.9,
       locked: site.mission, keyId: site.mission ? "key" : undefined, color: site.mission ? new Color3(.2, .42, .5) : new Color3(.34, .24, .16), onMessage: this.deps.onMessage,
       onOpened: site.mission ? () => { if (entrance.isOpen()) this.deps.objectives.set("1Fを探索しカードキーを探す"); } : undefined,
     });

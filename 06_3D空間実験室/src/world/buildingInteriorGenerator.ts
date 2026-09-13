@@ -78,7 +78,7 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
         const hingeX = side * corridorWidth / 2;
         createDoor(ctx, deps.interactions, deps.inventory, {
           id: doorId, displayName: `${type} ドア`, parent: site.root,
-          position: new Vector3(hingeX, floorY, doorZ - .65), width: 1.3, height: 2.25,
+          position: new Vector3(hingeX, floorY, doorZ - .65), width: 1.3, height: 2.8,
           rotation: Math.PI / 2, locked: lockedControlDoor, keyId: lockedControlDoor ? "card_key" : undefined,
           color: new Color3(.36, .29, .21), onMessage: deps.onMessage,
           onOpened: lockedControlDoor ? () => deps.objectives.set("CONTROL ROOMのスイッチを起動する") : undefined,
@@ -119,12 +119,13 @@ function createFloor(ctx: ObjectContext, site: InteriorBuildingSite, floor: numb
 
 function createCorridorWalls(ctx: ObjectContext, site: InteriorBuildingSite, floorY: number, corridorWidth: number, doorCenters: number[], material: StandardMaterial): void {
   const doorHalf = .72;
+  const wallHeight = site.floorHeight - .18;
   for (const side of [-1, 1]) {
     const boundaries = [-site.depth / 2 + .3, ...doorCenters.flatMap((center) => [center - doorHalf, center + doorHalf]), site.depth / 2 - .3];
     for (let i = 0; i < boundaries.length - 1; i += 2) {
       const start = boundaries[i]; const end = boundaries[i + 1];
       if (end - start <= .05) continue;
-      createSlab(ctx, site.root, "interior-wall", .16, end - start, 2.45, side * corridorWidth / 2, floorY + 1.225, (start + end) / 2, material, true);
+      createSlab(ctx, site.root, "interior-wall", .16, end - start, wallHeight, side * corridorWidth / 2, floorY + wallHeight / 2, (start + end) / 2, material, true);
     }
   }
 }

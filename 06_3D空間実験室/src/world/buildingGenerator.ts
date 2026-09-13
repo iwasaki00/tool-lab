@@ -9,6 +9,8 @@ import type { ObjectContext } from "../objects/primitives";
 export type BuildingType = "house" | "shop" | "office" | "warehouse" | "tower";
 export type RoofShape = "flat" | "gable" | "stepped";
 
+export const INTERIOR_FLOOR_HEIGHT = 3.4;
+
 export interface CityBuildingOptions {
   position: Vector3;
   width: number;
@@ -27,7 +29,7 @@ export interface CityBuildingOptions {
 }
 
 export function createBuilding(ctx: ObjectContext, options: CityBuildingOptions): Mesh {
-  const floorHeight = options.floorHeight ?? 2.7;
+  const floorHeight = options.floorHeight ?? (options.hasInterior ? INTERIOR_FLOOR_HEIGHT : 2.7);
   const height = Math.max(3.2, options.floors * floorHeight);
   const root = new Mesh(`city-building-${options.type}`, ctx.scene);
   root.position.copyFrom(options.position); root.rotation.y = options.rotation ?? 0;
@@ -77,6 +79,7 @@ function createFacade(ctx: ObjectContext, root: Mesh, options: CityBuildingOptio
 function createExteriorShell(ctx: ObjectContext, root: Mesh, width: number, depth: number, height: number, material: StandardMaterial): void {
   const thickness = .24;
   const doorway = 1.6;
+  const doorwayHeight = 3.05;
   const frontPart = (width - doorway) / 2;
   const parts = [
     { name: "exterior-back", w: width, h: height, d: thickness, x: 0, y: height / 2, z: depth / 2 },
@@ -84,7 +87,7 @@ function createExteriorShell(ctx: ObjectContext, root: Mesh, width: number, dept
     { name: "exterior-right", w: thickness, h: height, d: depth, x: width / 2, y: height / 2, z: 0 },
     { name: "exterior-front-left", w: frontPart, h: height, d: thickness, x: -(doorway / 2 + frontPart / 2), y: height / 2, z: -depth / 2 },
     { name: "exterior-front-right", w: frontPart, h: height, d: thickness, x: doorway / 2 + frontPart / 2, y: height / 2, z: -depth / 2 },
-    { name: "exterior-door-header", w: doorway, h: Math.max(.2, height - 2.45), d: thickness, x: 0, y: 2.45 + Math.max(.2, height - 2.45) / 2, z: -depth / 2 },
+    { name: "exterior-door-header", w: doorway, h: Math.max(.2, height - doorwayHeight), d: thickness, x: 0, y: doorwayHeight + Math.max(.2, height - doorwayHeight) / 2, z: -depth / 2 },
   ];
   parts.forEach((part) => {
     const wall = MeshBuilder.CreateBox(part.name, { width: part.w, height: part.h, depth: part.d }, ctx.scene);

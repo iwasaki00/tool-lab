@@ -9,7 +9,7 @@ import { createDoor } from "../objects/interactiveDoor";
 import { createItem } from "../objects/interactiveItem";
 import type { ObjectContext } from "../objects/primitives";
 import { createMaterial } from "../utils/materials";
-import { createBuilding } from "../world/buildingGenerator";
+import { createBuilding, INTERIOR_FLOOR_HEIGHT } from "../world/buildingGenerator";
 import { InteriorManager } from "../interior/InteriorManager";
 import type { InteriorBuildingSite, InteriorNavigation } from "../interior/Room";
 import { EventManager } from "./EventManager";
@@ -51,7 +51,7 @@ export function createDemoScenario(ctx: ObjectContext, camera: Camera, spawn: Ve
     color: new Color3(.28, .43, .48), windowColumns: 4, doorPosition: "center", roofShape: "flat", type: "office", hasInterior: true, interiorMode: "interior-ready",
   });
   missionRoot.metadata = { ...missionRoot.metadata, landmark: true };
-  const missionSite: InteriorBuildingSite = { id: "building_mission_001", root: missionRoot, width: 12, depth: 20, floors: 2, floorHeight: 2.7, seed: seed + 104729, state: "NOT_GENERATED", mission: true };
+  const missionSite: InteriorBuildingSite = { id: "building_mission_001", root: missionRoot, width: 12, depth: 20, floors: 2, floorHeight: INTERIOR_FLOOR_HEIGHT, seed: seed + 104729, state: "NOT_GENERATED", mission: true };
 
   createItem(ctx, interactions, inventory, {
     id: "item_key_001", itemId: "key", displayName: "鍵", position: new Vector3(-2.2, .48, missionZ), color: new Color3(.95, .68, .12), onMessage: callbacks.onMessage,
