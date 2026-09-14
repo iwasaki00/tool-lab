@@ -19,7 +19,10 @@ export class MissionGenerator {
   generate(startPosition: WorldPosition, missionBuildingId: string): MissionPlan {
     const startArea = this.registry.getNearestArea(startPosition, ["PLAZA", "PARK", "ROAD", "BUILDING_ENTRANCE"]);
     if (!startArea) throw new Error("Mission START area could not be resolved.");
-    const keyArea = this.placement.chooseArea(["DEAD_END", "ALLEY", "STORAGE", "ROOM"], ["dead_end", "dark"], startPosition, 5) ?? startArea;
+    // 最初の鍵はロックされた建物へ入る前に取得できる必要があるため、屋外だけから選ぶ。
+    const keyArea = this.placement.chooseArea(["DEAD_END", "ALLEY"], ["dead_end", "dark"], startPosition, 5)
+      ?? this.placement.chooseArea(["ROAD", "PLAZA", "PARK"], ["public"], startPosition, 5)
+      ?? startArea;
     const goalArea = this.placement.chooseArea(["PLAZA", "ROAD", "PARK", "BUILDING_ENTRANCE"], ["landmark"], startPosition, 16) ?? startArea;
     const start = this.placement.place("start_001", "START", startArea, .12);
     start.position = { ...startPosition };

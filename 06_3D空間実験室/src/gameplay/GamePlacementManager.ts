@@ -26,6 +26,7 @@ export class GamePlacementManager {
     candidates = [...new Map(candidates.map((area) => [area.id, area])).values()]
       .filter((area) => !farFrom || distance(area.position, farFrom) >= minimumDistance)
       .filter((area) => !buildingId || area.buildingId === buildingId)
+      .filter((area) => this.hasAccessiblePoint(area))
       .filter((area) => !area.tags.includes("safe") || types.some((type) => type === "PARK" || type === "PLAZA"));
     if (!candidates.length) return undefined;
     const scored = candidates.map((area) => ({ area, score: preferredTags.reduce((sum, tag) => sum + (area.tags.includes(tag) ? 4 : 0), 0) + (area.importance ?? 0) + this.random.next() }));
@@ -43,12 +44,14 @@ export class GamePlacementManager {
     const margin = .65;
     const minX = Math.min(area.bounds.maxX, area.bounds.minX + margin); const maxX = Math.max(minX, area.bounds.maxX - margin);
     const minZ = Math.min(area.bounds.maxZ, area.bounds.minZ + margin); const maxZ = Math.max(minZ, area.bounds.maxZ - margin);
-    let candidate = { x: area.position.x, y: Math.max(y, area.bounds.minY + y), z: area.position.z };
-    for (let attempt = 0; attempt < 6; attempt += 1) {
+    const center = { x: area.position.x, y: Math.max(y, area.bounds.minY + y), z: area.position.z };
+    let candidate: WorldPosition | undefined;
+    for (let attempt = 0; attempt < 16; attempt += 1) {
       const next = { x: this.random.range(minX, maxX), y: Math.max(y, area.bounds.minY + y), z: this.random.range(minZ, maxZ) };
-      if (this.placements.every((placed) => distance(placed.position, next) > 1.4)) { candidate = next; break; }
+      if (this.isPointAccessible(next, area) && this.placements.every((placed) => distance(placed.position, next) > 1.4)) { candidate = next; break; }
     }
-    const position = this.validate(candidate, area);
+    const position = candidate ?? this.accessibleSamples(area, center.y).find((point) => this.isPointAccessible(point, area)) ?? center;
+    if (!this.isPointAccessible(position, area)) console.warn(`No accessible placement point found in area: ${area.id}`);
     const placement = { id, kind, areaId: area.id, position };
     this.placements.push(placement);
     return placement;
@@ -74,12 +77,34 @@ export class GamePlacementManager {
   setDebugVisible(visible: boolean): void { this.debugVisible = visible; this.debugMeshes.forEach((mesh) => { mesh.isVisible = visible; }); }
   getPlacements(): readonly GamePlacement[] { return this.placements; }
 
-  private validate(point: WorldPosition, area: WorldArea): WorldPosition {
+  private hasAccessiblePoint(area: WorldArea): boolean {
+    return this.accessibleSamples(area, Math.max(.48, area.bounds.minY + .48)).some((point) => this.isPointAccessible(point, area));
+  }
+
+  private accessibleSamples(area: WorldArea, y: number): WorldPosition[] {
+    const insetX = Math.max(0, (area.bounds.maxX - area.bounds.minX) / 2 - .7);
+    const insetZ = Math.max(0, (area.bounds.maxZ - area.bounds.minZ) / 2 - .7);
+    return [
+      { x: area.position.x, y, z: area.position.z },
+      { x: area.position.x - insetX, y, z: area.position.z - insetZ },
+      { x: area.position.x + insetX, y, z: area.position.z - insetZ },
+      { x: area.position.x - insetX, y, z: area.position.z + insetZ },
+      { x: area.position.x + insetX, y, z: area.position.z + insetZ },
+      { x: area.position.x - insetX, y, z: area.position.z },
+      { x: area.position.x + insetX, y, z: area.position.z },
+      { x: area.position.x, y, z: area.position.z - insetZ },
+      { x: area.position.x, y, z: area.position.z + insetZ },
+    ];
+  }
+
+  private isPointAccessible(point: WorldPosition, area: WorldArea): boolean {
     const forbidden = ["STAIR", "BUILDING_ENTRANCE"] as AreaType[];
-    const blocked = forbidden.flatMap((type) => this.registry.getAreasByType(type)).some((candidate) => candidate.id !== area.id && inside(candidate, point));
-    return blocked ? { ...area.position, y: Math.max(point.y, area.bounds.minY + .48) } : point;
+    if (forbidden.flatMap((type) => this.registry.getAreasByType(type)).some((candidate) => candidate.id !== area.id && inside(candidate, point, .3))) return false;
+    // 屋内ミッション配置は許可しつつ、屋外の鍵などが建物や壁の中へ入るのを防ぐ。
+    if (area.tags.includes("outdoor") && this.registry.getAreasByType("BUILDING").some((building) => building.id !== area.id && inside(building, point, .7))) return false;
+    return true;
   }
 }
 
 function distance(a: WorldPosition, b: WorldPosition): number { return Math.hypot(a.x - b.x, a.z - b.z); }
-function inside(area: WorldArea, point: WorldPosition): boolean { const b = area.bounds; return point.x >= b.minX && point.x <= b.maxX && point.z >= b.minZ && point.z <= b.maxZ; }
+function inside(area: WorldArea, point: WorldPosition, padding = 0): boolean { const b = area.bounds; return point.x >= b.minX - padding && point.x <= b.maxX + padding && point.z >= b.minZ - padding && point.z <= b.maxZ + padding; }

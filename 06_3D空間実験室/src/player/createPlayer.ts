@@ -15,10 +15,12 @@ export interface PlayerController {
 export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: boolean): PlayerController {
   const jumpSpeed = 6.2;
   const jumpGravity = 9;
+  const normalMoveSpeed = 2.88;
+  const precisionMoveSpeed = .32;
   const camera = new UniversalCamera("player-camera", new Vector3(0, 2.1, -12), scene);
   camera.minZ = .1;
   camera.maxZ = 180;
-  camera.speed = .96;
+  camera.speed = normalMoveSpeed;
   camera.angularSensibility = 2800;
   camera.inertia = .45;
   camera.keysUp = [87];
@@ -65,7 +67,7 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
     const event = info.event;
     if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
       sprinting = info.type === KeyboardEventTypes.KEYDOWN;
-      camera.speed = sprinting ? .32 : .96;
+      camera.speed = sprinting ? precisionMoveSpeed : normalMoveSpeed;
     }
     if (info.type === KeyboardEventTypes.KEYDOWN && event.code === "Space") {
       jump();
