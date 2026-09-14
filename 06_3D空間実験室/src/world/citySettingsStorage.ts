@@ -9,6 +9,7 @@ export function loadCitySettings(): CitySettings {
     if (!value) return { ...DEFAULT_CITY_SETTINGS };
     return {
       seed: typeof value.seed === "number" && Number.isFinite(value.seed) ? Math.max(1, Math.trunc(value.seed)) : DEFAULT_CITY_SETTINGS.seed,
+      missionSeed: typeof value.missionSeed === "number" && Number.isFinite(value.missionSeed) ? Math.max(1, Math.trunc(value.missionSeed)) : DEFAULT_CITY_SETTINGS.missionSeed,
       size: isOneOf(value.size, ["small", "medium", "large"] as CitySize[]) ? value.size : DEFAULT_CITY_SETTINGS.size,
       density: isOneOf(value.density, ["low", "normal", "high"] as BuildingDensity[]) ? value.density : DEFAULT_CITY_SETTINGS.density,
       height: isOneOf(value.height, ["low", "mixed", "high"] as HeightProfile[]) ? value.height : DEFAULT_CITY_SETTINGS.height,

@@ -16,6 +16,9 @@ import type { ObjectContext } from "../objects/primitives";
 import { SeededRandom } from "../random/seededRandom";
 import { createMaterial } from "../utils/materials";
 import type { FloorData, InteriorBuildingSite, LocalBounds, RoomData, RoomType } from "../interior/Room";
+import type { GamePlacementManager } from "../gameplay/GamePlacementManager";
+import type { WorldRegistry } from "./WorldRegistry";
+import { createBounds, type AreaTag, type AreaType, type WorldBounds } from "./SemanticTypes";
 
 export interface InteriorGenerationDeps {
   interactions: InteractionManager;
@@ -24,6 +27,8 @@ export interface InteriorGenerationDeps {
   objectives: ObjectiveManager;
   onMessage: (message: string) => void;
   gateEventId: string;
+  registry: WorldRegistry;
+  placement: GamePlacementManager;
 }
 
 export interface GeneratedInteriorResources {
@@ -62,7 +67,7 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
       doorCenters.push(doorZ);
       for (const side of [-1, 1]) {
         const roomIndex = rooms.length + 1;
-        const type = chooseRoomType(random, site.mission, floor, row, side, floors);
+        const type = chooseRoomType(random, site.mission, floor, row, side, floors, rowCount);
         const room: RoomData = {
           id: `${site.id}_room_${String(floor + 1).padStart(2, "0")}_${String(roomIndex).padStart(2, "0")}`,
           type,
@@ -101,7 +106,8 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
     light.parent = site.root; light.diffuse = new Color3(1, .86, .62); light.intensity = .34; light.range = Math.max(site.width, site.depth) * .7; lights.push(light);
   }
 
-  if (site.mission) createMissionContents(ctx, site, floorData, deps);
+  registerInteriorSemantics(site, floorData, deps.registry);
+  if (site.mission) createMissionContents(ctx, site, deps);
   site.floorData = floorData;
   site.state = "GENERATED";
   return { floorData, lights, lightMaterials };
@@ -146,24 +152,58 @@ export function createStaircase(ctx: ObjectContext, site: InteriorBuildingSite, 
   const invisible = createMaterial(ctx.scene, `${site.id}-stair-collider-material`, Color3.Black()); invisible.alpha = 0; slope.material = invisible; slope.visibility = .01;
 }
 
-function createMissionContents(ctx: ObjectContext, site: InteriorBuildingSite, floors: FloorData[], deps: InteriorGenerationDeps): void {
-  const firstFloorStorage = floors[0].rooms.find((room) => room.type === "STORAGE") ?? floors[0].rooms[0];
-  const cardLocal = centerOf(firstFloorStorage.bounds, .48);
-  site.root.computeWorldMatrix(true);
-  createItem(ctx, deps.interactions, deps.inventory, { id: `${site.id}_item_card_001`, itemId: "card_key", displayName: "カードキー", position: Vector3.TransformCoordinates(cardLocal, site.root.getWorldMatrix()), color: new Color3(.2, .72, .9), onMessage: deps.onMessage, onPickup: () => deps.objectives.set("階段で2FのCONTROL ROOMへ向かう") });
-  const controlRoom = floors.flatMap((floor) => floor.rooms).find((room) => room.type === "CONTROL_ROOM");
-  if (!controlRoom) return;
-  const switchLocal = centerOf(controlRoom.bounds, (controlRoom.floor - 1) * site.floorHeight);
-  createSwitch(ctx, deps.interactions, deps.events, { id: `${site.id}_switch_001`, position: Vector3.TransformCoordinates(switchLocal, site.root.getWorldMatrix()), eventId: deps.gateEventId, onMessage: deps.onMessage, onActivate: () => deps.objectives.set("屋外ゲートを抜けてGoalへ向かう") });
+function createMissionContents(ctx: ObjectContext, site: InteriorBuildingSite, deps: InteriorGenerationDeps): void {
+  // CONTROL ROOM is behind the card-locked door, so it must never contain its own key.
+  const cardArea = deps.placement.chooseArea(["STORAGE", "OFFICE", "ROOM"], ["dead_end", "private"], undefined, 0, site.id);
+  if (!cardArea) return;
+  const card = deps.placement.place(`${site.id}_card_001`, "CARD_KEY", cardArea, .48);
+  deps.placement.registerSpawn(card);
+  createItem(ctx, deps.interactions, deps.inventory, { id: `${site.id}_item_card_001`, itemId: "card_key", displayName: "カードキー", position: new Vector3(card.position.x, card.position.y, card.position.z), color: new Color3(.2, .72, .9), onMessage: deps.onMessage, onPickup: () => deps.objectives.set("階段で2FのCONTROL ROOMへ向かう") });
+  const controlArea = deps.placement.chooseArea(["CONTROL_ROOM"], ["high_floor", "private"], undefined, 0, site.id);
+  if (!controlArea) return;
+  createSwitch(ctx, deps.interactions, deps.events, { id: `${site.id}_switch_001`, position: new Vector3(controlArea.position.x, controlArea.bounds.minY + .9, controlArea.position.z), eventId: deps.gateEventId, onMessage: deps.onMessage, onActivate: () => deps.objectives.set("屋外ゲートを抜けてGoalへ向かう") });
+  deps.placement.createDebugMarkers(ctx);
 }
 
-function chooseRoomType(random: SeededRandom, mission: boolean | undefined, floor: number, row: number, side: number, floors: number): RoomType {
+function chooseRoomType(random: SeededRandom, mission: boolean | undefined, floor: number, row: number, side: number, floors: number, rowCount: number): RoomType {
   if (mission && floor === 0 && row === 0 && side < 0) return "STORAGE";
-  if (mission && floor === floors - 1 && row === 1 && side > 0) return "CONTROL_ROOM";
+  if (mission && floor === floors - 1 && row === rowCount - 1 && side > 0) return "CONTROL_ROOM";
   return random.pick(["EMPTY", "OFFICE", "STORAGE", "LIVING_ROOM"] as const);
 }
 
 function centerOf(bounds: LocalBounds, y: number): Vector3 { return new Vector3((bounds.minX + bounds.maxX) / 2, y, (bounds.minZ + bounds.maxZ) / 2); }
+
+function registerInteriorSemantics(site: InteriorBuildingSite, floors: FloorData[], registry: WorldRegistry): void {
+  site.root.computeWorldMatrix(true);
+  floors.forEach((floorData, index) => {
+    const floorY = index * site.floorHeight;
+    const corridorId = `${site.id}_corridor_${floorData.floor}`;
+    const highFloor = index === floors.length - 1;
+    registry.register({ id: corridorId, type: "CORRIDOR", position: worldCenter(site, floorData.corridor, floorY), bounds: worldBounds(site, floorData.corridor, floorY, floorY + site.floorHeight), floor: floorData.floor, buildingId: site.id, connections: floorData.rooms.map((room) => room.id), tags: ["indoor", "public", "narrow", ...(index === 0 ? ["ground_floor" as const] : []), ...(highFloor ? ["high_floor" as const] : [])], importance: highFloor ? 5 : 2 });
+    floorData.rooms.forEach((room) => {
+      const tags: AreaTag[] = ["indoor", "private", "room", "dead_end", ...(index === 0 ? ["ground_floor" as const] : []), ...(highFloor ? ["high_floor" as const] : [])];
+      if (room.type === "STORAGE") tags.push("dark", "danger"); else tags.push("bright");
+      const type = room.type === "EMPTY" ? "ROOM" : room.type as AreaType;
+      registry.register({ id: room.id, type, position: worldCenter(site, room.bounds, floorY), bounds: worldBounds(site, room.bounds, floorY, floorY + site.floorHeight), floor: room.floor, buildingId: site.id, roomId: room.id, connections: [corridorId], tags, importance: room.type === "CONTROL_ROOM" ? 9 : highFloor ? 5 : 3 });
+      registry.connect(room.id, corridorId);
+    });
+    if (floorData.staircase) {
+      const stairId = `${site.id}_stair_${floorData.floor}`;
+      registry.register({ id: stairId, type: "STAIR", position: worldCenter(site, floorData.staircase, floorY), bounds: worldBounds(site, floorData.staircase, floorY, floorY + site.floorHeight), floor: floorData.floor, buildingId: site.id, connections: [corridorId, `${site.id}_corridor_${floorData.floor + 1}`], tags: ["indoor", "public"], importance: 5 });
+      registry.connect(stairId, corridorId);
+    }
+  });
+  floors.slice(0, -1).forEach((floor) => registry.connect(`${site.id}_stair_${floor.floor}`, `${site.id}_corridor_${floor.floor + 1}`));
+  registry.connect(`${site.id}_entrance_001`, `${site.id}_corridor_1`);
+  const roofY = floors.length * site.floorHeight;
+  registry.register({ id: `${site.id}_rooftop`, type: "ROOFTOP", position: { x: site.root.position.x, y: roofY, z: site.root.position.z }, bounds: createBounds({ x: site.root.position.x, y: roofY, z: site.root.position.z }, site.width, site.depth, roofY - .2, roofY + 2), floor: floors.length + 1, buildingId: site.id, connections: [], tags: ["outdoor", "private", "high_floor"], importance: 7 });
+}
+
+function worldCenter(site: InteriorBuildingSite, bounds: LocalBounds, y: number): Vector3 { return Vector3.TransformCoordinates(centerOf(bounds, y + .2), site.root.getWorldMatrix()); }
+function worldBounds(site: InteriorBuildingSite, bounds: LocalBounds, minY: number, maxY: number): WorldBounds {
+  const corners = [[bounds.minX, bounds.minZ], [bounds.minX, bounds.maxZ], [bounds.maxX, bounds.minZ], [bounds.maxX, bounds.maxZ]].map(([x, z]) => Vector3.TransformCoordinates(new Vector3(x, 0, z), site.root.getWorldMatrix()));
+  return { minX: Math.min(...corners.map((p) => p.x)), maxX: Math.max(...corners.map((p) => p.x)), minY: site.root.position.y + minY, maxY: site.root.position.y + maxY, minZ: Math.min(...corners.map((p) => p.z)), maxZ: Math.max(...corners.map((p) => p.z)) };
+}
 
 function createSlab(ctx: ObjectContext, root: Mesh, name: string, width: number, depth: number, height: number, x: number, y: number, z: number, material: StandardMaterial, collision: boolean): Mesh {
   const mesh = MeshBuilder.CreateBox(name, { width, depth, height }, ctx.scene);

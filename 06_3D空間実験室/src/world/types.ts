@@ -1,5 +1,6 @@
 import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { InteriorBuildingSite } from "../interior/Room";
+import type { WorldRegistry } from "./WorldRegistry";
 
 export type WorldMode = "field" | "city";
 export type CitySize = "small" | "medium" | "large";
@@ -9,6 +10,7 @@ export type CityStyle = "japanese" | "downtown" | "future" | "industrial" | "rui
 
 export interface CitySettings {
   seed: number;
+  missionSeed: number;
   size: CitySize;
   density: BuildingDensity;
   height: HeightProfile;
@@ -33,10 +35,12 @@ export interface GeneratedCity {
   spawn: { x: number; y: number; z: number };
   dispose: () => void;
   interiorSites: InteriorBuildingSite[];
+  registry: WorldRegistry;
 }
 
 export const DEFAULT_CITY_SETTINGS: CitySettings = {
   seed: 12345,
+  missionSeed: 67890,
   size: "medium",
   density: "normal",
   height: "mixed",

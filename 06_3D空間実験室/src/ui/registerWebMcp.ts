@@ -85,6 +85,7 @@ export function registerWebMcp(actions: AgentSceneActions): () => void {
       type: "object",
       properties: {
         seed: { type: "integer", minimum: 1, maximum: 4294967295 },
+        missionSeed: { type: "integer", minimum: 1, maximum: 4294967295 },
         size: { type: "string", enum: ["small", "medium", "large"] },
         density: { type: "string", enum: ["low", "normal", "high"] },
         height: { type: "string", enum: ["low", "mixed", "high"] },
@@ -96,14 +97,14 @@ export function registerWebMcp(actions: AgentSceneActions): () => void {
     },
     annotations: mutable,
     execute: (input) => {
-      const settings = input as { seed?: unknown; size?: unknown; density?: unknown; height?: unknown; style?: unknown; customText?: unknown };
+      const settings = input as { seed?: unknown; missionSeed?: unknown; size?: unknown; density?: unknown; height?: unknown; style?: unknown; customText?: unknown };
       if (!Number.isInteger(settings.seed) || Number(settings.seed) < 1) throw new Error("seed must be a positive integer");
       if (settings.size !== "small" && settings.size !== "medium" && settings.size !== "large") throw new Error("invalid city size");
       if (settings.density !== "low" && settings.density !== "normal" && settings.density !== "high") throw new Error("invalid density");
       if (settings.height !== "low" && settings.height !== "mixed" && settings.height !== "high") throw new Error("invalid height profile");
       const styles: CityStyle[] = ["japanese", "downtown", "future", "industrial", "ruins", "suburban", "coastal", "maze"];
       const style = typeof settings.style === "string" && styles.includes(settings.style as CityStyle) ? settings.style as CityStyle : DEFAULT_CITY_SETTINGS.style;
-      actions.generateCity({ seed: Number(settings.seed), size: settings.size, density: settings.density, height: settings.height, style, customText: typeof settings.customText === "string" ? settings.customText.slice(0, 160) : "" });
+      actions.generateCity({ seed: Number(settings.seed), missionSeed: Number.isInteger(settings.missionSeed) ? Number(settings.missionSeed) : DEFAULT_CITY_SETTINGS.missionSeed, size: settings.size, density: settings.density, height: settings.height, style, customText: typeof settings.customText === "string" ? settings.customText.slice(0, 160) : "" });
       return { generated: true, status: actions.getStatus() };
     },
   });

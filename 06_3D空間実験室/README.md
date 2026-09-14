@@ -1,6 +1,8 @@
-# 3D空間実験室 Ver.5 — 建物内部自動生成
+# 3D空間実験室 Ver.6 — 意味を持つゲームマップ化
 
-Babylon.jsのプリミティブ形状とTypeScriptだけで構築した、一人称視点の3D実験フィールド／プロシージャル街です。Ver.5ではSeedで再現できる建物内部、部屋、廊下、家具、開閉ドア、室内灯、歩行可能な階段を追加しました。外部3Dモデルや外部AI APIは使用していません。
+Babylon.jsのプリミティブ形状とTypeScriptだけで構築した、一人称視点の3D実験フィールド／プロシージャル街です。Ver.6では道路、広場、公園、建物入口、部屋、廊下、階段へ意味情報と接続関係を付与し、Seedから鍵、カードキー、Goal、Enemy/NPC Spawnとミッションを配置します。外部3Dモデルや外部AI APIは使用していません。
+
+DEBUGを開くと、現在Area、Type、Tags、Building、Floor、Room、World統計、Mission Seed、経路検証結果を確認できます。描画テストを有効にすると、START、鍵、カードキー、Enemy/NPC Spawn、Goalの候補位置が発光マーカーで表示されます。
 
 ## 起動
 

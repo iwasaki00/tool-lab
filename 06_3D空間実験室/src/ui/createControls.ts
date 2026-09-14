@@ -55,6 +55,7 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
     const open = debugReadout.hidden;
     debugReadout.hidden = !open;
     debugToggle.setAttribute("aria-expanded", String(open));
+    actions.debug();
   });
 
   panel?.addEventListener("click", (event) => {
@@ -112,6 +113,7 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
   function getCitySettings(): CitySettings {
     return {
       seed: normalizeSeed(document.querySelector<HTMLInputElement>("#seed-input")?.value ?? DEFAULT_CITY_SETTINGS.seed),
+      missionSeed: normalizeSeed(document.querySelector<HTMLInputElement>("#mission-seed-input")?.value ?? DEFAULT_CITY_SETTINGS.missionSeed),
       size: (document.querySelector<HTMLSelectElement>("#city-size")?.value as CitySize) ?? DEFAULT_CITY_SETTINGS.size,
       density: (document.querySelector<HTMLSelectElement>("#city-density")?.value as BuildingDensity) ?? DEFAULT_CITY_SETTINGS.density,
       height: (document.querySelector<HTMLSelectElement>("#city-height")?.value as HeightProfile) ?? DEFAULT_CITY_SETTINGS.height,
@@ -122,6 +124,7 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
 
   function applySettings(settings: CitySettings): void {
     setValue("seed-input", String(settings.seed));
+    setValue("mission-seed-input", String(settings.missionSeed));
     setValue("city-size", settings.size);
     setValue("city-density", settings.density);
     setValue("city-height", settings.height);

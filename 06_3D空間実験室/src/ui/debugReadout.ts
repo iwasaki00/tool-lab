@@ -13,6 +13,9 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   const city = laboratory.cityStats();
   const interaction = laboratory.interactionDebug();
   const interior = laboratory.interiorDebug();
+  const semantic = laboratory.semanticDebug();
+  const world = laboratory.worldStatistics();
+  const mission = laboratory.missionDebug();
   setText("renderer-value", getRendererName(engine));
   setText("canvas-value", canvas ? `${canvas.width} × ${canvas.height}` : "0 × 0");
   setText("viewport-value", `${Math.round(window.visualViewport?.width ?? window.innerWidth)} × ${Math.round(window.visualViewport?.height ?? window.innerHeight)}`);
@@ -30,9 +33,22 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   setText("focus-value", interaction?.id ?? "—");
   setText("interaction-type-value", interaction?.type ?? "—");
   setText("interaction-distance-value", interaction ? `${interaction.distance.toFixed(2)} m` : "—");
-  setText("current-building-value", interior?.building ?? "—");
-  setText("current-floor-value", interior ? String(interior.floor) : "—");
-  setText("current-room-value", interior?.room ?? "—");
+  setText("current-area-value", semantic.area?.id ?? "—");
+  setText("current-area-type-value", semantic.area?.type ?? "—");
+  setText("current-area-tags-value", semantic.area?.tags.join(", ") || "—");
+  setText("current-building-value", semantic.building ?? interior?.building ?? "—");
+  setText("current-floor-value", semantic.floor ? String(semantic.floor) : interior ? String(interior.floor) : "—");
+  setText("current-room-value", semantic.room ?? interior?.room ?? "—");
+  setText("world-road-value", String(world.roads));
+  setText("world-building-value", String(world.buildings));
+  setText("world-room-value", String(world.rooms));
+  setText("world-dead-end-value", String(world.deadEnds));
+  setText("world-safe-value", String(world.safeAreas));
+  setText("world-danger-value", String(world.dangerAreas));
+  setText("enemy-spawn-value", String(world.enemySpawns));
+  setText("npc-spawn-value", String(world.npcSpawns));
+  setText("mission-seed-value", String(mission.plan.seed));
+  setText("mission-valid-value", mission.validation.valid ? "PASS" : "FAIL");
 }
 
 function setText(id: string, value: string): void {

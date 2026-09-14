@@ -22,6 +22,10 @@ import { createDemoScenario, type GameplayCallbacks } from "../gameplay/createDe
 import type { InteractionFocus } from "../interaction/Interactable";
 import type { InventoryEntry } from "../gameplay/InventoryManager";
 import type { InteriorNavigation } from "../interior/Room";
+import { WorldRegistry } from "../world/WorldRegistry";
+import { createBounds, type MapArea2D, type SemanticLocation, type WorldStatistics } from "../world/SemanticTypes";
+import type { MissionPlan } from "../gameplay/MissionGenerator";
+import type { MissionValidation } from "../gameplay/MissionValidator";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -41,6 +45,10 @@ export interface LaboratoryApi {
   inventory: () => InventoryEntry[];
   objective: () => string;
   interiorDebug: () => InteriorNavigation | undefined;
+  semanticDebug: () => SemanticLocation;
+  worldStatistics: () => WorldStatistics;
+  missionDebug: () => { plan: MissionPlan; validation: MissionValidation };
+  semanticMap: (floor?: number) => MapArea2D[];
 }
 
 export interface SceneOptions {
@@ -74,18 +82,23 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   const dynamicRoots: Mesh[] = [];
   const registerDynamic = (mesh: Mesh) => dynamicRoots.push(mesh);
   const ctx: ObjectContext = { scene, shadows, registerDynamic };
+  const registry = new WorldRegistry();
 
   const ground = createGround(scene);
   let generatedCity: ReturnType<typeof createCity> | undefined;
   if (worldMode === "city") {
     // 街本体はSceneの寿命で管理し、追加オブジェクト用のdynamicRootsとは分離する。
     // これにより既存の「ランダム配置」を使っても街全体が消えない。
-    generatedCity = createCity({ scene, shadows }, citySettings, mobile);
+    generatedCity = createCity({ scene, shadows }, citySettings, mobile, registry);
     camera.position.set(generatedCity.spawn.x, generatedCity.spawn.y, generatedCity.spawn.z);
     camera.rotation.set(0, 0, 0);
   } else {
     createRoad(scene, new Vector3(0, .035, 1), 7, 76);
     createRoad(scene, new Vector3(0, .04, 8), 5, 52, Math.PI / 2);
+    registry.register({ id: "field_road_main", type: "ROAD", position: { x: 0, y: 0, z: 1 }, bounds: createBounds({ x: 0, y: 0, z: 1 }, 7, 76, 0, 3), connections: ["field_intersection"], tags: ["outdoor", "public", "wide"] });
+    registry.register({ id: "field_road_cross", type: "ROAD", position: { x: 0, y: 0, z: 8 }, bounds: createBounds({ x: 0, y: 0, z: 8 }, 52, 5, 0, 3), connections: ["field_intersection"], tags: ["outdoor", "public", "wide"] });
+    registry.register({ id: "field_intersection", type: "INTERSECTION", position: { x: 0, y: 0, z: 8 }, bounds: createBounds({ x: 0, y: 0, z: 8 }, 8, 8, 0, 3), connections: ["field_road_main", "field_road_cross"], tags: ["outdoor", "public", "safe", "wide"] });
+    registry.register({ id: "start_area", type: "START", position: camera.position, bounds: createBounds(camera.position, 3, 3, 0, 4), connections: ["field_road_main"], tags: ["outdoor", "public", "safe", "spawn"], importance: 10 });
     createInitialField(ctx);
   }
 
@@ -93,7 +106,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     onFocus: () => undefined, onMessage: () => undefined, onObjective: () => undefined,
     onInventory: () => undefined, onMissionComplete: () => undefined,
   };
-  const demoScenario = createDemoScenario(ctx, camera, camera.position.clone(), callbacks, generatedCity?.interiorSites, citySettings.seed);
+  const demoScenario = createDemoScenario(ctx, camera, camera.position.clone(), callbacks, registry, generatedCity?.interiorSites, citySettings.seed, citySettings.missionSeed);
 
   const debugBox = MeshBuilder.CreateBox("debug-red-box", { size: 3 }, scene);
   debugBox.position = new Vector3(0, 1.5, -4);
@@ -138,6 +151,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     randomize: () => createRandomScene(ctx, dynamicRoots),
     setDebugMode: (enabled) => {
       debugBox.isVisible = enabled;
+      demoScenario.setDebugMode(enabled);
       groundMaterial.diffuseColor = enabled ? new Color3(.12, .72, .22) : new Color3(.25, .34, .28);
       if (enabled) {
         skyMaterial.diffuseColor = new Color3(.12, .55, .95);
@@ -155,6 +169,10 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     inventory: () => demoScenario.inventory(),
     objective: () => demoScenario.objective(),
     interiorDebug: () => demoScenario.navigation(),
+    semanticDebug: () => demoScenario.semanticLocation(),
+    worldStatistics: () => demoScenario.worldStatistics(),
+    missionDebug: () => demoScenario.mission(),
+    semanticMap: (floor) => registry.toMap2D(floor),
   };
 }
 

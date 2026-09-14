@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#071018" />
-    <meta name="description" content="建物内部、部屋、家具、階段をコードだけで自動生成するBabylon.js 3D空間実験室 Ver.5。" />
-    <title>3D空間実験室 Ver.5 — 建物内部自動生成</title>
-    <script type="module" crossorigin src="./assets/index-BEID3Zhe.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-xIBQPyab.css">
+    <meta name="description" content="意味を持つ街と建物からミッションを自動生成するBabylon.js 3D空間実験室 Ver.6。" />
+    <title>3D空間実験室 Ver.6 — 意味を持つゲームマップ化</title>
+    <script type="module" crossorigin src="./assets/index-D1hYwvkq.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BFoH1yZk.css">
   </head>
   <body>
     <canvas id="render-canvas" aria-label="3D空間実験室"></canvas>
@@ -17,7 +17,7 @@
 
     <header class="brand-plate">
       <span class="brand-index">06</span>
-      <span><strong>3D 空間実験室 <em>VER.5</em></strong><small>PROCEDURAL INTERIORS / BABYLON.JS</small></span>
+      <span><strong>3D 空間実験室 <em>VER.6</em></strong><small>SEMANTIC GAME MAP / BABYLON.JS</small></span>
     </header>
 
     <div class="compact-status" aria-live="polite">
@@ -64,9 +64,22 @@
         <div><dt>Focus</dt><dd id="focus-value">—</dd></div>
         <div><dt>Type</dt><dd id="interaction-type-value">—</dd></div>
         <div><dt>Distance</dt><dd id="interaction-distance-value">—</dd></div>
+        <div><dt>Area</dt><dd id="current-area-value">—</dd></div>
+        <div><dt>Area Type</dt><dd id="current-area-type-value">—</dd></div>
+        <div class="interpretation-row"><dt>Tags</dt><dd id="current-area-tags-value">—</dd></div>
         <div><dt>Building</dt><dd id="current-building-value">—</dd></div>
         <div><dt>Floor</dt><dd id="current-floor-value">—</dd></div>
         <div><dt>Room</dt><dd id="current-room-value">—</dd></div>
+        <div><dt>World Roads</dt><dd id="world-road-value">0</dd></div>
+        <div><dt>World Buildings</dt><dd id="world-building-value">0</dd></div>
+        <div><dt>World Rooms</dt><dd id="world-room-value">0</dd></div>
+        <div><dt>Dead Ends</dt><dd id="world-dead-end-value">0</dd></div>
+        <div><dt>Safe Areas</dt><dd id="world-safe-value">0</dd></div>
+        <div><dt>Danger Areas</dt><dd id="world-danger-value">0</dd></div>
+        <div><dt>Enemy Spawn</dt><dd id="enemy-spawn-value">0</dd></div>
+        <div><dt>NPC Spawn</dt><dd id="npc-spawn-value">0</dd></div>
+        <div><dt>Mission Seed</dt><dd id="mission-seed-value">—</dd></div>
+        <div><dt>Mission Route</dt><dd id="mission-valid-value">—</dd></div>
         <div class="interpretation-row"><dt>Rules</dt><dd id="interpretation-value">—</dd></div>
       </dl>
     </div>
@@ -107,7 +120,8 @@
         <label class="full-setting">街スタイル<select id="city-style" aria-label="街スタイル"></select></label>
         <label class="full-setting">街のイメージ<textarea id="city-image-text" maxlength="160" rows="3" placeholder="例：狭い路地が多く、低い住宅が密集した暗めの街"></textarea></label>
         <div class="style-analysis"><span>解析結果</span><p id="style-analysis">—</p></div>
-        <label class="seed-label">Seed<input id="seed-input" type="number" inputmode="numeric" value="12345" min="1" max="4294967295"></label>
+        <label class="seed-label">City Seed<input id="seed-input" type="number" inputmode="numeric" value="12345" min="1" max="4294967295"></label>
+        <label class="seed-label">Mission Seed<input id="mission-seed-input" type="number" inputmode="numeric" value="67890" min="1" max="4294967295"></label>
         <button type="button" class="secondary-button" data-action="random-seed">ランダムSeed</button>
         <div class="setting-grid">
           <label>街サイズ<select id="city-size"><option value="small">SMALL</option><option value="medium" selected>MEDIUM</option><option value="large">LARGE</option></select></label>

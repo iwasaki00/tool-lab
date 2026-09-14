@@ -12,6 +12,9 @@ import { createDoor } from "../objects/interactiveDoor";
 import type { ObjectContext } from "../objects/primitives";
 import { createBuildingInterior } from "../world/buildingInteriorGenerator";
 import type { InteriorBuildingSite, InteriorNavigation } from "./Room";
+import type { GamePlacementManager } from "../gameplay/GamePlacementManager";
+import { createBounds } from "../world/SemanticTypes";
+import type { WorldRegistry } from "../world/WorldRegistry";
 
 export class InteriorManager {
   private readonly observer: Observer<Scene>;
@@ -23,7 +26,7 @@ export class InteriorManager {
     private readonly ctx: ObjectContext,
     private readonly camera: Camera,
     private readonly sites: InteriorBuildingSite[],
-    private readonly deps: { interactions: InteractionManager; inventory: InventoryManager; events: EventManager; objectives: ObjectiveManager; onMessage: (message: string) => void; gateEventId: string },
+    private readonly deps: { interactions: InteractionManager; inventory: InventoryManager; events: EventManager; objectives: ObjectiveManager; onMessage: (message: string) => void; gateEventId: string; registry: WorldRegistry; placement: GamePlacementManager },
   ) {
     sites.forEach((site) => this.createEntrance(site));
     this.observer = ctx.scene.onBeforeRenderObservable.add(() => this.update())!;
@@ -52,6 +55,11 @@ export class InteriorManager {
   dispose(): void { this.ctx.scene.onBeforeRenderObservable.remove(this.observer); }
 
   private createEntrance(site: InteriorBuildingSite): void {
+    site.root.computeWorldMatrix(true);
+    const entrancePosition = Vector3.TransformCoordinates(new Vector3(0, .12, -site.depth / 2 - .5), site.root.getWorldMatrix());
+    this.deps.registry.register({ id: `${site.id}_entrance_001`, type: "BUILDING_ENTRANCE", position: entrancePosition, bounds: createBounds(entrancePosition, 2.2, 2.2, 0, 3.2), buildingId: site.id, connections: [site.id], tags: ["outdoor", "public", "ground_floor", ...(site.mission ? ["landmark" as const, "mission" as const] : [])], importance: site.mission ? 10 : 5 });
+    const streetAccess = this.deps.registry.getNearestArea(entrancePosition, ["ROAD", "SIDEWALK", "ALLEY"]);
+    if (streetAccess) this.deps.registry.connect(`${site.id}_entrance_001`, streetAccess.id);
     let entrance = createDoor(this.ctx, this.deps.interactions, this.deps.inventory, {
       id: `${site.id}_entrance_001`, displayName: site.mission ? "INTERIOR LAB 入口" : `${site.id} 入口`, parent: site.root,
       position: new Vector3(-.8, 0, -site.depth / 2 - .13), width: 1.6, height: 2.9,
