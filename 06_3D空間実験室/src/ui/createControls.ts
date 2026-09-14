@@ -3,6 +3,7 @@ import { CITY_STYLE_OPTIONS, resolveCityStyle } from "../world/cityStyles";
 import { saveCitySettings } from "../world/citySettingsStorage";
 import { DEFAULT_CITY_SETTINGS, type BuildingDensity, type CitySettings, type CitySize, type CityStyle, type HeightProfile, type WorldMode } from "../world/types";
 import type { MissionGuideMode } from "../gameplay/MissionGuideManager";
+import { normalizeMovementSettings, saveMovementSettings, type MovementSettings } from "../player/movementSettings";
 
 export interface ControlActions {
   day: () => void;
@@ -16,9 +17,10 @@ export interface ControlActions {
   selectWorld: (mode: WorldMode, settings: CitySettings) => void;
   regenerateCity: (settings: CitySettings) => void;
   guideMode: (mode: MissionGuideMode) => void;
+  movementSpeed: (settings: MovementSettings) => void;
 }
 
-export function createControls(actions: ControlActions, initialSettings: CitySettings): {
+export function createControls(actions: ControlActions, initialSettings: CitySettings, initialMovementSettings: MovementSettings): {
   updateTelemetry: (fps: number, mode: WorldMode, seed?: number, style?: string) => void;
   setMode: (mode: "day" | "night") => void;
   setWorldMode: (mode: WorldMode) => void;
@@ -43,6 +45,7 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
     }));
   }
   applySettings(initialSettings);
+  applyMovementSettings(initialMovementSettings);
   updateInterpretation();
 
   menuToggle?.addEventListener("click", (event) => {
@@ -91,6 +94,12 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
   panel?.addEventListener("input", (event) => {
     const target = event.target as HTMLSelectElement;
     if (target.id === "mission-guide-mode") actions.guideMode(target.value as MissionGuideMode);
+    if (target.id === "normal-speed-input" || target.id === "shift-speed-input") {
+      const settings = getMovementSettings();
+      saveMovementSettings(settings);
+      actions.movementSpeed(settings);
+      return;
+    }
     updateInterpretation();
     saveCitySettings(getCitySettings());
   });
@@ -134,6 +143,18 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
     setValue("city-height", settings.height);
     setValue("city-style", settings.style);
     setValue("city-image-text", settings.customText);
+  }
+
+  function getMovementSettings(): MovementSettings {
+    return normalizeMovementSettings({
+      normalSpeed: Number(document.querySelector<HTMLInputElement>("#normal-speed-input")?.value),
+      shiftSpeed: Number(document.querySelector<HTMLInputElement>("#shift-speed-input")?.value),
+    });
+  }
+
+  function applyMovementSettings(settings: MovementSettings): void {
+    setValue("normal-speed-input", String(settings.normalSpeed));
+    setValue("shift-speed-input", String(settings.shiftSpeed));
   }
 
   function updateInterpretation(): void {

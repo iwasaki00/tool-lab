@@ -3,11 +3,13 @@ import { Ray } from "@babylonjs/core/Culling/ray";
 import { KeyboardEventTypes } from "@babylonjs/core/Events/keyboardEvents";
 import { Matrix, Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Scene } from "@babylonjs/core/scene";
+import { DEFAULT_MOVEMENT_SETTINGS, normalizeMovementSettings, type MovementSettings } from "./movementSettings";
 
 export interface PlayerController {
   camera: UniversalCamera;
   setMoveInput: (x: number, y: number) => void;
   setSprinting: (active: boolean) => void;
+  setMovementSpeeds: (settings: MovementSettings) => void;
   jump: () => void;
   rotate: (deltaX: number, deltaY: number) => void;
 }
@@ -15,12 +17,11 @@ export interface PlayerController {
 export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: boolean): PlayerController {
   const jumpSpeed = 6.2;
   const jumpGravity = 9;
-  const normalMoveSpeed = 2.88;
-  const precisionMoveSpeed = .32;
+  let movementSettings = { ...DEFAULT_MOVEMENT_SETTINGS };
   const camera = new UniversalCamera("player-camera", new Vector3(0, 2.1, -12), scene);
   camera.minZ = .1;
   camera.maxZ = 180;
-  camera.speed = normalMoveSpeed;
+  camera.speed = movementSettings.normalSpeed;
   camera.angularSensibility = 2800;
   camera.inertia = .45;
   camera.keysUp = [87];
@@ -55,7 +56,10 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
     }
 
     if (mobile && (moveX || moveY)) {
-      const speed = (sprinting ? 7 : 4) * deltaTime;
+      // タッチ操作は従来の体感速度を基準に、MENUで設定した速度の倍率を反映する。
+      const mobileNormalSpeed = 4 * movementSettings.normalSpeed / DEFAULT_MOVEMENT_SETTINGS.normalSpeed;
+      const mobileModifiedSpeed = 7 * movementSettings.shiftSpeed / DEFAULT_MOVEMENT_SETTINGS.shiftSpeed;
+      const speed = (sprinting ? mobileModifiedSpeed : mobileNormalSpeed) * deltaTime;
       const forward = Vector3.TransformNormal(Vector3.Forward(), Matrix.RotationY(camera.rotation.y));
       const right = Vector3.TransformNormal(Vector3.Right(), Matrix.RotationY(camera.rotation.y));
       camera.cameraDirection.addInPlace(forward.scale(moveY * speed));
@@ -67,7 +71,7 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
     const event = info.event;
     if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
       sprinting = info.type === KeyboardEventTypes.KEYDOWN;
-      camera.speed = sprinting ? precisionMoveSpeed : normalMoveSpeed;
+      applyCurrentSpeed();
     }
     if (info.type === KeyboardEventTypes.KEYDOWN && event.code === "Space") {
       jump();
@@ -82,13 +86,18 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
   return {
     camera,
     setMoveInput: (x, y) => { moveX = x; moveY = y; },
-    setSprinting: (active) => { sprinting = active; },
+    setSprinting: (active) => { sprinting = active; applyCurrentSpeed(); },
+    setMovementSpeeds: (settings) => { movementSettings = normalizeMovementSettings(settings); applyCurrentSpeed(); },
     jump,
     rotate: (deltaX, deltaY) => {
       camera.cameraRotation.y += deltaX / 340;
       camera.cameraRotation.x += deltaY / 340;
     },
   };
+
+  function applyCurrentSpeed(): void {
+    camera.speed = sprinting ? movementSettings.shiftSpeed : movementSettings.normalSpeed;
+  }
 }
 
 function isGrounded(scene: Scene, camera: UniversalCamera): boolean {

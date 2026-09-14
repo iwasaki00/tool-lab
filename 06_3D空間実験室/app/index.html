@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#071018" />
     <meta name="description" content="意味を持つ街と建物からミッションを自動生成するBabylon.js 3D空間実験室 Ver.6。" />
     <title>3D空間実験室 Ver.6 — 意味を持つゲームマップ化</title>
-    <script type="module" crossorigin src="./assets/index-Cl8mtFHi.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DahrB4JX.css">
+    <script type="module" crossorigin src="./assets/index-B8lL_eJl.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-B_nMGSNp.css">
   </head>
   <body>
     <canvas id="render-canvas" aria-label="3D空間実験室"></canvas>
@@ -151,6 +151,15 @@
           <option value="DEBUG" selected>DEBUG</option>
         </select>
       </label>
+
+      <section class="movement-settings" aria-label="プレイヤー移動速度">
+        <p class="panel-label">PLAYER SPEED</p>
+        <div class="movement-setting-grid">
+          <label>通常速度<input id="normal-speed-input" type="number" inputmode="decimal" value="2.88" min="0.05" max="8" step="0.05"></label>
+          <label>SHIFT速度<input id="shift-speed-input" type="number" inputmode="decimal" value="0.32" min="0.05" max="8" step="0.05"></label>
+        </div>
+        <small>変更はすぐに移動へ反映されます</small>
+      </section>
 
       <p class="panel-label">LIGHT</p>
       <div class="mode-switch" role="group" aria-label="時間帯">
