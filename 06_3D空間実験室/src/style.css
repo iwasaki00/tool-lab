@@ -264,6 +264,19 @@ button:focus-visible { outline: 2px solid #72e1ff; outline-offset: 2px; }
 .inventory-panel ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .inventory-panel li { display: flex; justify-content: space-between; color: #d8eee5; font: 700 .68rem/1.4 monospace; }
 .inventory-panel .inventory-empty { color: #71827b; font-weight: 500; }
+.inventory-overlay {
+  position: fixed; z-index: 70; top: 50%; left: 50%; width: min(300px, calc(100vw - 32px));
+  margin: 0; border-color: rgba(104,240,179,.42); border-radius: 9px; padding: 14px;
+  background: rgba(5,20,24,.92); box-shadow: 0 20px 70px rgba(0,0,0,.48);
+  backdrop-filter: blur(16px); transform: translate(-50%, -50%); pointer-events: auto;
+}
+.inventory-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.inventory-heading strong { color: #bfffe5; font: 800 .72rem/1 monospace; letter-spacing: .1em; }
+.inventory-heading strong span { margin-right: 6px; color: #68f0b3; }
+.inventory-heading button { min-width: 32px; min-height: 32px; border: 1px solid rgba(255,255,255,.13); color: #bdd1c9; font-size: 1rem; }
+.inventory-overlay ul { min-height: 32px; border-top: 1px solid rgba(104,240,179,.1); padding-top: 8px; }
+.inventory-overlay > small { display: block; margin-top: 12px; color: #71877e; font: 600 .58rem/1 monospace; text-align: right; }
+.inventory-overlay > small kbd { padding: 2px 4px; font-size: .55rem; }
 
 .toast {
   position: fixed;
@@ -325,6 +338,7 @@ button:focus-visible { outline: 2px solid #72e1ff; outline-offset: 2px; }
   .mission-guide-edge { min-width: 66px; max-width: 112px; padding: 5px 7px; }
   .mission-guide-arrow { font-size: 1rem; }
   .control-panel { top: calc(max(12px, env(safe-area-inset-top)) + 42px); right: max(10px, env(safe-area-inset-right)); bottom: auto; width: min(290px, calc(100vw - 20px)); max-height: calc(100dvh - 155px); padding: 10px; }
+  .inventory-overlay { top: 42%; width: min(280px, calc(100vw - 28px)); }
   .panel-heading { margin-bottom: 7px; font-size: .58rem; }
   .mode-switch { margin-bottom: 6px; }
   .control-grid { gap: 5px; }

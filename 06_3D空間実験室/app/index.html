@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#071018" />
     <meta name="description" content="意味を持つ街と建物からミッションを自動生成するBabylon.js 3D空間実験室 Ver.6。" />
     <title>3D空間実験室 Ver.6 — 意味を持つゲームマップ化</title>
-    <script type="module" crossorigin src="./assets/index-B8lL_eJl.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-B_nMGSNp.css">
+    <script type="module" crossorigin src="./assets/index-0ODeIMp4.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DjcpxyGa.css">
   </head>
   <body>
     <canvas id="render-canvas" aria-label="3D空間実験室"></canvas>
@@ -175,12 +175,18 @@
         <button type="button" data-action="debug"><span>!</span> 描画テスト</button>
       </div>
       <button type="button" class="inventory-toggle" id="inventory-toggle" aria-expanded="false"><span>▣</span> INVENTORY <kbd>I</kbd></button>
-      <section class="inventory-panel" id="inventory-panel" hidden>
-        <p>所持アイテム</p>
-        <ul id="inventory-list"><li class="inventory-empty">所持アイテムなし</li></ul>
-      </section>
       <button type="button" class="reset-button" data-action="reset">シーン初期化</button>
     </aside>
+
+    <section class="inventory-panel inventory-overlay" id="inventory-panel" aria-label="所持アイテム" hidden>
+      <div class="inventory-heading">
+        <strong><span>▣</span> INVENTORY</strong>
+        <button type="button" id="inventory-close" aria-label="インベントリを閉じる">×</button>
+      </div>
+      <p>所持アイテム</p>
+      <ul id="inventory-list"><li class="inventory-empty">所持アイテムなし</li></ul>
+      <small><kbd>I</kbd> で閉じる</small>
+    </section>
 
     <div class="look-zone" id="look-zone" aria-label="ドラッグして視点移動"></div>
     <div class="mobile-controls" aria-label="タッチ操作">

@@ -16,6 +16,9 @@ export function createGameplayUi(mobile: boolean): GameplayUi {
   const inventoryPanel = document.querySelector<HTMLElement>("#inventory-panel");
   const inventoryList = document.querySelector<HTMLElement>("#inventory-list");
   const inventoryToggle = document.querySelector<HTMLButtonElement>("#inventory-toggle");
+  const inventoryClose = document.querySelector<HTMLButtonElement>("#inventory-close");
+  const controlPanel = document.querySelector<HTMLElement>("#control-panel");
+  const menuToggle = document.querySelector<HTMLButtonElement>("#menu-toggle");
   const missionComplete = document.querySelector<HTMLElement>("#mission-complete");
   let interact: () => void = () => undefined;
   let messageTimer = 0;
@@ -23,6 +26,7 @@ export function createGameplayUi(mobile: boolean): GameplayUi {
   const performInteraction = (event?: Event): void => { event?.preventDefault(); event?.stopPropagation(); interact(); };
   actionButton?.addEventListener("pointerdown", performInteraction, { passive: false });
   inventoryToggle?.addEventListener("click", (event) => { event.stopPropagation(); toggleInventory(); });
+  inventoryClose?.addEventListener("click", (event) => { event.stopPropagation(); setInventoryOpen(false); });
   document.addEventListener("keydown", (event) => {
     const target = event.target as HTMLElement | null;
     if (target?.matches("input, textarea, select")) return;
@@ -78,7 +82,17 @@ export function createGameplayUi(mobile: boolean): GameplayUi {
 
   function toggleInventory(): void {
     if (!inventoryPanel) return;
-    inventoryPanel.hidden = !inventoryPanel.hidden;
-    inventoryToggle?.setAttribute("aria-expanded", String(!inventoryPanel.hidden));
+    setInventoryOpen(inventoryPanel.hidden);
+  }
+
+  function setInventoryOpen(open: boolean): void {
+    if (!inventoryPanel) return;
+    inventoryPanel.hidden = !open;
+    inventoryToggle?.setAttribute("aria-expanded", String(open));
+    if (open) {
+      // MENUの外に独立表示し、設定パネルとの重なりを避ける。
+      controlPanel?.classList.remove("is-open");
+      menuToggle?.setAttribute("aria-expanded", "false");
+    }
   }
 }
