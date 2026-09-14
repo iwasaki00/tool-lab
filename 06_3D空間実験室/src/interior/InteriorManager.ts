@@ -15,6 +15,8 @@ import type { InteriorBuildingSite, InteriorNavigation } from "./Room";
 import type { GamePlacementManager } from "../gameplay/GamePlacementManager";
 import { createBounds } from "../world/SemanticTypes";
 import type { WorldRegistry } from "../world/WorldRegistry";
+import type { MissionPlan } from "../gameplay/MissionTypes";
+import type { MissionRuntime } from "../gameplay/MissionRuntime";
 
 export class InteriorManager {
   private readonly observer: Observer<Scene>;
@@ -26,7 +28,7 @@ export class InteriorManager {
     private readonly ctx: ObjectContext,
     private readonly camera: Camera,
     private readonly sites: InteriorBuildingSite[],
-    private readonly deps: { interactions: InteractionManager; inventory: InventoryManager; events: EventManager; objectives: ObjectiveManager; onMessage: (message: string) => void; gateEventId: string; registry: WorldRegistry; placement: GamePlacementManager },
+    private readonly deps: { interactions: InteractionManager; inventory: InventoryManager; events: EventManager; objectives: ObjectiveManager; onMessage: (message: string) => void; gateEventId: string; registry: WorldRegistry; placement: GamePlacementManager; missionPlan: MissionPlan; missionRuntime: MissionRuntime },
   ) {
     sites.forEach((site) => this.createEntrance(site));
     this.observer = ctx.scene.onBeforeRenderObservable.add(() => this.update())!;
@@ -60,11 +62,11 @@ export class InteriorManager {
     this.deps.registry.register({ id: `${site.id}_entrance_001`, type: "BUILDING_ENTRANCE", position: entrancePosition, bounds: createBounds(entrancePosition, 2.2, 2.2, 0, 3.2), buildingId: site.id, connections: [site.id], tags: ["outdoor", "public", "ground_floor", ...(site.mission ? ["landmark" as const, "mission" as const] : [])], importance: site.mission ? 10 : 5 });
     const streetAccess = this.deps.registry.getNearestArea(entrancePosition, ["ROAD", "SIDEWALK", "ALLEY"]);
     if (streetAccess) this.deps.registry.connect(`${site.id}_entrance_001`, streetAccess.id);
-    let entrance = createDoor(this.ctx, this.deps.interactions, this.deps.inventory, {
+    const entrance = createDoor(this.ctx, this.deps.interactions, this.deps.inventory, {
       id: `${site.id}_entrance_001`, displayName: site.mission ? "INTERIOR LAB 入口" : `${site.id} 入口`, parent: site.root,
       position: new Vector3(-.8, 0, -site.depth / 2 - .13), width: 1.6, height: 2.9,
-      locked: site.mission, keyId: site.mission ? "key" : undefined, color: site.mission ? new Color3(.2, .42, .5) : new Color3(.34, .24, .16), onMessage: this.deps.onMessage,
-      onOpened: site.mission ? () => { if (entrance.isOpen()) this.deps.objectives.set({ id: "find_card_key", label: "1Fを探索しカードキーを探す", targetIds: [`${site.id}_item_card_001`], targetType: "CARD KEY" }); } : undefined,
+      locked: site.mission, keyId: site.mission ? this.deps.missionPlan.entranceCredential : undefined, color: site.mission ? new Color3(.2, .42, .5) : new Color3(.34, .24, .16), onMessage: this.deps.onMessage,
+      onOpened: site.mission ? () => { if (entrance.isOpen()) this.deps.missionRuntime.completeByTarget(`${site.id}_entrance_001`, "Mission entrance opened"); } : undefined,
     });
   }
 

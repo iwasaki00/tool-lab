@@ -1,4 +1,5 @@
 import { DEFAULT_CITY_SETTINGS, type BuildingDensity, type CitySettings, type CitySize, type CityStyle, type HeightProfile } from "./types";
+import type { MissionDifficulty, MissionType } from "../gameplay/MissionTypes";
 
 const STORAGE_KEY = "3d-space-lab-city-settings-v3";
 const styles: CityStyle[] = ["japanese", "downtown", "future", "industrial", "ruins", "suburban", "coastal", "maze"];
@@ -15,6 +16,8 @@ export function loadCitySettings(): CitySettings {
       height: isOneOf(value.height, ["low", "mixed", "high"] as HeightProfile[]) ? value.height : DEFAULT_CITY_SETTINGS.height,
       style: isOneOf(value.style, styles) ? value.style : DEFAULT_CITY_SETTINGS.style,
       customText: typeof value.customText === "string" ? value.customText.slice(0, 160) : "",
+      missionType: isOneOf(value.missionType, ["ESCAPE", "ACCESS_CONTROL", "POWER_RESTORE", "MULTI_BUILDING", "TOWER"] as MissionType[]) ? value.missionType : DEFAULT_CITY_SETTINGS.missionType,
+      missionDifficulty: isOneOf(value.missionDifficulty, ["EASY", "NORMAL", "HARD"] as MissionDifficulty[]) ? value.missionDifficulty : DEFAULT_CITY_SETTINGS.missionDifficulty,
     };
   } catch {
     return { ...DEFAULT_CITY_SETTINGS };

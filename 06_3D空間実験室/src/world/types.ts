@@ -1,6 +1,7 @@
 import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { InteriorBuildingSite } from "../interior/Room";
 import type { WorldRegistry } from "./WorldRegistry";
+import type { MissionDifficulty, MissionType } from "../gameplay/MissionTypes";
 
 export type WorldMode = "field" | "city";
 export type CitySize = "small" | "medium" | "large";
@@ -16,6 +17,8 @@ export interface CitySettings {
   height: HeightProfile;
   style: CityStyle;
   customText: string;
+  missionType: MissionType;
+  missionDifficulty: MissionDifficulty;
 }
 
 export interface CityStats {
@@ -46,4 +49,6 @@ export const DEFAULT_CITY_SETTINGS: CitySettings = {
   height: "mixed",
   style: "japanese",
   customText: "",
+  missionType: "ACCESS_CONTROL",
+  missionDifficulty: "NORMAL",
 };

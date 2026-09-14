@@ -76,6 +76,16 @@ try {
       saveMovementSettings(settings);
       getLaboratory().player.setMovementSpeeds(settings);
     },
+    restartMission: (settings) => {
+      citySettings = settings; saveCitySettings(settings);
+      getLaboratory().restartMission(settings); refresh(`Mission Seed ${settings.missionSeed} でMissionを再開しました`);
+    },
+    regenerateMission: (settings) => {
+      const next = { ...settings, missionSeed: Math.floor(Math.random() * 4294967294) + 1 };
+      citySettings = next; saveCitySettings(next);
+      const input = document.querySelector<HTMLInputElement>("#mission-seed-input"); if (input) input.value = String(next.missionSeed);
+      getLaboratory().restartMission(next); refresh(`新しいMission Seed ${next.missionSeed} で生成しました`);
+    },
   }, citySettings, movementSettings);
 
   function refresh(message: string): void {

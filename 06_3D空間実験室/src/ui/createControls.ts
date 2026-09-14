@@ -4,6 +4,7 @@ import { saveCitySettings } from "../world/citySettingsStorage";
 import { DEFAULT_CITY_SETTINGS, type BuildingDensity, type CitySettings, type CitySize, type CityStyle, type HeightProfile, type WorldMode } from "../world/types";
 import type { MissionGuideMode } from "../gameplay/MissionGuideManager";
 import { normalizeMovementSettings, saveMovementSettings, type MovementSettings } from "../player/movementSettings";
+import type { MissionDifficulty, MissionType } from "../gameplay/MissionTypes";
 
 export interface ControlActions {
   day: () => void;
@@ -18,6 +19,8 @@ export interface ControlActions {
   regenerateCity: (settings: CitySettings) => void;
   guideMode: (mode: MissionGuideMode) => void;
   movementSpeed: (settings: MovementSettings) => void;
+  restartMission: (settings: CitySettings) => void;
+  regenerateMission: (settings: CitySettings) => void;
 }
 
 export function createControls(actions: ControlActions, initialSettings: CitySettings, initialMovementSettings: MovementSettings): {
@@ -89,6 +92,8 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
         break;
       }
       case "regenerate-city": persistAndGenerate(); break;
+      case "restart-mission": actions.restartMission(getCitySettings()); break;
+      case "regenerate-mission": actions.regenerateMission(getCitySettings()); break;
     }
   });
   panel?.addEventListener("input", (event) => {
@@ -132,6 +137,8 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
       height: (document.querySelector<HTMLSelectElement>("#city-height")?.value as HeightProfile) ?? DEFAULT_CITY_SETTINGS.height,
       style: (styleSelect?.value as CityStyle) ?? DEFAULT_CITY_SETTINGS.style,
       customText: document.querySelector<HTMLTextAreaElement>("#city-image-text")?.value.trim().slice(0, 160) ?? "",
+      missionType: (document.querySelector<HTMLSelectElement>("#mission-type")?.value as MissionType) ?? DEFAULT_CITY_SETTINGS.missionType,
+      missionDifficulty: (document.querySelector<HTMLSelectElement>("#mission-difficulty")?.value as MissionDifficulty) ?? DEFAULT_CITY_SETTINGS.missionDifficulty,
     };
   }
 
@@ -143,6 +150,8 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
     setValue("city-height", settings.height);
     setValue("city-style", settings.style);
     setValue("city-image-text", settings.customText);
+    setValue("mission-type", settings.missionType);
+    setValue("mission-difficulty", settings.missionDifficulty);
   }
 
   function getMovementSettings(): MovementSettings {

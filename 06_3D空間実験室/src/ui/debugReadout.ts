@@ -49,6 +49,11 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   setText("enemy-spawn-value", String(world.enemySpawns));
   setText("npc-spawn-value", String(world.npcSpawns));
   setText("mission-seed-value", String(mission.plan.seed));
+  setText("mission-type-value", mission.plan.type);
+  setText("mission-difficulty-value", mission.plan.difficulty);
+  setText("mission-total-value", String(mission.plan.steps.length));
+  setText("mission-current-value", mission.state.current?.id ?? "COMPLETE");
+  setText("mission-retry-value", String(mission.plan.retryCount));
   setText("mission-valid-value", mission.validation.valid ? "PASS" : "FAIL");
   setText("guide-objective-value", guide.objectiveId);
   setText("guide-target-value", guide.targetId);

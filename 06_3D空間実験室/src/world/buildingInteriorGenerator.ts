@@ -19,6 +19,8 @@ import type { FloorData, InteriorBuildingSite, LocalBounds, RoomData, RoomType }
 import type { GamePlacementManager } from "../gameplay/GamePlacementManager";
 import type { WorldRegistry } from "./WorldRegistry";
 import { createBounds, type AreaTag, type AreaType, type WorldBounds } from "./SemanticTypes";
+import type { MissionPlan } from "../gameplay/MissionTypes";
+import type { MissionRuntime } from "../gameplay/MissionRuntime";
 
 export interface InteriorGenerationDeps {
   interactions: InteractionManager;
@@ -29,6 +31,8 @@ export interface InteriorGenerationDeps {
   gateEventId: string;
   registry: WorldRegistry;
   placement: GamePlacementManager;
+  missionPlan: MissionPlan;
+  missionRuntime: MissionRuntime;
 }
 
 export interface GeneratedInteriorResources {
@@ -80,14 +84,14 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
         };
         const doorId = `${site.id}_door_${floor + 1}_${roomIndex}`;
         room.doors.push(doorId);
-        const lockedControlDoor = site.mission && type === "CONTROL_ROOM";
+        const lockedControlDoor = site.mission && type === "CONTROL_ROOM" && Boolean(deps.missionPlan.interior.controlDoorCredential);
         const hingeX = side * corridorWidth / 2;
         createDoor(ctx, deps.interactions, deps.inventory, {
           id: doorId, displayName: `${type} ドア`, parent: site.root,
           position: new Vector3(hingeX, floorY, doorZ - .65), width: 1.3, height: 2.8,
-          rotation: Math.PI / 2, locked: lockedControlDoor, keyId: lockedControlDoor ? "card_key" : undefined,
+          rotation: Math.PI / 2, locked: lockedControlDoor, keyId: lockedControlDoor ? deps.missionPlan.interior.controlDoorCredential : undefined,
           color: new Color3(.36, .29, .21), onMessage: deps.onMessage,
-          onOpened: lockedControlDoor ? () => deps.objectives.set({ id: "activate_switch", label: "CONTROL ROOMのスイッチを起動する", targetIds: [`${site.id}_switch_001`], targetType: "SWITCH" }) : undefined,
+          onOpened: site.mission && type === "CONTROL_ROOM" ? () => deps.missionRuntime.completeByTarget(doorId, "Control Room reached") : undefined,
         });
         const doorWorld = Vector3.TransformCoordinates(new Vector3(hingeX, floorY + 1.4, doorZ), site.root.getWorldMatrix());
         deps.registry.register({ id: doorId, type: "DOOR", position: doorWorld, bounds: createBounds(doorWorld, 1.8, 1.2, floorY, floorY + 3), floor: floor + 1, buildingId: site.id, roomId: room.id, connections: [room.id, `${site.id}_corridor_${floor + 1}`], tags: ["indoor", "private", ...(lockedControlDoor ? ["mission" as const] : [])], importance: lockedControlDoor ? 9 : 3, metadata: { locked: Boolean(lockedControlDoor) } });
@@ -156,18 +160,26 @@ export function createStaircase(ctx: ObjectContext, site: InteriorBuildingSite, 
 }
 
 function createMissionContents(ctx: ObjectContext, site: InteriorBuildingSite, deps: InteriorGenerationDeps): void {
-  // CONTROL ROOM is behind the card-locked door, so it must never contain its own key.
-  const cardArea = deps.placement.chooseArea(["STORAGE", "OFFICE", "ROOM"], ["dead_end", "private"], undefined, 0, site.id);
-  if (!cardArea) return;
-  const card = deps.placement.place(`${site.id}_item_card_001`, "CARD_KEY", cardArea, .48);
-  deps.placement.registerSpawn(card);
   const controlArea = deps.placement.chooseArea(["CONTROL_ROOM"], ["high_floor", "private"], undefined, 0, site.id);
   const controlDoorId = controlArea?.metadata?.doorId;
-  createItem(ctx, deps.interactions, deps.inventory, { id: `${site.id}_item_card_001`, itemId: "card_key", displayName: "カードキー", position: new Vector3(card.position.x, card.position.y, card.position.z), color: new Color3(.2, .72, .9), onMessage: deps.onMessage, onPickup: () => deps.objectives.set({ id: "reach_control_room", label: "階段で2FのCONTROL ROOMへ向かう", targetIds: typeof controlDoorId === "string" ? [controlDoorId] : [controlArea?.id ?? ""], targetType: "CONTROL ROOM" }) });
   if (!controlArea) return;
-  const switchPosition = new Vector3(controlArea.position.x, controlArea.bounds.minY + .9, controlArea.position.z);
-  deps.registry.register({ id: `${site.id}_switch_001`, type: "SWITCH", position: switchPosition, bounds: createBounds(switchPosition, 1.2, 1.2, switchPosition.y - .5, switchPosition.y + 1.5), floor: controlArea.floor, buildingId: site.id, roomId: controlArea.roomId, connections: [controlArea.id], tags: ["indoor", "private", "mission"], importance: 10 });
-  createSwitch(ctx, deps.interactions, deps.events, { id: `${site.id}_switch_001`, position: switchPosition, eventId: deps.gateEventId, onMessage: deps.onMessage, onActivate: () => deps.objectives.set({ id: "reach_goal", label: "屋外ゲートを抜けてGoalへ向かう", targetIds: ["goal_001"], targetType: "GOAL" }) });
+  if (deps.missionPlan.interior.itemIds.includes(`${site.id}_item_card_001`)) {
+    const upperRooms = deps.registry.getAreasOnFloor(2, site.id).filter((area) => ["STORAGE", "OFFICE", "ROOM"].includes(area.type));
+    const cardArea = upperRooms[0] ?? deps.placement.chooseArea(["STORAGE", "OFFICE", "ROOM"], ["high_floor", "private"], undefined, 0, site.id);
+    if (cardArea) {
+      const card = deps.placement.place(`${site.id}_item_card_001`, "CARD_KEY", cardArea, .48); deps.placement.registerSpawn(card);
+      createItem(ctx, deps.interactions, deps.inventory, { id: card.id, itemId: "card_key", displayName: "カードキー", position: new Vector3(card.position.x, card.position.y, card.position.z), color: new Color3(.2, .72, .9), onMessage: deps.onMessage, onPickup: () => deps.missionRuntime.completeByTarget(card.id, "Card key acquired") });
+    }
+  }
+  deps.missionPlan.interior.switchIds.forEach((id, index) => {
+    const switchPosition = new Vector3(controlArea.position.x + (index === 0 ? -1 : 1), controlArea.bounds.minY + .9, controlArea.position.z);
+    deps.registry.register({ id, type: "SWITCH", position: switchPosition, bounds: createBounds(switchPosition, 1.2, 1.2, switchPosition.y - .5, switchPosition.y + 1.5), floor: controlArea.floor, buildingId: site.id, roomId: controlArea.roomId, connections: [controlArea.id], tags: ["indoor", "private", "mission"], importance: 10 });
+    createSwitch(ctx, deps.interactions, deps.events, { id, position: switchPosition, eventId: deps.gateEventId, emitEvent: false, onMessage: deps.onMessage, onActivate: () => {
+      deps.missionRuntime.completeByTarget(id, `Switch ${index + 1} activated`);
+      if (deps.missionPlan.interior.switchIds.every((switchId) => !deps.missionRuntime.isTargetActive(switchId))) deps.events.emit(deps.gateEventId);
+    } });
+  });
+  if (typeof controlDoorId === "string") deps.registry.get(controlDoorId)!.metadata = { ...deps.registry.get(controlDoorId)!.metadata, credential: deps.missionPlan.interior.controlDoorCredential ?? "none" };
   deps.placement.createDebugMarkers(ctx);
 }
 

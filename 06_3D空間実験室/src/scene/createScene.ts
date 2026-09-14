@@ -25,6 +25,7 @@ import type { InteriorNavigation } from "../interior/Room";
 import { WorldRegistry } from "../world/WorldRegistry";
 import { createBounds, type MapArea2D, type SemanticLocation, type WorldStatistics } from "../world/SemanticTypes";
 import type { MissionPlan } from "../gameplay/MissionGenerator";
+import type { MissionRuntimeSnapshot } from "../gameplay/MissionTypes";
 import type { MissionValidation } from "../gameplay/MissionValidator";
 import type { MissionGuideDebugInfo, MissionGuideMode } from "../gameplay/MissionGuideManager";
 
@@ -48,10 +49,11 @@ export interface LaboratoryApi {
   interiorDebug: () => InteriorNavigation | undefined;
   semanticDebug: () => SemanticLocation;
   worldStatistics: () => WorldStatistics;
-  missionDebug: () => { plan: MissionPlan; validation: MissionValidation };
+  missionDebug: () => { plan: MissionPlan; validation: MissionValidation; state: MissionRuntimeSnapshot };
   semanticMap: (floor?: number) => MapArea2D[];
   setMissionGuideMode: (mode: MissionGuideMode) => void;
   missionGuideDebug: () => MissionGuideDebugInfo;
+  restartMission: (settings: CitySettings) => void;
 }
 
 export interface SceneOptions {
@@ -105,18 +107,20 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     createInitialField(ctx);
   }
 
-  const callbacks = options.gameplayCallbacks ?? {
-    onFocus: () => undefined, onMessage: () => undefined, onObjective: () => undefined,
-    onInventory: () => undefined, onMissionComplete: () => undefined,
-  };
-  const demoScenario = createDemoScenario(ctx, camera, camera.position.clone(), callbacks, registry, generatedCity?.interiorSites, citySettings.seed, citySettings.missionSeed);
-
   const debugBox = MeshBuilder.CreateBox("debug-red-box", { size: 3 }, scene);
   debugBox.position = new Vector3(0, 1.5, -4);
   debugBox.material = createMaterial(scene, "debug-red-material", new Color3(1, 0, 0));
   debugBox.isVisible = false;
   debugBox.isPickable = false;
   const groundMaterial = ground.material as StandardMaterial;
+  const callbacks = options.gameplayCallbacks ?? {
+    onFocus: () => undefined, onMessage: () => undefined, onObjective: () => undefined,
+    onInventory: () => undefined, onMissionState: () => undefined, onMissionComplete: () => undefined,
+  };
+  const missionSpawn = camera.position.clone();
+  let currentGuideMode: MissionGuideMode = "DEBUG";
+  const createMission = (settings: CitySettings) => createDemoScenario(ctx, camera, missionSpawn.clone(), callbacks, registry, generatedCity?.interiorSites, settings.seed, settings.missionSeed, settings.missionType, settings.missionDifficulty);
+  let demoScenario = createMission(citySettings);
 
   const spawnAhead = (height: number): Vector3 => {
     const direction = camera.getForwardRay().direction.clone();
@@ -176,8 +180,13 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     worldStatistics: () => demoScenario.worldStatistics(),
     missionDebug: () => demoScenario.mission(),
     semanticMap: (floor) => registry.toMap2D(floor),
-    setMissionGuideMode: (mode) => demoScenario.setGuideMode(mode),
+    setMissionGuideMode: (mode) => { currentGuideMode = mode; demoScenario.setGuideMode(mode); },
     missionGuideDebug: () => demoScenario.guideDebug(),
+    restartMission: (settings) => {
+      demoScenario.dispose();
+      camera.position.copyFrom(missionSpawn); camera.cameraDirection.setAll(0); camera.cameraRotation.setAll(0);
+      demoScenario = createMission(settings); demoScenario.setGuideMode(currentGuideMode); demoScenario.setDayMode(currentMode === "day");
+    },
   };
 }
 

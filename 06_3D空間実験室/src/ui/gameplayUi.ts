@@ -1,6 +1,7 @@
 import type { InventoryEntry } from "../gameplay/InventoryManager";
 import type { GameplayCallbacks } from "../gameplay/createDemoScenario";
 import type { InteractionFocus } from "../interaction/Interactable";
+import type { MissionResult, MissionRuntimeSnapshot } from "../gameplay/MissionTypes";
 
 export interface GameplayUi {
   callbacks: GameplayCallbacks;
@@ -20,6 +21,11 @@ export function createGameplayUi(mobile: boolean): GameplayUi {
   const controlPanel = document.querySelector<HTMLElement>("#control-panel");
   const menuToggle = document.querySelector<HTMLButtonElement>("#menu-toggle");
   const missionComplete = document.querySelector<HTMLElement>("#mission-complete");
+  const missionResult = document.querySelector<HTMLElement>("#mission-result");
+  const missionProgress = document.querySelector<HTMLElement>("#mission-progress");
+  const missionSummary = document.querySelector<HTMLElement>("#mission-summary");
+  const missionDependency = document.querySelector<HTMLElement>("#mission-dependency");
+  const missionLog = document.querySelector<HTMLOListElement>("#mission-log");
   let interact: () => void = () => undefined;
   let messageTimer = 0;
 
@@ -39,9 +45,11 @@ export function createGameplayUi(mobile: boolean): GameplayUi {
     onMessage: showMessage,
     onObjective: (text) => { if (objective) objective.textContent = text; if (text !== "MISSION COMPLETE") missionComplete?.classList.remove("is-visible"); },
     onInventory: renderInventory,
-    onMissionComplete: () => {
+    onMissionState: renderMissionState,
+    onMissionComplete: (result) => {
+      renderMissionResult(result);
       missionComplete?.classList.add("is-visible");
-      window.setTimeout(() => missionComplete?.classList.remove("is-visible"), 4500);
+      window.setTimeout(() => missionComplete?.classList.remove("is-visible"), 7000);
     },
   };
 
@@ -80,6 +88,26 @@ export function createGameplayUi(mobile: boolean): GameplayUi {
     });
   }
 
+  function renderMissionState(state: MissionRuntimeSnapshot): void {
+    if (missionProgress) missionProgress.textContent = `MISSION ${state.completed} / ${state.total}`;
+    if (missionSummary) {
+      missionSummary.replaceChildren();
+      const heading = document.createElement("strong"); heading.textContent = `${state.plan.type} / ${state.plan.difficulty}`; missionSummary.append(heading);
+      const list = document.createElement("ol");
+      state.plan.steps.forEach((step) => { const row = document.createElement("li"); row.className = `mission-step-${step.status.toLowerCase()}`; row.textContent = `${step.description}${step.optional ? " (OPTIONAL)" : ""}`; list.append(row); });
+      missionSummary.append(list);
+    }
+    if (missionDependency) missionDependency.textContent = state.plan.steps.map((step) => `${step.prerequisites.stepIds.length ? step.prerequisites.stepIds.join(step.prerequisites.mode === "AND" ? " + " : " / ") : "START"} → ${step.id}`).join("\n");
+    if (missionLog) {
+      missionLog.replaceChildren(...state.logs.map((entry) => { const row = document.createElement("li"); row.textContent = `${formatTime(entry.elapsedSeconds)}  ${entry.message}`; return row; }));
+    }
+  }
+
+  function renderMissionResult(result: MissionResult): void {
+    if (!missionResult) return;
+    missionResult.textContent = `${result.type} / ${result.difficulty}｜CLEAR ${formatTime(result.clearTimeSeconds)}｜STEPS ${result.completedSteps}/${result.totalSteps}｜OPTIONAL ${result.optionalCompleted}/${result.optionalTotal}｜SEED ${result.seed}`;
+  }
+
   function toggleInventory(): void {
     if (!inventoryPanel) return;
     setInventoryOpen(inventoryPanel.hidden);
@@ -95,4 +123,9 @@ export function createGameplayUi(mobile: boolean): GameplayUi {
       menuToggle?.setAttribute("aria-expanded", "false");
     }
   }
+}
+
+function formatTime(seconds: number): string {
+  const whole = Math.max(0, Math.floor(seconds));
+  return `${String(Math.floor(whole / 60)).padStart(2, "0")}:${String(whole % 60).padStart(2, "0")}`;
 }

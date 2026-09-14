@@ -9,7 +9,7 @@ import type { AreaTag, AreaType, WorldArea, WorldPosition } from "../world/Seman
 import { createBounds } from "../world/SemanticTypes";
 import type { WorldRegistry } from "../world/WorldRegistry";
 
-export type PlacementKind = "START" | "KEY" | "CARD_KEY" | "ENEMY" | "NPC" | "GOAL";
+export type PlacementKind = "START" | "KEY" | "CARD_KEY" | "ITEM" | "ENEMY" | "NPC" | "GOAL";
 export interface GamePlacement { id: string; kind: PlacementKind; areaId: string; position: WorldPosition }
 
 export class GamePlacementManager {
@@ -63,7 +63,7 @@ export class GamePlacementManager {
   }
 
   createDebugMarkers(ctx: ObjectContext): void {
-    const colors: Record<PlacementKind, Color3> = { START: new Color3(.15, .8, 1), KEY: new Color3(1, .7, .1), CARD_KEY: new Color3(.2, .8, 1), ENEMY: new Color3(1, .16, .12), NPC: new Color3(.3, 1, .45), GOAL: new Color3(.75, .2, 1) };
+    const colors: Record<PlacementKind, Color3> = { START: new Color3(.15, .8, 1), KEY: new Color3(1, .7, .1), CARD_KEY: new Color3(.2, .8, 1), ITEM: new Color3(.8, .8, .3), ENEMY: new Color3(1, .16, .12), NPC: new Color3(.3, 1, .45), GOAL: new Color3(.75, .2, 1) };
     this.placements.filter((placement) => !this.debugCreated.has(placement.id)).forEach((placement) => {
       const marker = MeshBuilder.CreateSphere(`debug-placement-${placement.kind.toLowerCase()}`, { diameter: .42, segments: 8 }, ctx.scene);
       marker.position.set(placement.position.x, placement.position.y + .55, placement.position.z);

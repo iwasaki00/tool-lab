@@ -104,7 +104,7 @@ export function registerWebMcp(actions: AgentSceneActions): () => void {
       if (settings.height !== "low" && settings.height !== "mixed" && settings.height !== "high") throw new Error("invalid height profile");
       const styles: CityStyle[] = ["japanese", "downtown", "future", "industrial", "ruins", "suburban", "coastal", "maze"];
       const style = typeof settings.style === "string" && styles.includes(settings.style as CityStyle) ? settings.style as CityStyle : DEFAULT_CITY_SETTINGS.style;
-      actions.generateCity({ seed: Number(settings.seed), missionSeed: Number.isInteger(settings.missionSeed) ? Number(settings.missionSeed) : DEFAULT_CITY_SETTINGS.missionSeed, size: settings.size, density: settings.density, height: settings.height, style, customText: typeof settings.customText === "string" ? settings.customText.slice(0, 160) : "" });
+      actions.generateCity({ seed: Number(settings.seed), missionSeed: Number.isInteger(settings.missionSeed) ? Number(settings.missionSeed) : DEFAULT_CITY_SETTINGS.missionSeed, size: settings.size, density: settings.density, height: settings.height, style, customText: typeof settings.customText === "string" ? settings.customText.slice(0, 160) : "", missionType: DEFAULT_CITY_SETTINGS.missionType, missionDifficulty: DEFAULT_CITY_SETTINGS.missionDifficulty });
       return { generated: true, status: actions.getStatus() };
     },
   });

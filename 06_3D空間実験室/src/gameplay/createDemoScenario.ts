@@ -22,13 +22,17 @@ import { MissionGenerator, type MissionPlan } from "./MissionGenerator";
 import { validateMission, type MissionValidation } from "./MissionValidator";
 import { MissionGuideManager, type MissionGuideDebugInfo, type MissionGuideMode } from "./MissionGuideManager";
 import { ObjectiveManager } from "./ObjectiveManager";
+import { MissionRuntime } from "./MissionRuntime";
+import type { MissionResult, MissionRuntimeSnapshot } from "./MissionTypes";
+import type { MissionDifficulty, MissionType } from "./MissionTypes";
 
 export interface GameplayCallbacks {
   onFocus: (focus?: InteractionFocus) => void;
   onMessage: (message: string) => void;
   onObjective: (objective: string) => void;
   onInventory: (items: InventoryEntry[]) => void;
-  onMissionComplete: () => void;
+  onMissionState: (state: MissionRuntimeSnapshot) => void;
+  onMissionComplete: (result: MissionResult) => void;
 }
 
 export interface DemoScenario {
@@ -39,7 +43,7 @@ export interface DemoScenario {
   navigation: () => InteriorNavigation | undefined;
   semanticLocation: () => SemanticLocation;
   worldStatistics: () => WorldStatistics;
-  mission: () => { plan: MissionPlan; validation: MissionValidation };
+  mission: () => { plan: MissionPlan; validation: MissionValidation; state: MissionRuntimeSnapshot };
   guideDebug: () => MissionGuideDebugInfo;
   setGuideMode: (mode: MissionGuideMode) => void;
   setDayMode: (isDay: boolean) => void;
@@ -56,10 +60,18 @@ export function createDemoScenario(
   cityInteriorSites: InteriorBuildingSite[] = [],
   citySeed = 1,
   missionSeed = citySeed + 54321,
+  missionType: MissionType = "ACCESS_CONTROL",
+  missionDifficulty: MissionDifficulty = "NORMAL",
 ): DemoScenario {
+  const baseMeshes = new Set(ctx.scene.meshes);
+  const baseMaterials = new Set(ctx.scene.materials);
+  const baseLights = new Set(ctx.scene.lights);
+  const baseAreaIds = new Set(registry.getAll().map((area) => area.id));
+  const missionSitePlaceholder = registry.get("mission_site");
+  const originalSiteStates = new Map(cityInteriorSites.map((site) => [site.id, { state: site.state, floorData: site.floorData }]));
   const interactions = new InteractionManager(ctx.scene, camera, callbacks.onFocus, 3);
   const inventory = new InventoryManager(callbacks.onInventory);
-  const objectives = new ObjectiveManager(callbacks.onObjective, callbacks.onMissionComplete);
+  const objectives = new ObjectiveManager(callbacks.onObjective, () => undefined);
   const events = new EventManager();
   const placement = new GamePlacementManager(registry, missionSeed);
   const missionArea = registry.get("mission_site");
@@ -76,36 +88,49 @@ export function createDemoScenario(
   registry.register({ id: "building_mission_001", type: "BUILDING", position: missionPosition, bounds: createBounds(missionPosition, 20, 12, 0, INTERIOR_FLOOR_HEIGHT * 2), connections: ["building_mission_001_entrance_001"], tags: ["private", "landmark", "mission"], importance: 10, metadata: { floors: 2, hasInterior: true } });
   const missionSite: InteriorBuildingSite = { id: "building_mission_001", root: missionRoot, width: 12, depth: 20, floors: 2, floorHeight: INTERIOR_FLOOR_HEIGHT, seed: citySeed + 104729, state: "NOT_GENERATED", mission: true };
 
+  let plan!: MissionPlan; let validation!: MissionValidation;
+  for (let retry = 0; retry < 10; retry += 1) {
+    plan = new MissionGenerator(registry, placement, citySeed, missionSeed).generate(spawn, missionSite.id, missionType, missionDifficulty, retry);
+    validation = validateMission(plan, registry);
+    if (validation.valid) break;
+    console.warn("MISSION VALIDATION RETRY", { retry: retry + 1, errors: validation.errors });
+  }
+  if (!validation.valid) throw new Error(`MISSION GENERATION FAILED: ${validation.errors.join(" / ")}`);
+  let completionDelivered = false;
+  const runtime = new MissionRuntime(plan, objectives, (state) => {
+    callbacks.onMissionState(state);
+    if (state.result && !completionDelivered) { completionDelivered = true; callbacks.onMissionComplete(state.result); }
+  });
   const interiorManager = new InteriorManager(ctx, camera, [missionSite, ...cityInteriorSites], {
-    interactions, inventory, events, objectives, onMessage: callbacks.onMessage, gateEventId: "OPEN_GATE_A", registry, placement,
+    interactions, inventory, events, objectives, onMessage: callbacks.onMessage, gateEventId: "OPEN_GATE_A", registry, placement, missionPlan: plan, missionRuntime: runtime,
   });
-  const plan = new MissionGenerator(registry, placement, missionSeed).generate(spawn, missionSite.id);
-  const validation = validateMission(plan, registry);
-  if (!validation.valid) console.warn("MISSION VALIDATION", validation.errors);
 
-  createItem(ctx, interactions, inventory, {
-    id: "item_key_001", itemId: "key", displayName: "鍵", position: toVector(plan.key.position), color: new Color3(.95, .68, .12), onMessage: callbacks.onMessage,
-    onPickup: () => objectives.set({ id: "reach_locked_door", label: "INTERIOR LABの入口を開ける", targetIds: [`${missionSite.id}_entrance_001`], targetType: "LOCKED DOOR" }),
-  });
+  const itemColors = { KEY: new Color3(.95, .68, .12), CARD_KEY: new Color3(.2, .72, .9), ITEM: new Color3(.72, .9, .3) };
+  plan.items.forEach((item) => createItem(ctx, interactions, inventory, {
+    id: item.id, itemId: item.itemId, displayName: item.displayName, position: toVector(item.placement.position), color: itemColors[item.kind], onMessage: callbacks.onMessage,
+    onPickup: () => runtime.completeByTarget(item.id, `${item.displayName} acquired`),
+  }));
 
   const goalPosition = toVector(plan.goal.position);
   const route = goalPosition.subtract(spawn); route.y = 0;
   if (route.lengthSquared() < 1) route.set(0, 0, 1); else route.normalize();
   const gatePosition = goalPosition.subtract(route.scale(4.5)); gatePosition.y = .12;
   const gateRotation = Math.atan2(route.x, route.z);
-  let gateActivated = false;
+  let gateActivated = plan.interior.switchIds.length === 0;
   createMissionFrame(ctx, gatePosition, gateRotation, new Color3(.18, .28, .33));
   const perpendicular = new Vector3(route.z, 0, -route.x);
   const gateHinge = gatePosition.add(perpendicular.scale(1.4));
   const gate = createDoor(ctx, interactions, inventory, { id: "door_gate_001", displayName: "屋外ゲート", position: gateHinge, width: 2.8, rotation: gateRotation, color: new Color3(.16, .34, .42), interactable: false, onMessage: callbacks.onMessage });
   events.on("OPEN_GATE_A", () => { gateActivated = true; gate.open(); });
+  if (gateActivated) gate.open();
 
   createSemanticSpawnPoints(placement, registry, spawn);
   placement.createDebugMarkers(ctx);
   createInspectables(ctx, interactions, missionPosition, callbacks.onMessage);
-  const disposeGoal = createGoalZone(ctx, camera, { id: "goal_001", position: goalPosition, onEnter: () => { if (!gateActivated) return false; objectives.complete(); return true; } });
-  const guide = new MissionGuideManager(ctx.scene, camera, registry, objectives);
-  objectives.set({ id: "find_key", label: "鍵を探す", targetIds: ["item_key_001"], targetType: "KEY" });
+  const disposeGoal = createGoalZone(ctx, camera, { id: "goal_001", position: goalPosition, onEnter: () => gateActivated && runtime.completeByTarget("goal_001", "Goal reached") });
+  const guide = new MissionGuideManager(ctx.scene, camera, registry, objectives, () => plan.steps);
+  runtime.attachPositionTracking(ctx.scene, camera, registry);
+  callbacks.onMissionState(runtime.snapshot());
 
   return {
     interact: () => interactions.interact(),
@@ -115,12 +140,20 @@ export function createDemoScenario(
     navigation: () => interiorManager.navigation(),
     semanticLocation: () => registry.getLocationAt(camera.position),
     worldStatistics: () => registry.getStatistics(),
-    mission: () => ({ plan, validation }),
+    mission: () => ({ plan, validation, state: runtime.snapshot() }),
     guideDebug: () => guide.getDebugInfo(),
     setGuideMode: (mode) => guide.setMode(mode),
     setDayMode: (isDay) => interiorManager.setDayMode(isDay),
     setDebugMode: (visible) => placement.setDebugVisible(visible),
-    dispose: () => { disposeGoal(); guide.dispose(); interiorManager.dispose(); interactions.dispose(); inventory.clear(); events.clear(); },
+    dispose: () => {
+      disposeGoal(); runtime.dispose(ctx.scene); guide.dispose(); interiorManager.dispose(); interactions.dispose(); inventory.clear(); events.clear();
+      ctx.scene.meshes.filter((mesh) => !baseMeshes.has(mesh)).forEach((mesh) => { if (!mesh.isDisposed()) mesh.dispose(false, false); });
+      ctx.scene.materials.filter((material) => !baseMaterials.has(material)).forEach((material) => material.dispose());
+      ctx.scene.lights.filter((light) => !baseLights.has(light)).forEach((light) => light.dispose());
+      registry.getAll().filter((area) => !baseAreaIds.has(area.id)).forEach((area) => registry.remove(area.id));
+      if (missionSitePlaceholder) registry.register(missionSitePlaceholder);
+      cityInteriorSites.forEach((site) => { const original = originalSiteStates.get(site.id); if (original) { site.state = original.state; site.floorData = original.floorData; } });
+    },
   };
 }
 
