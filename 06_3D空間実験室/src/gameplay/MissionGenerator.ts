@@ -23,7 +23,7 @@ export class MissionGenerator {
     const goalArea = this.placement.chooseArea(["PLAZA", "ROAD", "PARK", "BUILDING_ENTRANCE"], ["landmark"], startPosition, 16) ?? startArea;
     const start = this.placement.place("start_001", "START", startArea, .12);
     start.position = { ...startPosition };
-    const key = this.placement.place("key_001", "KEY", keyArea, .48);
+    const key = this.placement.place("item_key_001", "KEY", keyArea, .48);
     const goal = this.placement.place("goal_001", "GOAL", goalArea, .12);
     [start, key, goal].forEach((item) => this.placement.registerSpawn(item));
     return {

@@ -78,6 +78,14 @@
         <div><dt>NPC Spawn</dt><dd id="npc-spawn-value">0</dd></div>
         <div><dt>Mission Seed</dt><dd id="mission-seed-value">—</dd></div>
         <div><dt>Mission Route</dt><dd id="mission-valid-value">—</dd></div>
+        <div><dt>Objective ID</dt><dd id="guide-objective-value">—</dd></div>
+        <div><dt>Guide Target</dt><dd id="guide-target-value">—</dd></div>
+        <div><dt>Guide Type</dt><dd id="guide-type-value">—</dd></div>
+        <div><dt>Guide Dist.</dt><dd id="guide-distance-value">—</dd></div>
+        <div><dt>Height Diff</dt><dd id="guide-height-value">—</dd></div>
+        <div><dt>Visible</dt><dd id="guide-visible-value">NO</dd></div>
+        <div><dt>On Screen</dt><dd id="guide-screen-value">NO</dd></div>
+        <div class="interpretation-row"><dt>Guide Status</dt><dd id="guide-status-value">—</dd></div>
         <div class="interpretation-row"><dt>Rules</dt><dd id="interpretation-value">—</dd></div>
       </dl>
     </div>
@@ -99,6 +107,11 @@
       <span>OBJECTIVE</span>
       <strong id="objective-text">鍵を探す</strong>
     </section>
+    <div class="mission-guide-edge" id="mission-guide-edge" aria-live="polite" hidden>
+      <span class="mission-guide-arrow" id="mission-guide-arrow">▲</span>
+      <strong id="mission-guide-label">KEY</strong>
+      <small id="mission-guide-distance">0m</small>
+    </div>
     <div class="interaction-prompt" id="interaction-prompt" hidden></div>
     <button type="button" class="interact-button" id="interact-button" hidden>操作</button>
     <div class="gameplay-message" id="gameplay-message" role="status" aria-live="polite"></div>
@@ -128,6 +141,14 @@
         </div>
         <button type="button" class="city-generate-button" data-action="regenerate-city">このイメージで街を生成</button>
       </section>
+
+      <label class="guide-mode-setting">MISSION GUIDE
+        <select id="mission-guide-mode" aria-label="Mission Guide表示モード">
+          <option value="OFF">OFF</option>
+          <option value="NORMAL">NORMAL</option>
+          <option value="DEBUG" selected>DEBUG</option>
+        </select>
+      </label>
 
       <p class="panel-label">LIGHT</p>
       <div class="mode-switch" role="group" aria-label="時間帯">

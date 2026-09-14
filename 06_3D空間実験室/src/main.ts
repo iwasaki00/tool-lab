@@ -9,6 +9,7 @@ import { registerWebMcp } from "./ui/registerWebMcp";
 import { createGameplayUi } from "./ui/gameplayUi";
 import { loadCitySettings, saveCitySettings } from "./world/citySettingsStorage";
 import { type CitySettings, type WorldMode } from "./world/types";
+import type { MissionGuideMode } from "./gameplay/MissionGuideManager";
 
 const mobile = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
 document.body.classList.add(mobile ? "is-mobile" : "is-desktop");
@@ -25,6 +26,7 @@ let debugMode = false;
 let currentWorld: WorldMode = "city";
 let citySettings: CitySettings = loadCitySettings();
 let currentTime: "day" | "night" = "day";
+let currentGuideMode: MissionGuideMode = "DEBUG";
 
 try {
   if (!Engine.IsSupported) throw new Error("このブラウザではWebGLを利用できません。");
@@ -33,6 +35,7 @@ try {
   engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: false }, false);
   engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
   laboratory = createLaboratoryScene(engine, canvas, mobile, { worldMode: currentWorld, citySettings, gameplayCallbacks: gameplayUi.callbacks });
+  laboratory.setMissionGuideMode(currentGuideMode);
   gameplayUi.setInteractHandler(() => getLaboratory().interact());
   hideInitializationError();
   if (mobile) detachMobileControls = attachMobileControls(laboratory.player);
@@ -64,6 +67,7 @@ try {
       controls.setWorldMode("city");
       rebuildWorld("city", settings, `Seed ${settings.seed} で街を生成しました`);
     },
+    guideMode: (mode) => { currentGuideMode = mode; getLaboratory().setMissionGuideMode(mode); },
   }, citySettings);
 
   function refresh(message: string): void {
@@ -83,6 +87,7 @@ try {
     getLaboratory().disposeWorld();
     getLaboratory().scene.dispose();
     laboratory = createLaboratoryScene(getEngine(), canvas!, mobile, { worldMode: mode, citySettings: settings, gameplayCallbacks: gameplayUi.callbacks });
+    laboratory.setMissionGuideMode(currentGuideMode);
     gameplayUi.setInteractHandler(() => getLaboratory().interact());
     laboratory.setDayMode(currentTime === "day");
     hideInitializationError();

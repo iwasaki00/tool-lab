@@ -4,6 +4,8 @@ Babylon.jsのプリミティブ形状とTypeScriptだけで構築した、一人
 
 DEBUGを開くと、現在Area、Type、Tags、Building、Floor、Room、World統計、Mission Seed、経路検証結果を確認できます。描画テストを有効にすると、START、鍵、カードキー、Enemy/NPC Spawn、Goalの候補位置が発光マーカーで表示されます。
 
+MISSION GUIDEは`OFF / NORMAL / DEBUG`を切り替えられます。DEBUGでは現在Objectiveの対象をWorldRegistryから解決し、距離・高低差付きの3D矢印とBillboard、画面外方向ガイドを表示します。鍵取得やドア解錠に合わせて、案内先は次のMission Targetへ自動的に切り替わります。
+
 ## 起動
 
 リポジトリのルートで次を実行します。

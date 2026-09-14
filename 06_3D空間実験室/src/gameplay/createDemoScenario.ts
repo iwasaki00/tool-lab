@@ -20,6 +20,7 @@ import { GamePlacementManager } from "./GamePlacementManager";
 import { InventoryManager, type InventoryEntry } from "./InventoryManager";
 import { MissionGenerator, type MissionPlan } from "./MissionGenerator";
 import { validateMission, type MissionValidation } from "./MissionValidator";
+import { MissionGuideManager, type MissionGuideDebugInfo, type MissionGuideMode } from "./MissionGuideManager";
 import { ObjectiveManager } from "./ObjectiveManager";
 
 export interface GameplayCallbacks {
@@ -39,6 +40,8 @@ export interface DemoScenario {
   semanticLocation: () => SemanticLocation;
   worldStatistics: () => WorldStatistics;
   mission: () => { plan: MissionPlan; validation: MissionValidation };
+  guideDebug: () => MissionGuideDebugInfo;
+  setGuideMode: (mode: MissionGuideMode) => void;
   setDayMode: (isDay: boolean) => void;
   setDebugMode: (visible: boolean) => void;
   dispose: () => void;
@@ -82,7 +85,7 @@ export function createDemoScenario(
 
   createItem(ctx, interactions, inventory, {
     id: "item_key_001", itemId: "key", displayName: "鍵", position: toVector(plan.key.position), color: new Color3(.95, .68, .12), onMessage: callbacks.onMessage,
-    onPickup: () => objectives.set("INTERIOR LABの入口を開ける"),
+    onPickup: () => objectives.set({ id: "reach_locked_door", label: "INTERIOR LABの入口を開ける", targetIds: [`${missionSite.id}_entrance_001`], targetType: "LOCKED DOOR" }),
   });
 
   const goalPosition = toVector(plan.goal.position);
@@ -101,7 +104,8 @@ export function createDemoScenario(
   placement.createDebugMarkers(ctx);
   createInspectables(ctx, interactions, missionPosition, callbacks.onMessage);
   const disposeGoal = createGoalZone(ctx, camera, { id: "goal_001", position: goalPosition, onEnter: () => { if (!gateActivated) return false; objectives.complete(); return true; } });
-  objectives.set("鍵を探す");
+  const guide = new MissionGuideManager(ctx.scene, camera, registry, objectives);
+  objectives.set({ id: "find_key", label: "鍵を探す", targetIds: ["item_key_001"], targetType: "KEY" });
 
   return {
     interact: () => interactions.interact(),
@@ -112,18 +116,20 @@ export function createDemoScenario(
     semanticLocation: () => registry.getLocationAt(camera.position),
     worldStatistics: () => registry.getStatistics(),
     mission: () => ({ plan, validation }),
+    guideDebug: () => guide.getDebugInfo(),
+    setGuideMode: (mode) => guide.setMode(mode),
     setDayMode: (isDay) => interiorManager.setDayMode(isDay),
     setDebugMode: (visible) => placement.setDebugVisible(visible),
-    dispose: () => { disposeGoal(); interiorManager.dispose(); interactions.dispose(); inventory.clear(); events.clear(); },
+    dispose: () => { disposeGoal(); guide.dispose(); interiorManager.dispose(); interactions.dispose(); inventory.clear(); events.clear(); },
   };
 }
 
 function createSemanticSpawnPoints(placement: GamePlacementManager, registry: WorldRegistry, start: Vector3): void {
   for (let index = 0; index < 2; index += 1) {
     const enemyArea = placement.chooseArea(["ALLEY", "STORAGE", "CORRIDOR", "ROAD"], ["danger", "dark", "dead_end"], start, 12);
-    if (enemyArea) { const enemy = placement.place(`enemy_${index + 1}`, "ENEMY", enemyArea, .12); placement.registerSpawn(enemy); registry.connect(`placement_${enemy.id}`, enemy.areaId); }
+    if (enemyArea) { const enemy = placement.place(`enemy_${index + 1}`, "ENEMY", enemyArea, .12); placement.registerSpawn(enemy); registry.connect(enemy.id, enemy.areaId); }
     const npcArea = placement.chooseArea(["PLAZA", "PARK", "SIDEWALK", "BUILDING_ENTRANCE", "OFFICE"], ["safe", "public", "bright"], start, 5);
-    if (npcArea) { const npc = placement.place(`npc_${index + 1}`, "NPC", npcArea, .12); placement.registerSpawn(npc); registry.connect(`placement_${npc.id}`, npc.areaId); }
+    if (npcArea) { const npc = placement.place(`npc_${index + 1}`, "NPC", npcArea, .12); placement.registerSpawn(npc); registry.connect(npc.id, npc.areaId); }
   }
 }
 

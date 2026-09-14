@@ -64,7 +64,7 @@ export class InteriorManager {
       id: `${site.id}_entrance_001`, displayName: site.mission ? "INTERIOR LAB 入口" : `${site.id} 入口`, parent: site.root,
       position: new Vector3(-.8, 0, -site.depth / 2 - .13), width: 1.6, height: 2.9,
       locked: site.mission, keyId: site.mission ? "key" : undefined, color: site.mission ? new Color3(.2, .42, .5) : new Color3(.34, .24, .16), onMessage: this.deps.onMessage,
-      onOpened: site.mission ? () => { if (entrance.isOpen()) this.deps.objectives.set("1Fを探索しカードキーを探す"); } : undefined,
+      onOpened: site.mission ? () => { if (entrance.isOpen()) this.deps.objectives.set({ id: "find_card_key", label: "1Fを探索しカードキーを探す", targetIds: [`${site.id}_item_card_001`], targetType: "CARD KEY" }); } : undefined,
     });
   }
 

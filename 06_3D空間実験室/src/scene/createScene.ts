@@ -26,6 +26,7 @@ import { WorldRegistry } from "../world/WorldRegistry";
 import { createBounds, type MapArea2D, type SemanticLocation, type WorldStatistics } from "../world/SemanticTypes";
 import type { MissionPlan } from "../gameplay/MissionGenerator";
 import type { MissionValidation } from "../gameplay/MissionValidator";
+import type { MissionGuideDebugInfo, MissionGuideMode } from "../gameplay/MissionGuideManager";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -49,6 +50,8 @@ export interface LaboratoryApi {
   worldStatistics: () => WorldStatistics;
   missionDebug: () => { plan: MissionPlan; validation: MissionValidation };
   semanticMap: (floor?: number) => MapArea2D[];
+  setMissionGuideMode: (mode: MissionGuideMode) => void;
+  missionGuideDebug: () => MissionGuideDebugInfo;
 }
 
 export interface SceneOptions {
@@ -173,6 +176,8 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     worldStatistics: () => demoScenario.worldStatistics(),
     missionDebug: () => demoScenario.mission(),
     semanticMap: (floor) => registry.toMap2D(floor),
+    setMissionGuideMode: (mode) => demoScenario.setGuideMode(mode),
+    missionGuideDebug: () => demoScenario.guideDebug(),
   };
 }
 

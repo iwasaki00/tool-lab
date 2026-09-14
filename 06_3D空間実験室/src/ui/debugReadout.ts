@@ -16,6 +16,7 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   const semantic = laboratory.semanticDebug();
   const world = laboratory.worldStatistics();
   const mission = laboratory.missionDebug();
+  const guide = laboratory.missionGuideDebug();
   setText("renderer-value", getRendererName(engine));
   setText("canvas-value", canvas ? `${canvas.width} × ${canvas.height}` : "0 × 0");
   setText("viewport-value", `${Math.round(window.visualViewport?.width ?? window.innerWidth)} × ${Math.round(window.visualViewport?.height ?? window.innerHeight)}`);
@@ -49,6 +50,14 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   setText("npc-spawn-value", String(world.npcSpawns));
   setText("mission-seed-value", String(mission.plan.seed));
   setText("mission-valid-value", mission.validation.valid ? "PASS" : "FAIL");
+  setText("guide-objective-value", guide.objectiveId);
+  setText("guide-target-value", guide.targetId);
+  setText("guide-type-value", guide.targetType);
+  setText("guide-distance-value", guide.status === "READY" ? `${guide.distance.toFixed(1)}m` : "—");
+  setText("guide-height-value", guide.status === "READY" ? `${guide.heightDiff >= 0 ? "+" : ""}${guide.heightDiff.toFixed(1)}m` : "—");
+  setText("guide-visible-value", guide.visible ? "YES" : "NO");
+  setText("guide-screen-value", guide.onScreen ? "YES" : "NO");
+  setText("guide-status-value", guide.status);
 }
 
 function setText(id: string, value: string): void {

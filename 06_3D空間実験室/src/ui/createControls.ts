@@ -2,6 +2,7 @@ import { normalizeSeed } from "../random/seededRandom";
 import { CITY_STYLE_OPTIONS, resolveCityStyle } from "../world/cityStyles";
 import { saveCitySettings } from "../world/citySettingsStorage";
 import { DEFAULT_CITY_SETTINGS, type BuildingDensity, type CitySettings, type CitySize, type CityStyle, type HeightProfile, type WorldMode } from "../world/types";
+import type { MissionGuideMode } from "../gameplay/MissionGuideManager";
 
 export interface ControlActions {
   day: () => void;
@@ -14,6 +15,7 @@ export interface ControlActions {
   reset: () => void;
   selectWorld: (mode: WorldMode, settings: CitySettings) => void;
   regenerateCity: (settings: CitySettings) => void;
+  guideMode: (mode: MissionGuideMode) => void;
 }
 
 export function createControls(actions: ControlActions, initialSettings: CitySettings): {
@@ -86,7 +88,9 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
       case "regenerate-city": persistAndGenerate(); break;
     }
   });
-  panel?.addEventListener("input", () => {
+  panel?.addEventListener("input", (event) => {
+    const target = event.target as HTMLSelectElement;
+    if (target.id === "mission-guide-mode") actions.guideMode(target.value as MissionGuideMode);
     updateInterpretation();
     saveCitySettings(getCitySettings());
   });

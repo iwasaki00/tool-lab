@@ -56,7 +56,7 @@ export class GamePlacementManager {
 
   registerSpawn(placement: GamePlacement): void {
     const type = placement.kind === "ENEMY" ? "ENEMY_SPAWN" : placement.kind === "NPC" ? "NPC_SPAWN" : placement.kind === "GOAL" ? "GOAL_AREA" : placement.kind === "START" ? "START" : "ITEM";
-    this.registry.register({ id: `placement_${placement.id}`, type, position: placement.position, bounds: createBounds(placement.position, 1, 1, placement.position.y - .5, placement.position.y + 1.5), connections: [placement.areaId], tags: ["spawn", "mission"], importance: placement.kind === "GOAL" ? 10 : 4, metadata: { kind: placement.kind } });
+    this.registry.register({ id: placement.id, type, position: placement.position, bounds: createBounds(placement.position, 1, 1, placement.position.y - .5, placement.position.y + 1.5), connections: [placement.areaId], tags: ["spawn", "mission"], importance: placement.kind === "GOAL" ? 10 : 4, metadata: { kind: placement.kind } });
   }
 
   createDebugMarkers(ctx: ObjectContext): void {

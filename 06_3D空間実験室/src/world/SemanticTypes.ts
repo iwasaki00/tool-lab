@@ -1,6 +1,6 @@
 export type AreaType =
   | "ROAD" | "SIDEWALK" | "ALLEY" | "INTERSECTION"
-  | "PLAZA" | "PARK" | "BUILDING" | "BUILDING_ENTRANCE"
+  | "PLAZA" | "PARK" | "BUILDING" | "BUILDING_ENTRANCE" | "DOOR" | "SWITCH"
   | "ROOM" | "CORRIDOR" | "STAIR" | "DEAD_END"
   | "CONTROL_ROOM" | "STORAGE" | "OFFICE" | "LIVING_ROOM"
   | "ROOFTOP" | "GOAL_AREA" | "START"
@@ -69,4 +69,3 @@ export function createBounds(position: WorldPosition, width: number, depth: numb
     minZ: position.z - depth / 2, maxZ: position.z + depth / 2,
   };
 }
-
