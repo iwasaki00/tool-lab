@@ -133,12 +133,15 @@ body {
 
 .mission-guide-edge {
   --guide-angle: 0deg;
-  position: fixed; z-index: 42; display: grid; min-width: 76px; transform: translate(-50%, -50%);
+  position: fixed; z-index: 18; display: grid; min-width: 76px; transform: translate(-50%, -50%);
   place-items: center; gap: 2px; border: 1px solid rgba(85,240,192,.62); border-radius: 7px; padding: 7px 10px;
   background: rgba(3,18,24,.82); color: #effffb; font-family: monospace; text-align: center;
   box-shadow: 0 0 18px rgba(85,240,192,.2); pointer-events: none;
 }
 .mission-guide-edge[hidden] { display: none; }
+body:has(.control-panel.is-open) .mission-guide-edge,
+body:has(.start-guide:not(.is-hidden)) .mission-guide-edge,
+body:has(.inventory-overlay:not([hidden])) .mission-guide-edge { display: none; }
 .mission-guide-arrow { display: block; color: #55f0c0; font-size: 1.25rem; line-height: 1; transform: rotate(var(--guide-angle)); text-shadow: 0 0 9px #55f0c0; }
 .mission-guide-edge strong { color: #bffff0; font-size: .68rem; letter-spacing: .06em; }
 .mission-guide-edge small { color: #fff; font-size: .64rem; }

@@ -104,7 +104,7 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
     createCorridorWalls(ctx, site, floorY, corridorWidth, doorCenters, wallMaterial);
     if (floor < floors - 1) createStaircase(ctx, site, floorY, floorMaterial);
     const corridor: LocalBounds = { minX: -corridorWidth / 2, maxX: corridorWidth / 2, minZ: -site.depth / 2 + .3, maxZ: site.depth / 2 - .3 };
-    floorData.push({ floor: floor + 1, corridor, rooms, staircase: floor < floors - 1 ? { minX: -.95, maxX: .95, minZ: site.depth / 2 - 5.2, maxZ: site.depth / 2 - .4 } : undefined });
+    floorData.push({ floor: floor + 1, corridor, rooms, staircase: floor < floors - 1 ? { minX: -.95, maxX: .95, minZ: site.depth / 2 - 6.3, maxZ: site.depth / 2 - 1.5 } : undefined });
     const lampMaterial = createMaterial(ctx.scene, `${site.id}-ceiling-light-${floor + 1}`, new Color3(.82, .78, .58), .6);
     lampMaterial.emissiveColor = new Color3(.25, .22, .12); lightMaterials.push(lampMaterial);
     const panel = MeshBuilder.CreateBox("interior-light-panel", { width: 1.5, height: .06, depth: .55 }, ctx.scene);
@@ -126,7 +126,8 @@ function createFloor(ctx: ObjectContext, site: InteriorBuildingSite, floor: numb
   const sideWidth = (site.width - openingWidth) / 2;
   createSlab(ctx, site.root, "upper-floor-left", sideWidth, site.depth - .35, .16, -(openingWidth / 2 + sideWidth / 2), y, 0, material, true);
   createSlab(ctx, site.root, "upper-floor-right", sideWidth, site.depth - .35, .16, openingWidth / 2 + sideWidth / 2, y, 0, material, true);
-  const frontDepth = Math.max(1, site.depth - 5.2);
+  // 反転した階段の上端まで吹き抜けを延ばし、頭上を上階床で塞がない。
+  const frontDepth = Math.max(1, site.depth - 6.4);
   createSlab(ctx, site.root, "upper-floor-corridor", openingWidth, frontDepth, .16, 0, y, -site.depth / 2 + frontDepth / 2 + .2, material, true);
 }
 
@@ -147,15 +148,19 @@ export function createStaircase(ctx: ObjectContext, site: InteriorBuildingSite, 
   const run = 4.8;
   const rise = site.floorHeight;
   const back = site.depth / 2 - .35;
+  // 外壁側に旋回用の踊り場を確保し、上階の中央廊下へ向かって上る。
+  // 従来は壁へ向かって上昇していたため、上端でプレイヤーが旋回できなかった。
+  const lowerLandingDepth = 1.15;
+  const stairStartZ = back - lowerLandingDepth;
   const steps: Mesh[] = [];
   for (let i = 0; i < 8; i += 1) {
     const step = MeshBuilder.CreateBox("stair-step-part", { width: 1.8, height: .16, depth: run / 8 + .03 }, ctx.scene);
-    step.position.set(0, floorY + (i + 1) * rise / 8, back - run + (i + .5) * run / 8); step.material = material; steps.push(step);
+    step.position.set(0, floorY + (i + 1) * rise / 8, stairStartZ - (i + .5) * run / 8); step.material = material; steps.push(step);
   }
   const merged = Mesh.MergeMeshes(steps, true, true, undefined, false, true);
   if (merged) { merged.name = `${site.id}-stairs`; merged.parent = site.root; merged.checkCollisions = false; }
   const slope = MeshBuilder.CreateBox(`${site.id}-stair-collider`, { width: 1.75, height: .12, depth: Math.hypot(run, rise) }, ctx.scene);
-  slope.position.set(0, floorY + rise / 2, back - run / 2); slope.rotation.x = -Math.atan2(rise, run); slope.parent = site.root; slope.checkCollisions = true;
+  slope.position.set(0, floorY + rise / 2, stairStartZ - run / 2); slope.rotation.x = Math.atan2(rise, run); slope.parent = site.root; slope.checkCollisions = true;
   const invisible = createMaterial(ctx.scene, `${site.id}-stair-collider-material`, Color3.Black()); invisible.alpha = 0; slope.material = invisible; slope.visibility = .01;
 }
 
