@@ -60,7 +60,7 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
 
   for (let floor = 0; floor < floors; floor += 1) {
     const floorY = floor * site.floorHeight;
-    createFloor(ctx, site, floor, floorY, floorMaterial);
+    createFloor(ctx, site, floor, floorY, floorMaterial, corridorWidth);
     if (floor === floors - 1) createSlab(ctx, site.root, "interior-ceiling", site.width - .35, site.depth - .35, .14, 0, floorY + site.floorHeight - .08, 0, ceilingMaterial, true);
 
     const rooms: RoomData[] = [];
@@ -72,7 +72,8 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
       doorCenters.push(doorZ);
       for (const side of [-1, 1]) {
         const roomIndex = rooms.length + 1;
-        const type = chooseRoomType(random, site.mission, floor, row, side, floors, rowCount);
+        const isStairRoom = floors > 1 && row === rowCount - 1 && side < 0;
+        const type = isStairRoom ? "EMPTY" : chooseRoomType(random, site.mission, floor, row, side, floors, rowCount);
         const room: RoomData = {
           id: `${site.id}_room_${String(floor + 1).padStart(2, "0")}_${String(roomIndex).padStart(2, "0")}`,
           type,
@@ -96,15 +97,16 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
         const doorWorld = Vector3.TransformCoordinates(new Vector3(hingeX, floorY + 1.4, doorZ), site.root.getWorldMatrix());
         deps.registry.register({ id: doorId, type: "DOOR", position: doorWorld, bounds: createBounds(doorWorld, 1.8, 1.2, floorY, floorY + 3), floor: floor + 1, buildingId: site.id, roomId: room.id, connections: [room.id, `${site.id}_corridor_${floor + 1}`], tags: ["indoor", "private", ...(lockedControlDoor ? ["mission" as const] : [])], importance: lockedControlDoor ? 9 : 3, metadata: { locked: Boolean(lockedControlDoor) } });
         rooms.push(room);
-        createRoomFurniture(ctx, site.root, room.id, type, room.bounds, floorY, random);
+        if (!isStairRoom) createRoomFurniture(ctx, site.root, room.id, type, room.bounds, floorY, random);
         const innerWindow = MeshBuilder.CreateBox("interior-window", { width: .07, height: 1, depth: Math.min(1.35, rowDepth * .42) }, ctx.scene);
         innerWindow.position.set(side * (site.width / 2 - .16), floorY + 1.45, doorZ); innerWindow.parent = site.root; innerWindow.material = windowMaterial; innerWindow.isPickable = false;
       }
     }
     createCorridorWalls(ctx, site, floorY, corridorWidth, doorCenters, wallMaterial);
-    if (floor < floors - 1) createStaircase(ctx, site, floorY, floorMaterial);
+    if (floor < floors - 1) createStaircase(ctx, site, floorY, floorMaterial, corridorWidth);
     const corridor: LocalBounds = { minX: -corridorWidth / 2, maxX: corridorWidth / 2, minZ: -site.depth / 2 + .3, maxZ: site.depth / 2 - .3 };
-    floorData.push({ floor: floor + 1, corridor, rooms, staircase: floor < floors - 1 ? { minX: -.95, maxX: .95, minZ: site.depth / 2 - 6.3, maxZ: site.depth / 2 - 1.5 } : undefined });
+    const stairLayout = getStairLayout(site, corridorWidth);
+    floorData.push({ floor: floor + 1, corridor, rooms, staircase: floor < floors - 1 ? { minX: stairLayout.openingMinX, maxX: stairLayout.openingMaxX, minZ: stairLayout.startZ, maxZ: stairLayout.endZ } : undefined });
     const lampMaterial = createMaterial(ctx.scene, `${site.id}-ceiling-light-${floor + 1}`, new Color3(.82, .78, .58), .6);
     lampMaterial.emissiveColor = new Color3(.25, .22, .12); lightMaterials.push(lampMaterial);
     const panel = MeshBuilder.CreateBox("interior-light-panel", { width: 1.5, height: .06, depth: .55 }, ctx.scene);
@@ -120,15 +122,53 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
   return { floorData, lights, lightMaterials };
 }
 
-function createFloor(ctx: ObjectContext, site: InteriorBuildingSite, floor: number, y: number, material: StandardMaterial): void {
-  if (floor === 0) { createSlab(ctx, site.root, "interior-floor", site.width - .35, site.depth - .35, .16, 0, y + .08, 0, material, true); return; }
+interface StairLayout {
+  centerX: number;
+  openingMinX: number;
+  openingMaxX: number;
+  startZ: number;
+  endZ: number;
+  run: number;
+}
+
+function getStairLayout(site: InteriorBuildingSite, corridorWidth: number): StairLayout {
+  const stairWidth = 1.8;
   const openingWidth = 2.2;
-  const sideWidth = (site.width - openingWidth) / 2;
-  createSlab(ctx, site.root, "upper-floor-left", sideWidth, site.depth - .35, .16, -(openingWidth / 2 + sideWidth / 2), y, 0, material, true);
-  createSlab(ctx, site.root, "upper-floor-right", sideWidth, site.depth - .35, .16, openingWidth / 2 + sideWidth / 2, y, 0, material, true);
-  // 反転した階段の上端まで吹き抜けを延ばし、頭上を上階床で塞がない。
-  const frontDepth = Math.max(1, site.depth - 6.4);
-  createSlab(ctx, site.root, "upper-floor-corridor", openingWidth, frontDepth, .16, 0, y, -site.depth / 2 + frontDepth / 2 + .2, material, true);
+  const rowCount = site.depth >= 13 ? 2 : 1;
+  const rearDoorZ = rowCount === 2 ? site.depth / 4 - .15 : 0;
+  const floorMaxZ = site.depth / 2 - .3;
+  const landingDepth = site.depth >= 13 ? 1.15 : .95;
+  const startZ = rearDoorZ + .12;
+  const run = Math.max(2.55, Math.min(3.8, floorMaxZ - startZ - landingDepth));
+  const centerX = -corridorWidth / 2 - stairWidth / 2 - .22;
+  return {
+    centerX,
+    openingMinX: centerX - openingWidth / 2,
+    openingMaxX: centerX + openingWidth / 2,
+    startZ: startZ - .2,
+    endZ: startZ + run + .08,
+    run,
+  };
+}
+
+function createFloor(ctx: ObjectContext, site: InteriorBuildingSite, floor: number, y: number, material: StandardMaterial, corridorWidth: number): void {
+  if (floor === 0) { createSlab(ctx, site.root, "interior-floor", site.width - .35, site.depth - .35, .16, 0, y + .08, 0, material, true); return; }
+  const layout = getStairLayout(site, corridorWidth);
+  const minX = -site.width / 2 + .175;
+  const maxX = site.width / 2 - .175;
+  const minZ = -site.depth / 2 + .175;
+  const maxZ = site.depth / 2 - .175;
+  createFloorRect(ctx, site, "upper-floor-left", minX, layout.openingMinX, minZ, maxZ, y, material);
+  createFloorRect(ctx, site, "upper-floor-right", layout.openingMaxX, maxX, minZ, maxZ, y, material);
+  createFloorRect(ctx, site, "upper-floor-front", layout.openingMinX, layout.openingMaxX, minZ, layout.startZ, y, material);
+  createFloorRect(ctx, site, "upper-floor-landing", layout.openingMinX, layout.openingMaxX, layout.endZ, maxZ, y, material);
+}
+
+function createFloorRect(ctx: ObjectContext, site: InteriorBuildingSite, name: string, minX: number, maxX: number, minZ: number, maxZ: number, y: number, material: StandardMaterial): void {
+  const width = maxX - minX;
+  const depth = maxZ - minZ;
+  if (width <= .05 || depth <= .05) return;
+  createSlab(ctx, site.root, name, width, depth, .16, (minX + maxX) / 2, y, (minZ + maxZ) / 2, material, true);
 }
 
 function createCorridorWalls(ctx: ObjectContext, site: InteriorBuildingSite, floorY: number, corridorWidth: number, doorCenters: number[], material: StandardMaterial): void {
@@ -144,23 +184,21 @@ function createCorridorWalls(ctx: ObjectContext, site: InteriorBuildingSite, flo
   }
 }
 
-export function createStaircase(ctx: ObjectContext, site: InteriorBuildingSite, floorY: number, material: StandardMaterial): void {
-  const run = 4.8;
+export function createStaircase(ctx: ObjectContext, site: InteriorBuildingSite, floorY: number, material: StandardMaterial, corridorWidth = 2.2): void {
+  const layout = getStairLayout(site, corridorWidth);
+  const run = layout.run;
   const rise = site.floorHeight;
-  const back = site.depth / 2 - .35;
-  // 外壁側に旋回用の踊り場を確保し、上階の中央廊下へ向かって上る。
-  // 従来は壁へ向かって上昇していたため、上端でプレイヤーが旋回できなかった。
-  const lowerLandingDepth = 1.15;
-  const stairStartZ = back - lowerLandingDepth;
+  const stairStartZ = layout.startZ + .2;
+  const stepCount = 10;
   const steps: Mesh[] = [];
-  for (let i = 0; i < 8; i += 1) {
-    const step = MeshBuilder.CreateBox("stair-step-part", { width: 1.8, height: .16, depth: run / 8 + .03 }, ctx.scene);
-    step.position.set(0, floorY + (i + 1) * rise / 8, stairStartZ - (i + .5) * run / 8); step.material = material; steps.push(step);
+  for (let i = 0; i < stepCount; i += 1) {
+    const step = MeshBuilder.CreateBox("stair-step-part", { width: 1.8, height: .16, depth: run / stepCount + .03 }, ctx.scene);
+    step.position.set(layout.centerX, floorY + (i + 1) * rise / stepCount, stairStartZ + (i + .5) * run / stepCount); step.material = material; steps.push(step);
   }
   const merged = Mesh.MergeMeshes(steps, true, true, undefined, false, true);
   if (merged) { merged.name = `${site.id}-stairs`; merged.parent = site.root; merged.checkCollisions = false; }
   const slope = MeshBuilder.CreateBox(`${site.id}-stair-collider`, { width: 1.75, height: .12, depth: Math.hypot(run, rise) }, ctx.scene);
-  slope.position.set(0, floorY + rise / 2, stairStartZ - run / 2); slope.rotation.x = Math.atan2(rise, run); slope.parent = site.root; slope.checkCollisions = true;
+  slope.position.set(layout.centerX, floorY + rise / 2, stairStartZ + run / 2); slope.rotation.x = -Math.atan2(rise, run); slope.parent = site.root; slope.checkCollisions = true;
   const invisible = createMaterial(ctx.scene, `${site.id}-stair-collider-material`, Color3.Black()); invisible.alpha = 0; slope.material = invisible; slope.visibility = .01;
 }
 
