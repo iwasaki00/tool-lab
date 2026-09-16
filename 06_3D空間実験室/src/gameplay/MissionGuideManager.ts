@@ -13,6 +13,7 @@ import type { WorldArea } from "../world/SemanticTypes";
 import type { WorldRegistry } from "../world/WorldRegistry";
 import type { GuideTargetType, MissionObjective, ObjectiveManager } from "./ObjectiveManager";
 import type { MissionStep } from "./MissionTypes";
+import type { NavigationManager } from "../navigation/NavigationManager";
 
 export type MissionGuideMode = "OFF" | "NORMAL" | "DEBUG" | "DEBUG_ALL";
 
@@ -47,9 +48,11 @@ export class MissionGuideManager {
   private readonly allTextures: DynamicTexture[] = [];
   private lastAllResolve = 0;
   private allMarkerSignature = "";
+  private lastNavigationUpdate = 0;
+  private navigationDistance = 0;
   private debug: MissionGuideDebugInfo = { objectiveId: "none", targetId: "—", targetType: "—", distance: 0, heightDiff: 0, visible: false, onScreen: false, status: "GUIDE TARGET NOT FOUND" };
 
-  constructor(private readonly scene: Scene, private readonly camera: Camera, private readonly registry: WorldRegistry, objectives: ObjectiveManager, private readonly getSteps: () => MissionStep[] = () => []) {
+  constructor(private readonly scene: Scene, private readonly camera: Camera, private readonly registry: WorldRegistry, objectives: ObjectiveManager, private readonly getSteps: () => MissionStep[] = () => [], private readonly navigation?: NavigationManager) {
     this.edge = document.querySelector("#mission-guide-edge");
     this.edgeArrow = document.querySelector("#mission-guide-arrow");
     this.edgeLabel = document.querySelector("#mission-guide-label");
@@ -80,7 +83,7 @@ export class MissionGuideManager {
   }
   getMode(): MissionGuideMode { return this.mode; }
   getDebugInfo(): MissionGuideDebugInfo { return this.debug; }
-  dispose(): void { this.unsubscribe(); this.scene.onBeforeRenderObservable.remove(this.observer); this.markerRoot.dispose(false, true); this.markerLabel.dispose(); this.clearAllMarkers(); this.hideEdge(); }
+  dispose(): void { this.unsubscribe(); this.scene.onBeforeRenderObservable.remove(this.observer); this.markerRoot.dispose(false, true); this.markerLabel.dispose(); this.clearAllMarkers(); this.navigation?.clearPath("mission-guide"); this.hideEdge(); }
 
   private setObjective(objective: MissionObjective): void {
     this.objective = objective; this.warnedKey = ""; this.resolveTargets();
@@ -113,8 +116,14 @@ export class MissionGuideManager {
     if (now - this.lastMetricUpdate < 150) return;
     this.lastMetricUpdate = now;
     this.active = nearest(this.targets, this.camera.position) ?? this.active;
-    const delta = target.subtract(this.camera.position); const distance = delta.length(); const heightDiff = target.y - this.camera.position.y;
-    const onScreen = this.isOnScreen(target); const visible = this.isVisible(target, distance);
+    const delta = target.subtract(this.camera.position); const directDistance = delta.length(); const heightDiff = target.y - this.camera.position.y;
+    if (now - this.lastNavigationUpdate > 550) {
+      this.lastNavigationUpdate = now; const route = this.navigation?.findPath(this.camera.position, target) ?? [];
+      this.navigationDistance = route.length > 1 ? this.navigation?.pathLength(route) ?? directDistance : directDistance;
+      if (this.mode === "DEBUG" || this.mode === "DEBUG_ALL") this.navigation?.showPath("mission-guide", route, new Color3(.18, .9, 1));
+    }
+    const distance = this.navigationDistance || directDistance;
+    const onScreen = this.isOnScreen(target); const visible = this.isVisible(target, directDistance);
     this.debug = { objectiveId: this.objective.id, targetId: this.active.id, targetType: this.objective.targetType, distance, heightDiff, visible, onScreen, status: "READY" };
     this.drawBillboard(this.objective.targetType, distance, heightDiff);
     this.updateEdge(target, distance, heightDiff, onScreen);

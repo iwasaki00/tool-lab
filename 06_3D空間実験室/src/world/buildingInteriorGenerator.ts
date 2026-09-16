@@ -255,6 +255,12 @@ function registerInteriorSemantics(site: InteriorBuildingSite, floors: FloorData
     }
   });
   floors.slice(0, -1).forEach((floor) => registry.connect(`${site.id}_stair_${floor.floor}`, `${site.id}_corridor_${floor.floor + 1}`));
+  const patrolFloor = floors[Math.min(1, floors.length - 1)];
+  if (patrolFloor) {
+    const patrolPosition = worldCenter(site, patrolFloor.corridor, (patrolFloor.floor - 1) * site.floorHeight);
+    registry.register({ id: `${site.id}_enemy_patrol_spawn`, type: "ENEMY_SPAWN", position: patrolPosition, bounds: createBounds(patrolPosition, 1, 1, patrolPosition.y, patrolPosition.y + 2), floor: patrolFloor.floor, buildingId: site.id, connections: [`${site.id}_corridor_${patrolFloor.floor}`], tags: ["indoor", "danger", "dark", "spawn"], importance: 6 });
+    registry.connect(`${site.id}_enemy_patrol_spawn`, `${site.id}_corridor_${patrolFloor.floor}`);
+  }
   registry.connect(`${site.id}_entrance_001`, `${site.id}_corridor_1`);
   const roofY = floors.length * site.floorHeight;
   registry.register({ id: `${site.id}_rooftop`, type: "ROOFTOP", position: { x: site.root.position.x, y: roofY, z: site.root.position.z }, bounds: createBounds({ x: site.root.position.x, y: roofY, z: site.root.position.z }, site.width, site.depth, roofY - .2, roofY + 2), floor: floors.length + 1, buildingId: site.id, connections: [], tags: ["outdoor", "private", "high_floor"], importance: 7 });

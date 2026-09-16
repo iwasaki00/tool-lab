@@ -28,7 +28,7 @@ export class InteriorManager {
     private readonly ctx: ObjectContext,
     private readonly camera: Camera,
     private readonly sites: InteriorBuildingSite[],
-    private readonly deps: { interactions: InteractionManager; inventory: InventoryManager; events: EventManager; objectives: ObjectiveManager; onMessage: (message: string) => void; gateEventId: string; registry: WorldRegistry; placement: GamePlacementManager; missionPlan: MissionPlan; missionRuntime: MissionRuntime },
+    private readonly deps: { interactions: InteractionManager; inventory: InventoryManager; events: EventManager; objectives: ObjectiveManager; onMessage: (message: string) => void; gateEventId: string; registry: WorldRegistry; placement: GamePlacementManager; missionPlan: MissionPlan; missionRuntime: MissionRuntime; onNavigationChanged?: () => void },
   ) {
     sites.forEach((site) => this.createEntrance(site));
     this.observer = ctx.scene.onBeforeRenderObservable.add(() => this.update())!;
@@ -82,6 +82,7 @@ export class InteriorManager {
       const resources = createBuildingInterior(this.ctx, site, this.deps);
       resources.lights.forEach((light) => this.lights.push({ light, intensity: light.intensity }));
       this.lightMaterials.push(...resources.lightMaterials);
+      this.deps.onNavigationChanged?.();
     }
   }
 }

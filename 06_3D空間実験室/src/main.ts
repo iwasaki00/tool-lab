@@ -90,6 +90,7 @@ try {
     },
     enemyAI: (enabled) => { enemyAIEnabled = enabled; getLaboratory().setEnemyAI(enabled && !missionTestMode); refresh(`ENEMY AI ${enabled ? "ON" : "OFF"}`); },
     missionTestMode: (enabled) => { missionTestMode = enabled; getLaboratory().setEnemyAI(enemyAIEnabled && !enabled); refresh(`MISSION TEST ${enabled ? "ON — Enemy停止" : "OFF"}`); },
+    navigationTest: (enabled) => { getLaboratory().setNavigationTest(enabled); refresh(`NAV TEST ${enabled ? "ON — 地面を選択してください" : "OFF"}`); },
   }, citySettings, movementSettings);
 
   function refresh(message: string): void {

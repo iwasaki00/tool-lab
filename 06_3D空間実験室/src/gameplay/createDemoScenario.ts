@@ -26,6 +26,7 @@ import { MissionRuntime } from "./MissionRuntime";
 import type { MissionResult, MissionRuntimeSnapshot } from "./MissionTypes";
 import type { MissionDifficulty, MissionType } from "./MissionTypes";
 import { CharacterManager, type CharacterManagerDebug } from "../characters/CharacterManager";
+import type { NavigationManager } from "../navigation/NavigationManager";
 
 export interface GameplayCallbacks {
   onFocus: (focus?: InteractionFocus) => void;
@@ -51,6 +52,7 @@ export interface DemoScenario {
   setDebugMode: (visible: boolean) => void;
   setEnemyAI: (enabled: boolean) => void;
   characterDebug: () => CharacterManagerDebug;
+  setNavigationTest: (enabled: boolean) => void;
   dispose: () => void;
 }
 
@@ -67,6 +69,7 @@ export function createDemoScenario(
   missionDifficulty: MissionDifficulty = "NORMAL",
   mobile = false,
   setPlayerInputEnabled: (enabled: boolean) => void = () => undefined,
+  navigation?: NavigationManager,
 ): DemoScenario {
   const baseMeshes = new Set(ctx.scene.meshes);
   const baseMaterials = new Set(ctx.scene.materials);
@@ -107,7 +110,7 @@ export function createDemoScenario(
     if (state.result && !completionDelivered) { completionDelivered = true; callbacks.onMissionComplete(state.result); }
   });
   const interiorManager = new InteriorManager(ctx, camera, [missionSite, ...cityInteriorSites], {
-    interactions, inventory, events, objectives, onMessage: callbacks.onMessage, gateEventId: "OPEN_GATE_A", registry, placement, missionPlan: plan, missionRuntime: runtime,
+    interactions, inventory, events, objectives, onMessage: callbacks.onMessage, gateEventId: "OPEN_GATE_A", registry, placement, missionPlan: plan, missionRuntime: runtime, onNavigationChanged: () => navigation?.requestRebuild(),
   });
 
   const itemColors = { KEY: new Color3(.95, .68, .12), CARD_KEY: new Color3(.2, .72, .9), ITEM: new Color3(.72, .9, .3) };
@@ -131,10 +134,10 @@ export function createDemoScenario(
 
   createSemanticSpawnPoints(placement, registry, spawn, missionDifficulty, mobile);
   placement.createDebugMarkers(ctx);
-  const characters = new CharacterManager(ctx, camera, placement.getPlacements(), registry, interactions, objectives, callbacks.onMessage, setPlayerInputEnabled);
+  const characters = new CharacterManager(ctx, camera, placement.getPlacements(), registry, interactions, objectives, callbacks.onMessage, setPlayerInputEnabled, navigation);
   createInspectables(ctx, interactions, missionPosition, callbacks.onMessage);
   const disposeGoal = createGoalZone(ctx, camera, { id: "goal_001", position: goalPosition, onEnter: () => gateActivated && runtime.completeByTarget("goal_001", "Goal reached") });
-  const guide = new MissionGuideManager(ctx.scene, camera, registry, objectives, () => plan.steps);
+  const guide = new MissionGuideManager(ctx.scene, camera, registry, objectives, () => plan.steps, navigation);
   runtime.attachPositionTracking(ctx.scene, camera, registry);
   callbacks.onMissionState(runtime.snapshot());
 
@@ -153,6 +156,7 @@ export function createDemoScenario(
     setDebugMode: (visible) => { placement.setDebugVisible(visible); characters.setDebugVisible(visible); },
     setEnemyAI: (enabled) => characters.setEnemyAI(enabled),
     characterDebug: () => characters.debugInfo(),
+    setNavigationTest: (enabled) => characters.setNavigationTest(enabled),
     dispose: () => {
       disposeGoal(); runtime.dispose(ctx.scene); guide.dispose(); characters.dispose(); interiorManager.dispose(); interactions.dispose(); inventory.clear(); events.clear();
       ctx.scene.meshes.filter((mesh) => !baseMeshes.has(mesh)).forEach((mesh) => { if (!mesh.isDisposed()) mesh.dispose(false, false); });

@@ -48,6 +48,7 @@ export function createDoor(ctx: ObjectContext, interactions: InteractionManager,
   let open = false;
   let locked = options.locked ?? false;
   let animating = false;
+  panel.metadata = { ...panel.metadata, navigationDoor: true, navigationDoorOpen: false, navigationDoorLocked: locked };
   const closedAngle = hinge.rotation.y;
   const openAngle = closedAngle + Math.PI / 2;
 
@@ -55,7 +56,7 @@ export function createDoor(ctx: ObjectContext, interactions: InteractionManager,
     if (animating || open === nextOpen) return;
     animating = true;
     Animation.CreateAndStartAnimation(`${options.id}-animation`, hinge, "rotation.y", 30, 21, hinge.rotation.y, nextOpen ? openAngle : closedAngle, Animation.ANIMATIONLOOPMODE_CONSTANT, undefined, () => {
-      open = nextOpen; animating = false; options.onOpened?.();
+      open = nextOpen; animating = false; panel.metadata = { ...panel.metadata, navigationDoorOpen: open, navigationDoorLocked: locked }; options.onOpened?.();
     }, ctx.scene);
   };
 
@@ -64,7 +65,7 @@ export function createDoor(ctx: ObjectContext, interactions: InteractionManager,
     open: () => animateTo(true),
     close: () => animateTo(false),
     toggle: () => animateTo(!open),
-    unlock: () => { locked = false; },
+    unlock: () => { locked = false; panel.metadata = { ...panel.metadata, navigationDoorLocked: false }; },
     isOpen: () => open,
     isLocked: () => locked,
   };
@@ -79,7 +80,7 @@ export function createDoor(ctx: ObjectContext, interactions: InteractionManager,
       if (animating) return;
       if (locked) {
         if (!options.keyId || !inventory.has(options.keyId)) { options.onMessage("鍵がかかっている"); return; }
-        locked = false; options.onMessage("鍵を使ってロックを解除した");
+        locked = false; panel.metadata = { ...panel.metadata, navigationDoorLocked: false }; options.onMessage("鍵を使ってロックを解除した");
       }
       animateTo(!open);
     },

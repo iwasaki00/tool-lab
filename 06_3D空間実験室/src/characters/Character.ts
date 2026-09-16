@@ -15,6 +15,14 @@ export interface CharacterDebugInfo {
   target: string;
   area: string;
   health: number;
+  startArea: string;
+  targetArea: string;
+  pathLength: number;
+  waypointCount: number;
+  currentWaypoint: number;
+  repathTimer: number;
+  stuckCount: number;
+  lastStuckPosition: string;
 }
 
 export class CharacterController {
@@ -29,6 +37,13 @@ export class CharacterController {
   private debugVisible = false;
   private selected = false;
   private waypointMarker?: Mesh;
+  protected pathLength = 0;
+  protected waypointCount = 0;
+  protected currentWaypointIndex = 0;
+  protected repathTimer = 0;
+  protected stuckCount = 0;
+  protected lastStuckPosition = "—";
+  private blockedSeconds = 0;
 
   constructor(
     readonly id: string,
@@ -54,7 +69,12 @@ export class CharacterController {
     const amount = Math.min(distance - minimumDistance, speed * deltaSeconds);
     const origin = this.rig.root.position.add(new Vector3(0, .85, 0));
     const obstruction = scene.pickWithRay(new Ray(origin, direction, amount + .42), (mesh) => mesh.checkCollisions && !mesh.metadata?.characterId && !mesh.name.includes("ground"));
-    if (obstruction?.hit && (obstruction.distance ?? Infinity) < amount + .35) { this.moving = false; return false; }
+    if (obstruction?.hit && (obstruction.distance ?? Infinity) < amount + .35) {
+      this.moving = false; this.blockedSeconds += deltaSeconds;
+      if (this.blockedSeconds >= 2.4) { this.blockedSeconds = 0; this.stuckCount += 1; this.lastStuckPosition = formatPosition(this.rig.root.position); }
+      return false;
+    }
+    this.blockedSeconds = 0;
     const desiredYaw = Math.atan2(direction.x, direction.z);
     this.rig.root.rotation.y += shortestAngle(this.rig.root.rotation.y, desiredYaw) * Math.min(1, deltaSeconds * 7);
     this.rig.root.position.addInPlace(direction.scale(amount));
@@ -83,7 +103,10 @@ export class CharacterController {
     this.waypointMarker.position.copyFrom(target); this.waypointMarker.position.y += .18; this.waypointMarker.setEnabled(true); this.waypointMarker.isVisible = this.debugVisible;
   }
 
-  debugInfo(): CharacterDebugInfo { return { id: this.id, type: this.type, state: this.state, target: this.currentTarget, area: this.currentArea, health: this.health }; }
+  updateNavigationDebug(info: { length: number; waypointCount: number; currentWaypoint: number }, repathTimer = 0): void { this.pathLength = info.length; this.waypointCount = info.waypointCount; this.currentWaypointIndex = info.currentWaypoint; this.repathTimer = repathTimer; }
+  debugInfo(): CharacterDebugInfo {
+    return { id: this.id, type: this.type, state: this.state, target: this.currentTarget, area: this.currentArea, health: this.health, startArea: this.currentArea, targetArea: this.currentTarget, pathLength: this.pathLength, waypointCount: this.waypointCount, currentWaypoint: this.currentWaypointIndex, repathTimer: this.repathTimer, stuckCount: this.stuckCount, lastStuckPosition: this.lastStuckPosition };
+  }
   dispose(): void { this.waypointMarker?.dispose(); this.rig.dispose(); }
 
   protected refreshLabel(alert = false): void {
@@ -93,3 +116,4 @@ export class CharacterController {
 }
 
 function shortestAngle(from: number, to: number): number { return Math.atan2(Math.sin(to - from), Math.cos(to - from)); }
+function formatPosition(position: Vector3): string { return `${position.x.toFixed(1)} / ${position.y.toFixed(1)} / ${position.z.toFixed(1)}`; }

@@ -29,6 +29,7 @@ import type { MissionRuntimeSnapshot } from "../gameplay/MissionTypes";
 import type { MissionValidation } from "../gameplay/MissionValidator";
 import type { MissionGuideDebugInfo, MissionGuideMode } from "../gameplay/MissionGuideManager";
 import type { CharacterManagerDebug } from "../characters/CharacterManager";
+import { NavigationManager, type NavigationStats } from "../navigation/NavigationManager";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -57,6 +58,8 @@ export interface LaboratoryApi {
   restartMission: (settings: CitySettings) => void;
   setEnemyAI: (enabled: boolean) => void;
   characterDebug: () => CharacterManagerDebug;
+  navigationDebug: () => NavigationStats;
+  setNavigationTest: (enabled: boolean) => void;
 }
 
 export interface SceneOptions {
@@ -123,7 +126,8 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   const missionSpawn = camera.position.clone();
   let currentGuideMode: MissionGuideMode = "DEBUG";
   let currentEnemyAI = true;
-  const createMission = (settings: CitySettings) => createDemoScenario(ctx, camera, missionSpawn.clone(), callbacks, registry, generatedCity?.interiorSites, settings.seed, settings.missionSeed, settings.missionType, settings.missionDifficulty, mobile, (enabled) => player.setInputEnabled(enabled));
+  const navigation = new NavigationManager(scene, registry);
+  const createMission = (settings: CitySettings) => createDemoScenario(ctx, camera, missionSpawn.clone(), callbacks, registry, generatedCity?.interiorSites, settings.seed, settings.missionSeed, settings.missionType, settings.missionDifficulty, mobile, (enabled) => player.setInputEnabled(enabled), navigation);
   let demoScenario = createMission(citySettings);
 
   const spawnAhead = (height: number): Vector3 => {
@@ -163,6 +167,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     setDebugMode: (enabled) => {
       debugBox.isVisible = enabled;
       demoScenario.setDebugMode(enabled);
+      navigation.setDebugVisible(enabled);
       groundMaterial.diffuseColor = enabled ? new Color3(.12, .72, .22) : new Color3(.25, .34, .28);
       if (enabled) {
         skyMaterial.diffuseColor = new Color3(.12, .55, .95);
@@ -174,7 +179,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     objectCount: () => scene.meshes.filter((mesh) => mesh.name !== "sky").length,
     telemetry: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, mode: currentMode, worldMode, seed: generatedCity?.stats.seed, style: generatedCity?.stats.styleLabel }),
     cityStats: () => generatedCity?.stats,
-    disposeWorld: () => { demoScenario.dispose(); generatedCity?.dispose(); },
+    disposeWorld: () => { demoScenario.dispose(); navigation.dispose(); generatedCity?.dispose(); },
     interact: () => demoScenario.interact(),
     interactionDebug: () => demoScenario.focus(),
     inventory: () => demoScenario.inventory(),
@@ -188,6 +193,8 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     missionGuideDebug: () => demoScenario.guideDebug(),
     setEnemyAI: (enabled) => { currentEnemyAI = enabled; demoScenario.setEnemyAI(enabled); },
     characterDebug: () => demoScenario.characterDebug(),
+    navigationDebug: () => navigation.stats(),
+    setNavigationTest: (enabled) => demoScenario.setNavigationTest(enabled),
     restartMission: (settings) => {
       demoScenario.dispose();
       camera.position.copyFrom(missionSpawn); camera.cameraDirection.setAll(0); camera.cameraRotation.setAll(0);

@@ -14,6 +14,7 @@ import { createHumanoid } from "./CharacterFactory";
 import { NPCCharacter } from "./NPCCharacter";
 import { EnemyCharacter } from "./EnemyCharacter";
 import type { CharacterController, CharacterDebugInfo } from "./Character";
+import type { NavigationManager } from "../navigation/NavigationManager";
 
 export interface CharacterManagerDebug {
   npcCount: number;
@@ -33,6 +34,9 @@ export class CharacterManager {
   private selected?: CharacterController;
   private debugVisible = false;
   private enemyAI = true;
+  private navigationTest = false;
+  private lastSpawnScan = 0;
+  private readonly knownCharacterIds = new Set<string>();
 
   constructor(
     private readonly ctx: ObjectContext,
@@ -43,19 +47,23 @@ export class CharacterManager {
     private readonly objectives: ObjectiveManager,
     private readonly onMessage: (message: string) => void,
     setPlayerInputEnabled: (enabled: boolean) => void,
+    private readonly navigation?: NavigationManager,
   ) {
     this.dialogue = new DialogueManager((paused) => setPlayerInputEnabled(!paused));
     placements.filter((placement) => placement.kind === "NPC").forEach((placement, index) => this.createNPC(placement, index));
     placements.filter((placement) => placement.kind === "ENEMY").forEach((placement, index) => this.createEnemy(placement, index));
     this.observer = ctx.scene.onBeforeRenderObservable.add(() => this.update())!;
     this.pointerObserver = ctx.scene.onPointerObservable.add((info) => {
-      if (!this.debugVisible || info.type !== PointerEventTypes.POINTERPICK) return;
+      if (info.type !== PointerEventTypes.POINTERPICK) return;
+      if (this.navigationTest && info.pickInfo?.pickedPoint) { this.npcs[0]?.navigateTo(info.pickInfo.pickedPoint); this.onMessage("NAV TEST: テストNPCを移動します"); return; }
+      if (!this.debugVisible) return;
       const id = info.pickInfo?.pickedMesh?.metadata?.characterId as string | undefined;
       if (id) this.select(id);
     })!;
   }
 
   setEnemyAI(enabled: boolean): void { this.enemyAI = enabled; this.enemies.forEach((enemy) => enemy.setAIEnabled(enabled)); }
+  setNavigationTest(enabled: boolean): void { this.navigationTest = enabled; }
   setDebugVisible(visible: boolean): void { this.debugVisible = visible; this.characters.forEach((character) => character.setDebugVisible(visible)); }
   debugInfo(): CharacterManagerDebug { return { npcCount: this.npcs.length, enemyCount: this.enemies.length, selected: this.selected?.debugInfo(), enemyAI: this.enemyAI }; }
 
@@ -65,9 +73,10 @@ export class CharacterManager {
   }
 
   private createNPC(placement: GamePlacement, index: number): void {
+    if (this.knownCharacterIds.has(placement.id)) return; this.knownCharacterIds.add(placement.id);
     const rig = createHumanoid(this.ctx, placement.id, "NPC"); rig.root.position.copyFrom(toVector(placement.position));
-    const npc = new NPCCharacter(placement.id, rig, placement.areaId, this.ctx.scene, this.registry, 9109 + index * 37, () => this.dialogue.isOpen());
-    this.characters.push(npc); this.npcs.push(npc);
+    const npc = new NPCCharacter(placement.id, rig, placement.areaId, this.ctx.scene, this.registry, 9109 + index * 37, () => this.dialogue.isOpen(), this.navigation);
+    this.characters.push(npc); this.npcs.push(npc); npc.setDebugVisible(this.debugVisible);
     this.unregisterInteractions.push(this.interactions.register({
       id: placement.id, displayName: `市民 ${index + 1}`, type: "inspect", mesh: rig.body, getActionLabel: () => "話す",
       interact: () => { npc.talk(); this.dialogue.open(this.dialogueFor(index)); },
@@ -75,9 +84,10 @@ export class CharacterManager {
   }
 
   private createEnemy(placement: GamePlacement, index: number): void {
+    if (this.knownCharacterIds.has(placement.id)) return; this.knownCharacterIds.add(placement.id);
     const rig = createHumanoid(this.ctx, placement.id, "ENEMY"); rig.root.position.copyFrom(toVector(placement.position));
-    const enemy = new EnemyCharacter(placement.id, rig, placement.areaId, this.ctx.scene, this.registry, 12011 + index * 53, () => this.camera.position.clone(), (id) => this.onMessage(`PLAYER DETECTED — ${id.toUpperCase()} に捕捉されました`));
-    this.characters.push(enemy); this.enemies.push(enemy);
+    const enemy = new EnemyCharacter(placement.id, rig, placement.areaId, this.ctx.scene, this.registry, 12011 + index * 53, () => this.camera.position.clone(), (id) => this.onMessage(`PLAYER DETECTED — ${id.toUpperCase()} に捕捉されました`), this.navigation);
+    this.characters.push(enemy); this.enemies.push(enemy); enemy.setAIEnabled(this.enemyAI); enemy.setDebugVisible(this.debugVisible);
   }
 
   private dialogueFor(index: number): DialogueSequence {
@@ -104,6 +114,25 @@ export class CharacterManager {
     const player = this.camera.position;
     this.npcs.forEach((npc) => npc.update(deltaSeconds, player));
     this.enemies.forEach((enemy) => enemy.update(deltaSeconds));
+    this.applySeparation();
+    const now = performance.now(); if (now - this.lastSpawnScan > 1000) { this.lastSpawnScan = now; this.scanSemanticSpawns(); }
+  }
+
+  private scanSemanticSpawns(): void {
+    const mobile = document.body.classList.contains("is-mobile");
+    const enemyLimit = mobile ? 5 : 8;
+    this.registry.getAreasByType("ENEMY_SPAWN").filter((area) => !this.knownCharacterIds.has(area.id)).slice(0, Math.max(0, enemyLimit - this.enemies.length)).forEach((area) => {
+      const areaId = area.connections[0] ?? area.id;
+      this.createEnemy({ id: area.id, kind: "ENEMY", areaId, position: { x: area.position.x, y: area.position.y, z: area.position.z } }, this.enemies.length);
+    });
+  }
+
+  private applySeparation(): void {
+    for (let i = 0; i < this.characters.length; i += 1) for (let j = i + 1; j < this.characters.length; j += 1) {
+      const a = this.characters[i].rig.root.position; const b = this.characters[j].rig.root.position; const delta = a.subtract(b); delta.y = 0;
+      const distance = delta.length(); if (distance <= .01 || distance >= .68) continue;
+      const correction = delta.scale((.68 - distance) / distance * .08); a.addInPlace(correction); b.subtractInPlace(correction);
+    }
   }
 }
 

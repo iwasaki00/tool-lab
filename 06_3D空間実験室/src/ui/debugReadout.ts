@@ -18,6 +18,7 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   const mission = laboratory.missionDebug();
   const guide = laboratory.missionGuideDebug();
   const characters = laboratory.characterDebug();
+  const navigation = laboratory.navigationDebug();
   setText("renderer-value", getRendererName(engine));
   setText("canvas-value", canvas ? `${canvas.width} × ${canvas.height}` : "0 × 0");
   setText("viewport-value", `${Math.round(window.visualViewport?.width ?? window.innerWidth)} × ${Math.round(window.visualViewport?.height ?? window.innerHeight)}`);
@@ -71,6 +72,19 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   setText("character-target-value", characters.selected?.target ?? "—");
   setText("character-area-value", characters.selected?.area ?? "—");
   setText("enemy-ai-value", characters.enemyAI ? "ON" : "OFF");
+  setText("navigation-status-value", navigation.status);
+  setText("navmesh-triangles-value", String(navigation.triangles));
+  setText("navmesh-build-time-value", `${navigation.buildTime.toFixed(1)} ms`);
+  setText("navigation-validation-value", navigation.validation);
+  setText("path-failures-value", String(navigation.pathFailures));
+  setText("nav-start-area-value", characters.selected?.startArea ?? "—");
+  setText("nav-target-area-value", characters.selected?.targetArea ?? "—");
+  setText("nav-path-length-value", characters.selected ? `${characters.selected.pathLength.toFixed(1)} m` : "—");
+  setText("nav-waypoint-count-value", String(characters.selected?.waypointCount ?? 0));
+  setText("nav-current-waypoint-value", String(characters.selected?.currentWaypoint ?? 0));
+  setText("nav-repath-value", characters.selected ? `${Math.max(0, characters.selected.repathTimer).toFixed(2)} s` : "—");
+  setText("stuck-count-value", String(characters.selected?.stuckCount ?? 0));
+  setText("last-stuck-value", characters.selected?.lastStuckPosition ?? "—");
 }
 
 function setText(id: string, value: string): void {

@@ -23,6 +23,7 @@ export interface ControlActions {
   regenerateMission: (settings: CitySettings) => void;
   enemyAI: (enabled: boolean) => void;
   missionTestMode: (enabled: boolean) => void;
+  navigationTest: (enabled: boolean) => void;
 }
 
 export function createControls(actions: ControlActions, initialSettings: CitySettings, initialMovementSettings: MovementSettings): {
@@ -43,6 +44,7 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
   let toastTimer = 0;
   let enemyAIEnabled = true;
   let missionTestMode = false;
+  let navigationTest = false;
 
   if (styleSelect) {
     styleSelect.replaceChildren(...CITY_STYLE_OPTIONS.map((option) => {
@@ -103,6 +105,9 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
       }
       case "toggle-mission-test": {
         missionTestMode = !missionTestMode; button.classList.toggle("is-active", missionTestMode); button.textContent = `MISSION TEST ${missionTestMode ? "ON" : "OFF"}`; actions.missionTestMode(missionTestMode); break;
+      }
+      case "toggle-nav-test": {
+        navigationTest = !navigationTest; button.classList.toggle("is-active", navigationTest); button.textContent = `NAV TEST ${navigationTest ? "ON" : "OFF"}`; actions.navigationTest(navigationTest); break;
       }
     }
   });

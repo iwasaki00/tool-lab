@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#071018" />
-    <meta name="description" content="NPCとEnemyが自動生成された街を認識して行動するBabylon.js 3D空間実験室 Ver.8。" />
-    <title>3D空間実験室 Ver.8 — NPC・敵キャラクター基盤</title>
-    <script type="module" crossorigin src="./assets/index-D4IqLqNn.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-Hdfjhstp.css">
+    <meta name="description" content="WorldGraphとNavMeshを連携したBabylon.js 3D空間実験室 Ver.9。" />
+    <title>3D空間実験室 Ver.9 — NavMesh・本格経路探索</title>
+    <script type="module" crossorigin src="./assets/index-bwh7cyck.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BBDEeW1Y.css">
   </head>
   <body>
     <canvas id="render-canvas" aria-label="3D空間実験室"></canvas>
@@ -17,7 +17,7 @@
 
     <header class="brand-plate">
       <span class="brand-index">06</span>
-      <span><strong>3D 空間実験室 <em>VER.8</em></strong><small>CHARACTER AI / BABYLON.JS</small></span>
+      <span><strong>3D 空間実験室 <em>VER.9</em></strong><small>NAVMESH PATHFINDING / BABYLON.JS</small></span>
     </header>
 
     <div class="compact-status" aria-live="polite">
@@ -100,6 +100,19 @@
         <div><dt>Char State</dt><dd id="character-state-value">—</dd></div>
         <div><dt>Char Target</dt><dd id="character-target-value">—</dd></div>
         <div><dt>Char Area</dt><dd id="character-area-value">—</dd></div>
+        <div><dt>Navigation</dt><dd id="navigation-status-value">BUILDING</dd></div>
+        <div><dt>Triangles</dt><dd id="navmesh-triangles-value">0</dd></div>
+        <div><dt>Nav Build</dt><dd id="navmesh-build-time-value">—</dd></div>
+        <div><dt>Nav Valid</dt><dd id="navigation-validation-value">PENDING</dd></div>
+        <div><dt>Path Fail</dt><dd id="path-failures-value">0</dd></div>
+        <div><dt>Start Area</dt><dd id="nav-start-area-value">—</dd></div>
+        <div><dt>Target Area</dt><dd id="nav-target-area-value">—</dd></div>
+        <div><dt>Path Length</dt><dd id="nav-path-length-value">—</dd></div>
+        <div><dt>Waypoints</dt><dd id="nav-waypoint-count-value">0</dd></div>
+        <div><dt>Current WP</dt><dd id="nav-current-waypoint-value">0</dd></div>
+        <div><dt>Repath</dt><dd id="nav-repath-value">—</dd></div>
+        <div><dt>Stuck Count</dt><dd id="stuck-count-value">0</dd></div>
+        <div class="interpretation-row"><dt>Last Stuck</dt><dd id="last-stuck-value">—</dd></div>
         <div class="interpretation-row"><dt>Rules</dt><dd id="interpretation-value">—</dd></div>
       </dl>
     </div>
@@ -185,6 +198,7 @@
         <div class="mission-actions">
           <button type="button" class="is-active" data-action="toggle-enemy-ai">ENEMY AI ON</button>
           <button type="button" data-action="toggle-mission-test">MISSION TEST OFF</button>
+          <button type="button" data-action="toggle-nav-test">NAV TEST OFF</button>
         </div>
         <small>MISSION TESTではEnemyを停止します</small>
       </section>
@@ -247,5 +261,6 @@
     </section>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="navigation-loading" id="navigation-loading" role="status" aria-live="polite"><i></i> GENERATING NAVIGATION...</div>
   </body>
 </html>
