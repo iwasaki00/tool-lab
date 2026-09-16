@@ -28,6 +28,7 @@ import type { MissionPlan } from "../gameplay/MissionGenerator";
 import type { MissionRuntimeSnapshot } from "../gameplay/MissionTypes";
 import type { MissionValidation } from "../gameplay/MissionValidator";
 import type { MissionGuideDebugInfo, MissionGuideMode } from "../gameplay/MissionGuideManager";
+import type { CharacterManagerDebug } from "../characters/CharacterManager";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -54,6 +55,8 @@ export interface LaboratoryApi {
   setMissionGuideMode: (mode: MissionGuideMode) => void;
   missionGuideDebug: () => MissionGuideDebugInfo;
   restartMission: (settings: CitySettings) => void;
+  setEnemyAI: (enabled: boolean) => void;
+  characterDebug: () => CharacterManagerDebug;
 }
 
 export interface SceneOptions {
@@ -119,7 +122,8 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   };
   const missionSpawn = camera.position.clone();
   let currentGuideMode: MissionGuideMode = "DEBUG";
-  const createMission = (settings: CitySettings) => createDemoScenario(ctx, camera, missionSpawn.clone(), callbacks, registry, generatedCity?.interiorSites, settings.seed, settings.missionSeed, settings.missionType, settings.missionDifficulty);
+  let currentEnemyAI = true;
+  const createMission = (settings: CitySettings) => createDemoScenario(ctx, camera, missionSpawn.clone(), callbacks, registry, generatedCity?.interiorSites, settings.seed, settings.missionSeed, settings.missionType, settings.missionDifficulty, mobile, (enabled) => player.setInputEnabled(enabled));
   let demoScenario = createMission(citySettings);
 
   const spawnAhead = (height: number): Vector3 => {
@@ -182,10 +186,12 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     semanticMap: (floor) => registry.toMap2D(floor),
     setMissionGuideMode: (mode) => { currentGuideMode = mode; demoScenario.setGuideMode(mode); },
     missionGuideDebug: () => demoScenario.guideDebug(),
+    setEnemyAI: (enabled) => { currentEnemyAI = enabled; demoScenario.setEnemyAI(enabled); },
+    characterDebug: () => demoScenario.characterDebug(),
     restartMission: (settings) => {
       demoScenario.dispose();
       camera.position.copyFrom(missionSpawn); camera.cameraDirection.setAll(0); camera.cameraRotation.setAll(0);
-      demoScenario = createMission(settings); demoScenario.setGuideMode(currentGuideMode); demoScenario.setDayMode(currentMode === "day");
+      demoScenario = createMission(settings); demoScenario.setGuideMode(currentGuideMode); demoScenario.setDayMode(currentMode === "day"); demoScenario.setEnemyAI(currentEnemyAI);
     },
   };
 }

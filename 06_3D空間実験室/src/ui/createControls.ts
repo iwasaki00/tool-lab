@@ -21,6 +21,8 @@ export interface ControlActions {
   movementSpeed: (settings: MovementSettings) => void;
   restartMission: (settings: CitySettings) => void;
   regenerateMission: (settings: CitySettings) => void;
+  enemyAI: (enabled: boolean) => void;
+  missionTestMode: (enabled: boolean) => void;
 }
 
 export function createControls(actions: ControlActions, initialSettings: CitySettings, initialMovementSettings: MovementSettings): {
@@ -39,6 +41,8 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
   const toast = document.querySelector<HTMLElement>("#toast");
   const styleSelect = document.querySelector<HTMLSelectElement>("#city-style");
   let toastTimer = 0;
+  let enemyAIEnabled = true;
+  let missionTestMode = false;
 
   if (styleSelect) {
     styleSelect.replaceChildren(...CITY_STYLE_OPTIONS.map((option) => {
@@ -94,6 +98,12 @@ export function createControls(actions: ControlActions, initialSettings: CitySet
       case "regenerate-city": persistAndGenerate(); break;
       case "restart-mission": actions.restartMission(getCitySettings()); break;
       case "regenerate-mission": actions.regenerateMission(getCitySettings()); break;
+      case "toggle-enemy-ai": {
+        enemyAIEnabled = !enemyAIEnabled; button.classList.toggle("is-active", enemyAIEnabled); button.textContent = `ENEMY AI ${enemyAIEnabled ? "ON" : "OFF"}`; actions.enemyAI(enemyAIEnabled); break;
+      }
+      case "toggle-mission-test": {
+        missionTestMode = !missionTestMode; button.classList.toggle("is-active", missionTestMode); button.textContent = `MISSION TEST ${missionTestMode ? "ON" : "OFF"}`; actions.missionTestMode(missionTestMode); break;
+      }
     }
   });
   panel?.addEventListener("input", (event) => {

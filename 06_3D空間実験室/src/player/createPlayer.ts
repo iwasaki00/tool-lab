@@ -10,6 +10,7 @@ export interface PlayerController {
   setMoveInput: (x: number, y: number) => void;
   setSprinting: (active: boolean) => void;
   setMovementSpeeds: (settings: MovementSettings) => void;
+  setInputEnabled: (enabled: boolean) => void;
   jump: () => void;
   rotate: (deltaX: number, deltaY: number) => void;
 }
@@ -44,6 +45,7 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
   let moveY = 0;
   let sprinting = false;
   let verticalVelocity = 0;
+  let inputEnabled = true;
   scene.onBeforeRenderObservable.add(() => {
     const deltaTime = Math.min(scene.getEngine().getDeltaTime() / 1000, .05);
 
@@ -55,7 +57,9 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
       camera.cameraDirection.y = verticalVelocity * deltaTime;
     }
 
-    if (mobile && (moveX || moveY)) {
+    if (!inputEnabled) {
+      camera.cameraDirection.x = 0; camera.cameraDirection.z = 0; camera.cameraRotation.setAll(0);
+    } else if (mobile && (moveX || moveY)) {
       // タッチ操作は従来の体感速度を基準に、MENUで設定した速度の倍率を反映する。
       const mobileNormalSpeed = 4 * movementSettings.normalSpeed / DEFAULT_MOVEMENT_SETTINGS.normalSpeed;
       const mobileModifiedSpeed = 7 * movementSettings.shiftSpeed / DEFAULT_MOVEMENT_SETTINGS.shiftSpeed;
@@ -69,6 +73,7 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
 
   scene.onKeyboardObservable.add((info) => {
     const event = info.event;
+    if (!inputEnabled) return;
     if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
       sprinting = info.type === KeyboardEventTypes.KEYDOWN;
       applyCurrentSpeed();
@@ -80,6 +85,7 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
   });
 
   function jump(): void {
+    if (!inputEnabled) return;
     if (verticalVelocity <= 0 && isGrounded(scene, camera)) verticalVelocity = jumpSpeed;
   }
 
@@ -88,8 +94,13 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
     setMoveInput: (x, y) => { moveX = x; moveY = y; },
     setSprinting: (active) => { sprinting = active; applyCurrentSpeed(); },
     setMovementSpeeds: (settings) => { movementSettings = normalizeMovementSettings(settings); applyCurrentSpeed(); },
+    setInputEnabled: (enabled) => {
+      inputEnabled = enabled; moveX = 0; moveY = 0; sprinting = false; applyCurrentSpeed();
+      if (enabled) camera.attachControl(canvas, true); else { camera.detachControl(); if (document.pointerLockElement === canvas) void document.exitPointerLock(); }
+    },
     jump,
     rotate: (deltaX, deltaY) => {
+      if (!inputEnabled) return;
       camera.cameraRotation.y += deltaX / 340;
       camera.cameraRotation.x += deltaY / 340;
     },

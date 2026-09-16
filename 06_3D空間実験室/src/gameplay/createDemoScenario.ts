@@ -25,6 +25,7 @@ import { ObjectiveManager } from "./ObjectiveManager";
 import { MissionRuntime } from "./MissionRuntime";
 import type { MissionResult, MissionRuntimeSnapshot } from "./MissionTypes";
 import type { MissionDifficulty, MissionType } from "./MissionTypes";
+import { CharacterManager, type CharacterManagerDebug } from "../characters/CharacterManager";
 
 export interface GameplayCallbacks {
   onFocus: (focus?: InteractionFocus) => void;
@@ -48,6 +49,8 @@ export interface DemoScenario {
   setGuideMode: (mode: MissionGuideMode) => void;
   setDayMode: (isDay: boolean) => void;
   setDebugMode: (visible: boolean) => void;
+  setEnemyAI: (enabled: boolean) => void;
+  characterDebug: () => CharacterManagerDebug;
   dispose: () => void;
 }
 
@@ -62,6 +65,8 @@ export function createDemoScenario(
   missionSeed = citySeed + 54321,
   missionType: MissionType = "ACCESS_CONTROL",
   missionDifficulty: MissionDifficulty = "NORMAL",
+  mobile = false,
+  setPlayerInputEnabled: (enabled: boolean) => void = () => undefined,
 ): DemoScenario {
   const baseMeshes = new Set(ctx.scene.meshes);
   const baseMaterials = new Set(ctx.scene.materials);
@@ -124,8 +129,9 @@ export function createDemoScenario(
   events.on("OPEN_GATE_A", () => { gateActivated = true; gate.open(); });
   if (gateActivated) gate.open();
 
-  createSemanticSpawnPoints(placement, registry, spawn);
+  createSemanticSpawnPoints(placement, registry, spawn, missionDifficulty, mobile);
   placement.createDebugMarkers(ctx);
+  const characters = new CharacterManager(ctx, camera, placement.getPlacements(), registry, interactions, objectives, callbacks.onMessage, setPlayerInputEnabled);
   createInspectables(ctx, interactions, missionPosition, callbacks.onMessage);
   const disposeGoal = createGoalZone(ctx, camera, { id: "goal_001", position: goalPosition, onEnter: () => gateActivated && runtime.completeByTarget("goal_001", "Goal reached") });
   const guide = new MissionGuideManager(ctx.scene, camera, registry, objectives, () => plan.steps);
@@ -144,9 +150,11 @@ export function createDemoScenario(
     guideDebug: () => guide.getDebugInfo(),
     setGuideMode: (mode) => guide.setMode(mode),
     setDayMode: (isDay) => interiorManager.setDayMode(isDay),
-    setDebugMode: (visible) => placement.setDebugVisible(visible),
+    setDebugMode: (visible) => { placement.setDebugVisible(visible); characters.setDebugVisible(visible); },
+    setEnemyAI: (enabled) => characters.setEnemyAI(enabled),
+    characterDebug: () => characters.debugInfo(),
     dispose: () => {
-      disposeGoal(); runtime.dispose(ctx.scene); guide.dispose(); interiorManager.dispose(); interactions.dispose(); inventory.clear(); events.clear();
+      disposeGoal(); runtime.dispose(ctx.scene); guide.dispose(); characters.dispose(); interiorManager.dispose(); interactions.dispose(); inventory.clear(); events.clear();
       ctx.scene.meshes.filter((mesh) => !baseMeshes.has(mesh)).forEach((mesh) => { if (!mesh.isDisposed()) mesh.dispose(false, false); });
       ctx.scene.materials.filter((material) => !baseMaterials.has(material)).forEach((material) => material.dispose());
       ctx.scene.lights.filter((light) => !baseLights.has(light)).forEach((light) => light.dispose());
@@ -157,10 +165,14 @@ export function createDemoScenario(
   };
 }
 
-function createSemanticSpawnPoints(placement: GamePlacementManager, registry: WorldRegistry, start: Vector3): void {
-  for (let index = 0; index < 2; index += 1) {
+function createSemanticSpawnPoints(placement: GamePlacementManager, registry: WorldRegistry, start: Vector3, difficulty: MissionDifficulty, mobile: boolean): void {
+  const enemyCount = difficulty === "EASY" ? 2 : difficulty === "HARD" ? (mobile ? 5 : 6) : 3;
+  const npcCount = mobile ? 3 : 4;
+  for (let index = 0; index < enemyCount; index += 1) {
     const enemyArea = placement.chooseArea(["ALLEY", "STORAGE", "CORRIDOR", "ROAD"], ["danger", "dark", "dead_end"], start, 12);
     if (enemyArea) { const enemy = placement.place(`enemy_${index + 1}`, "ENEMY", enemyArea, .12); placement.registerSpawn(enemy); registry.connect(enemy.id, enemy.areaId); }
+  }
+  for (let index = 0; index < npcCount; index += 1) {
     const npcArea = placement.chooseArea(["PLAZA", "PARK", "SIDEWALK", "BUILDING_ENTRANCE", "OFFICE"], ["safe", "public", "bright"], start, 5);
     if (npcArea) { const npc = placement.place(`npc_${index + 1}`, "NPC", npcArea, .12); placement.registerSpawn(npc); registry.connect(npc.id, npc.areaId); }
   }

@@ -29,7 +29,11 @@ export function createGameplayUi(mobile: boolean): GameplayUi {
   let interact: () => void = () => undefined;
   let messageTimer = 0;
 
-  const performInteraction = (event?: Event): void => { event?.preventDefault(); event?.stopPropagation(); interact(); };
+  const performInteraction = (event?: Event): void => {
+    event?.preventDefault(); event?.stopPropagation();
+    if (document.querySelector("#dialogue-panel")?.classList.contains("is-visible")) return;
+    interact();
+  };
   actionButton?.addEventListener("pointerdown", performInteraction, { passive: false });
   inventoryToggle?.addEventListener("click", (event) => { event.stopPropagation(); toggleInventory(); });
   inventoryClose?.addEventListener("click", (event) => { event.stopPropagation(); setInventoryOpen(false); });

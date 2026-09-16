@@ -17,6 +17,7 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   const world = laboratory.worldStatistics();
   const mission = laboratory.missionDebug();
   const guide = laboratory.missionGuideDebug();
+  const characters = laboratory.characterDebug();
   setText("renderer-value", getRendererName(engine));
   setText("canvas-value", canvas ? `${canvas.width} × ${canvas.height}` : "0 × 0");
   setText("viewport-value", `${Math.round(window.visualViewport?.width ?? window.innerWidth)} × ${Math.round(window.visualViewport?.height ?? window.innerHeight)}`);
@@ -63,6 +64,13 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   setText("guide-visible-value", guide.visible ? "YES" : "NO");
   setText("guide-screen-value", guide.onScreen ? "YES" : "NO");
   setText("guide-status-value", guide.status);
+  setText("npc-count-value", String(characters.npcCount));
+  setText("enemy-count-value", String(characters.enemyCount));
+  setText("selected-character-value", characters.selected?.id ?? "—");
+  setText("character-state-value", characters.selected?.state ?? "—");
+  setText("character-target-value", characters.selected?.target ?? "—");
+  setText("character-area-value", characters.selected?.area ?? "—");
+  setText("enemy-ai-value", characters.enemyAI ? "ON" : "OFF");
 }
 
 function setText(id: string, value: string): void {

@@ -29,6 +29,8 @@ let citySettings: CitySettings = loadCitySettings();
 let currentTime: "day" | "night" = "day";
 let currentGuideMode: MissionGuideMode = "DEBUG";
 let movementSettings: MovementSettings = loadMovementSettings();
+let enemyAIEnabled = true;
+let missionTestMode = false;
 
 try {
   if (!Engine.IsSupported) throw new Error("このブラウザではWebGLを利用できません。");
@@ -86,6 +88,8 @@ try {
       const input = document.querySelector<HTMLInputElement>("#mission-seed-input"); if (input) input.value = String(next.missionSeed);
       getLaboratory().restartMission(next); refresh(`新しいMission Seed ${next.missionSeed} で生成しました`);
     },
+    enemyAI: (enabled) => { enemyAIEnabled = enabled; getLaboratory().setEnemyAI(enabled && !missionTestMode); refresh(`ENEMY AI ${enabled ? "ON" : "OFF"}`); },
+    missionTestMode: (enabled) => { missionTestMode = enabled; getLaboratory().setEnemyAI(enemyAIEnabled && !enabled); refresh(`MISSION TEST ${enabled ? "ON — Enemy停止" : "OFF"}`); },
   }, citySettings, movementSettings);
 
   function refresh(message: string): void {
@@ -107,6 +111,7 @@ try {
     laboratory = createLaboratoryScene(getEngine(), canvas!, mobile, { worldMode: mode, citySettings: settings, gameplayCallbacks: gameplayUi.callbacks });
     laboratory.player.setMovementSpeeds(movementSettings);
     laboratory.setMissionGuideMode(currentGuideMode);
+    laboratory.setEnemyAI(enemyAIEnabled && !missionTestMode);
     gameplayUi.setInteractHandler(() => getLaboratory().interact());
     laboratory.setDayMode(currentTime === "day");
     hideInitializationError();

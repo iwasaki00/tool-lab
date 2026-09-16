@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#071018" />
-    <meta name="description" content="複数Stepと依存関係を持つMissionを自動生成するBabylon.js 3D空間実験室 Ver.7。" />
-    <title>3D空間実験室 Ver.7 — Mission Generator強化</title>
-    <script type="module" crossorigin src="./assets/index-ehfeyrvH.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BO7IcVW0.css">
+    <meta name="description" content="NPCとEnemyが自動生成された街を認識して行動するBabylon.js 3D空間実験室 Ver.8。" />
+    <title>3D空間実験室 Ver.8 — NPC・敵キャラクター基盤</title>
+    <script type="module" crossorigin src="./assets/index-D4IqLqNn.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Hdfjhstp.css">
   </head>
   <body>
     <canvas id="render-canvas" aria-label="3D空間実験室"></canvas>
@@ -17,7 +17,7 @@
 
     <header class="brand-plate">
       <span class="brand-index">06</span>
-      <span><strong>3D 空間実験室 <em>VER.7</em></strong><small>MISSION GENERATOR / BABYLON.JS</small></span>
+      <span><strong>3D 空間実験室 <em>VER.8</em></strong><small>CHARACTER AI / BABYLON.JS</small></span>
     </header>
 
     <div class="compact-status" aria-live="polite">
@@ -93,6 +93,13 @@
         <div><dt>Visible</dt><dd id="guide-visible-value">NO</dd></div>
         <div><dt>On Screen</dt><dd id="guide-screen-value">NO</dd></div>
         <div class="interpretation-row"><dt>Guide Status</dt><dd id="guide-status-value">—</dd></div>
+        <div><dt>NPC</dt><dd id="npc-count-value">0</dd></div>
+        <div><dt>Enemy</dt><dd id="enemy-count-value">0</dd></div>
+        <div><dt>Enemy AI</dt><dd id="enemy-ai-value">ON</dd></div>
+        <div><dt>Selected</dt><dd id="selected-character-value">—</dd></div>
+        <div><dt>Char State</dt><dd id="character-state-value">—</dd></div>
+        <div><dt>Char Target</dt><dd id="character-target-value">—</dd></div>
+        <div><dt>Char Area</dt><dd id="character-area-value">—</dd></div>
         <div class="interpretation-row"><dt>Rules</dt><dd id="interpretation-value">—</dd></div>
       </dl>
     </div>
@@ -173,6 +180,15 @@
         <details><summary>DEPENDENCY / LOG</summary><pre id="mission-dependency">—</pre><ol id="mission-log"></ol></details>
       </section>
 
+      <section class="character-settings" aria-label="Character AI設定">
+        <p class="panel-label">CHARACTER AI</p>
+        <div class="mission-actions">
+          <button type="button" class="is-active" data-action="toggle-enemy-ai">ENEMY AI ON</button>
+          <button type="button" data-action="toggle-mission-test">MISSION TEST OFF</button>
+        </div>
+        <small>MISSION TESTではEnemyを停止します</small>
+      </section>
+
       <section class="movement-settings" aria-label="プレイヤー移動速度">
         <p class="panel-label">PLAYER SPEED</p>
         <div class="movement-setting-grid">
@@ -207,6 +223,12 @@
       <p>所持アイテム</p>
       <ul id="inventory-list"><li class="inventory-empty">所持アイテムなし</li></ul>
       <small><kbd>I</kbd> で閉じる</small>
+    </section>
+
+    <section class="dialogue-panel" id="dialogue-panel" role="dialog" aria-live="polite" aria-label="NPC会話">
+      <strong id="dialogue-speaker">NPC</strong>
+      <p id="dialogue-text"></p>
+      <button type="button" id="dialogue-next">次へ</button>
     </section>
 
     <div class="look-zone" id="look-zone" aria-label="ドラッグして視点移動"></div>
