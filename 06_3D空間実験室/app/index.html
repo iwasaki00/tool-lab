@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#071018" />
-    <meta name="description" content="プロシージャル生成した街で遊べるBabylon.js 3D空間実験室 Ver.10。" />
-    <title>3D空間実験室 Ver.10 — ゲームモード化</title>
-    <script type="module" crossorigin src="./assets/index-Ctufffqp.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CFhTbee0.css">
+    <meta name="description" content="Mission・Navigation・Enemyを短時間で検証できるBabylon.js 3D空間実験室 Ver.11。" />
+    <title>3D空間実験室 Ver.11 — プレイ検証・デバッグツール</title>
+    <script type="module" crossorigin src="./assets/index-w7zwf-ux.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CxvDIo_T.css">
   </head>
   <body>
     <canvas id="render-canvas" aria-label="3D空間実験室"></canvas>
@@ -17,7 +17,7 @@
 
     <header class="brand-plate">
       <span class="brand-index">06</span>
-      <span><strong>3D 空間実験室 <em>VER.10</em></strong><small>GAME MODE FOUNDATION / BABYLON.JS</small></span>
+      <span><strong>3D 空間実験室 <em>VER.11</em></strong><small>PLAY TEST TOOL / BABYLON.JS</small></span>
     </header>
 
     <div class="compact-status" aria-live="polite">
@@ -28,9 +28,24 @@
     </div>
 
     <div class="top-actions">
+      <button type="button" id="play-test-toggle" aria-expanded="false">PLAY TEST</button>
       <button type="button" id="debug-toggle" aria-expanded="false">DEBUG</button>
       <button type="button" id="menu-toggle" aria-expanded="false">MENU</button>
     </div>
+    <aside class="debug-test-panel" id="debug-test-panel" hidden aria-label="Game test tools">
+      <header><span><b>PLAY TEST</b><small>GAME TEST TOOLS</small></span><button type="button" id="debug-test-close">CLOSE</button></header>
+      <div class="debug-test-scroll">
+        <details open><summary>MISSION</summary><div class="debug-tool-grid"><button data-debug-command="complete-current">COMPLETE CURRENT STEP</button><button data-debug-teleport="current">TELEPORT OBJECTIVE</button><button data-debug-teleport="goal">TELEPORT GOAL</button><button id="debug-complete-game">COMPLETE GAME</button><button id="debug-fail-game">FAIL GAME</button></div><ol id="debug-mission-steps"></ol></details>
+        <details><summary>ITEMS / INVENTORY</summary><div class="debug-tool-grid"><button data-debug-command="give-key">GIVE KEY</button><button data-debug-command="give-card">GIVE CARD KEY</button><button data-debug-command="give-battery">GIVE BATTERY</button><button data-debug-command="give-all">GIVE ALL ITEMS</button><button data-debug-command="clear-inventory">CLEAR INVENTORY</button></div><pre id="debug-inventory-list">EMPTY</pre></details>
+        <details><summary>DOORS / SWITCHES</summary><div class="debug-tool-grid"><button data-debug-command="unlock-all">UNLOCK ALL</button><button data-debug-command="open-all">OPEN ALL</button><button data-debug-command="close-all">CLOSE ALL</button><button data-debug-command="lock-all">LOCK ALL</button><button data-debug-command="reset-doors">RESET DOORS</button><button data-debug-command="switches-on">SWITCHES ON</button><button data-debug-command="switches-off">SWITCHES OFF</button><button data-debug-command="reset-switches">RESET SWITCHES</button></div><div id="debug-door-list">—</div></details>
+        <details><summary>PLAYER</summary><div class="debug-tool-grid"><button data-debug-command="teleport-start">TELEPORT START</button><button data-debug-command="teleport-current">CURRENT OBJECTIVE</button><button data-debug-command="teleport-goal">NEAR GOAL</button><button data-debug-floor="1">FLOOR 1</button><button data-debug-floor="2">FLOOR 2</button><button data-debug-floor="3">FLOOR 3</button><button data-debug-speed="0.5">SPEED ×0.5</button><button data-debug-speed="1">SPEED ×1</button><button data-debug-speed="2">SPEED ×2</button><button data-debug-speed="4">SPEED ×4</button><button id="debug-no-clip">NO CLIP OFF</button></div><label>ROOM<select id="debug-room-select"><option value="">—</option></select></label><pre id="debug-player-position">—</pre></details>
+        <details><summary>ENEMY / DETECTION</summary><div class="debug-tool-grid"><button data-debug-enemy="freeze">FREEZE ALL</button><button data-debug-enemy="resume">RESUME ALL</button><button data-debug-enemy="remove">REMOVE ALL</button><button data-debug-enemy="respawn">RESPAWN</button><button data-debug-enemy="PATROL">PATROL</button><button data-debug-enemy="ALERT">ALERT</button><button data-debug-enemy="CHASE">CHASE</button><button data-debug-enemy="RETURN">RETURN</button><button data-debug-enemy="IDLE">IDLE</button><button data-debug-enemy="to-player">ENEMY TO PLAYER</button><button data-debug-enemy="player-near">PLAYER NEAR ENEMY</button><button data-debug-enemy="force-detected">FORCE DETECTED</button><button data-debug-enemy="clear-detection">CLEAR DETECTION</button><button data-debug-enemy="vision-on">SHOW FOV / RANGE</button><button data-debug-enemy="vision-off">HIDE FOV / RANGE</button></div><pre id="debug-detection-info">—</pre></details>
+        <details><summary>NAVIGATION / GUIDE</summary><div class="debug-tool-grid"><button data-debug-command="show-navmesh">SHOW NAVMESH</button><button data-debug-command="hide-navmesh">HIDE NAVMESH</button><button data-debug-command="show-current-route">SHOW CURRENT ROUTE</button><button data-debug-command="show-full-route">SHOW FULL ROUTE</button><button data-debug-command="rebuild-navigation">REBUILD NAVIGATION</button><button data-debug-command="clear-paths">CLEAR PATH DEBUG</button><button data-debug-guide="OFF">GUIDE OFF</button><button data-debug-guide="NORMAL">GUIDE NORMAL</button><button data-debug-guide="DEBUG">GUIDE DEBUG</button><button data-debug-guide="DEBUG_ALL">GUIDE DEBUG ALL</button></div></details>
+        <details><summary>DISCOVERY / WORLD</summary><div class="debug-tool-grid"><button data-debug-discovery="current">DISCOVER CURRENT</button><button data-debug-discovery="all">DISCOVER ALL</button><button data-debug-discovery="reset">RESET DISCOVERY</button><button id="debug-select-mode">DEBUG SELECT OFF</button></div><pre id="debug-world-info">—</pre><h4>SELECTED OBJECT</h4><pre id="debug-selected-object">NO SELECTION</pre><h4>MISSION OBJECTS</h4><ul id="debug-object-list"></ul></details>
+        <details><summary>TIME / SCORE / SIMULATION</summary><div class="debug-tool-grid"><button id="debug-timer-pause">PAUSE TIMER</button><button data-debug-time="60">+60 SEC</button><button data-debug-time="-60">-60 SEC</button><button data-debug-score="1000">+1000 SCORE</button><button id="debug-score-reset">RESET SCORE</button><button data-debug-game-speed="0.25">GAME 0.25×</button><button data-debug-game-speed="0.5">GAME 0.5×</button><button data-debug-game-speed="1">GAME 1×</button><button data-debug-game-speed="2">GAME 2×</button><button id="debug-simulation-pause">PAUSE SIMULATION</button><button id="debug-reset-state">RESET TEST STATE</button><button id="debug-restart-game">RESTART GAME</button></div></details>
+        <details open><summary>SNAPSHOT / LOG</summary><pre id="debug-text-snapshot">—</pre><ol id="debug-action-log"></ol></details>
+      </div>
+    </aside>
     <aside class="controls-cheatsheet" aria-label="操作方法">
       <strong>CONTROLS</strong>
       <div class="desktop-controls">

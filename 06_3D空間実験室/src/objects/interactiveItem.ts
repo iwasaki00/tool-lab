@@ -24,6 +24,7 @@ export function createItem(ctx: ObjectContext, interactions: InteractionManager,
       ? MeshBuilder.CreateCylinder(options.id, { height: .18, diameter: .7, tessellation: 16 }, ctx.scene)
       : MeshBuilder.CreateBox(options.id, { width: .65, height: .22, depth: .28 }, ctx.scene);
   mesh.position.copyFrom(options.position);
+  mesh.metadata = { ...mesh.metadata, gameplayId: options.id, gameplayType: "item", interactionType: "pickup" };
   const material = createMaterial(ctx.scene, `${options.id}-material`, options.color ?? new Color3(.9, .68, .12), .5);
   material.emissiveColor = (options.color ?? new Color3(.9, .68, .12)).scale(.22);
   mesh.material = material;

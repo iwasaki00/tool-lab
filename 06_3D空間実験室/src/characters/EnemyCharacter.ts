@@ -12,6 +12,7 @@ import { CharacterStateMachine } from "./CharacterStateMachine";
 import type { NavigationManager } from "../navigation/NavigationManager";
 
 type EnemyState = "IDLE" | "PATROL" | "ALERT" | "CHASE" | "RETURN";
+export type EnemyDebugState = EnemyState;
 
 export class EnemyCharacter extends CharacterController {
   private readonly machine: CharacterStateMachine<EnemyState, EnemyCharacter>;
@@ -29,6 +30,8 @@ export class EnemyCharacter extends CharacterController {
   private patrolRetry = 0;
   private detectionLevelValue = 0;
   private wasFullyDetected = false;
+  private detectionInfoValue = { lineOfSight: false, inFov: false, distance: 0 };
+  private visionDebugVisible = false;
 
   constructor(id: string, rig: HumanoidRig, areaId: string, private readonly scene: Scene, registry: WorldRegistry, seed: number, private readonly playerPosition: () => Vector3, private readonly onCaught: (id: string) => void, private readonly navMesh?: NavigationManager) {
     super(id, "ENEMY", rig, areaId, 1.5, "PATROL", 15);
@@ -45,12 +48,18 @@ export class EnemyCharacter extends CharacterController {
 
   setAIEnabled(enabled: boolean): void { this.aiEnabled = enabled; if (!enabled) { this.machine.transition("IDLE"); this.currentTarget = "—"; } else if (this.machine.state === "IDLE") this.machine.transition("PATROL"); }
   detectionLevel(): number { return this.detectionLevelValue; }
-  override setDebugVisible(visible: boolean): void { super.setDebugVisible(visible); this.detectionDebug.isVisible = visible; }
+  detectionInfo(): { level: number; lineOfSight: boolean; inFov: boolean; distance: number } { return { level: this.detectionLevelValue, ...this.detectionInfoValue }; }
+  debugForceState(state: EnemyDebugState): void { this.aiEnabled = state !== "IDLE"; this.machine.transition(state); }
+  debugClearDetection(): void { this.detectionLevelValue = 0; this.wasFullyDetected = false; this.lostSeconds = 5; if (this.machine.state === "CHASE" || this.machine.state === "ALERT") this.machine.transition("RETURN"); }
+  debugForceDetected(): void { this.detectionLevelValue = 1; this.lastKnownPlayerPosition = this.playerPosition(); this.machine.transition("CHASE"); }
+  setVisionDebugVisible(visible: boolean): void { this.visionDebugVisible = visible; this.detectionDebug.isVisible = visible; }
+  override setDebugVisible(visible: boolean): void { super.setDebugVisible(visible); this.detectionDebug.isVisible = visible || this.visionDebugVisible; }
 
   update(deltaSeconds: number): void {
     const player = this.playerPosition(); this.caughtCooldown = Math.max(0, this.caughtCooldown - deltaSeconds);
     if (this.aiEnabled) {
       const result = this.detection.detect(this.rig.root.position, this.rig.root.rotation.y, player, this.detectionRange);
+      this.detectionInfoValue = { lineOfSight: result.lineOfSight, inFov: result.inFov, distance: result.distance };
       const exposed = result.inFov && result.lineOfSight && result.distance <= this.detectionRange;
       const proximity = exposed ? Math.max(.15, 1 - result.distance / this.detectionRange) : 0;
       this.detectionLevelValue = Math.max(0, Math.min(1, this.detectionLevelValue + (exposed ? (.35 + proximity) * deltaSeconds : -1.15 * deltaSeconds)));

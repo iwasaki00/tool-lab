@@ -102,6 +102,7 @@ export class NavigationManager {
   }
 
   clearPath(id: string): void { this.debugPaths.get(id)?.dispose(); this.debugPaths.delete(id); }
+  clearAllPaths(): void { this.debugPaths.forEach((path) => path.dispose()); this.debugPaths.clear(); }
   setDebugVisible(visible: boolean): void { this.debugVisible = visible; if (this.debugMesh) this.debugMesh.isVisible = visible; this.debugPaths.forEach((path) => { path.isVisible = visible; }); }
 
   validate(points: Array<{ id: string; position: Vector3 }>): void {

@@ -29,6 +29,7 @@ import { CharacterManager, type CharacterManagerDebug } from "../characters/Char
 import type { NavigationManager } from "../navigation/NavigationManager";
 import type { DiscoverySnapshot, GameMode } from "../game/GameTypes";
 import { DiscoveryManager } from "../game/DiscoveryManager";
+import { DebugTestManager, type DebugCommand, type DebugTestSnapshot } from "../debug/DebugTestManager";
 
 export interface GameplayCallbacks {
   onFocus: (focus?: InteractionFocus) => void;
@@ -59,6 +60,13 @@ export interface DemoScenario {
   setNavigationTest: (enabled: boolean) => void;
   setPaused: (paused: boolean) => void;
   discovery: () => DiscoverySnapshot;
+  debugTest: () => DebugTestSnapshot;
+  debugCommand: (command: DebugCommand, value?: string | number) => void;
+  debugJumpTo: (stepId: string) => void;
+  setDebugSelectMode: (enabled: boolean) => void;
+  debugEnemy: (command: Parameters<CharacterManager["debugEnemy"]>[0]) => void;
+  debugDiscovery: (command: "current" | "all" | "reset") => void;
+  setSimulationSpeed: (scale: number) => void;
   dispose: () => void;
 }
 
@@ -143,6 +151,7 @@ export function createDemoScenario(
   placement.createDebugMarkers(ctx);
   const characters = new CharacterManager(ctx, camera, placement.getPlacements(), registry, interactions, objectives, callbacks.onMessage, setPlayerInputEnabled, navigation, (id) => callbacks.onPlayerCaught?.(id), characterCounts.enemyCount);
   const discovery = new DiscoveryManager(ctx.scene, camera, registry, gameMode === "EXPLORATION", (snapshot) => callbacks.onDiscovery?.(snapshot));
+  const debugTest = new DebugTestManager(ctx.scene, camera, registry, plan, runtime, inventory, navigation);
   createInspectables(ctx, interactions, missionPosition, callbacks.onMessage);
   const disposeGoal = createGoalZone(ctx, camera, { id: "goal_001", position: goalPosition, onEnter: () => gateActivated && runtime.completeByTarget("goal_001", "Goal reached") });
   const guide = new MissionGuideManager(ctx.scene, camera, registry, objectives, () => plan.steps, navigation);
@@ -167,8 +176,15 @@ export function createDemoScenario(
     setNavigationTest: (enabled) => characters.setNavigationTest(enabled),
     setPaused: (paused) => { characters.setPaused(paused); runtime.setPaused(paused); },
     discovery: () => discovery.snapshot(),
+    debugTest: () => debugTest.snapshot(),
+    debugCommand: (command, value) => debugTest.command(command, value),
+    debugJumpTo: (stepId) => debugTest.jumpTo(stepId),
+    setDebugSelectMode: (enabled) => debugTest.setSelectMode(enabled),
+    debugEnemy: (command) => { characters.debugEnemy(command); debugTest.record(`Enemy command: ${command}`); },
+    debugDiscovery: (command) => { if (command === "current") discovery.debugDiscoverCurrent(); else if (command === "all") discovery.debugDiscoverAll(); else discovery.debugReset(); debugTest.record(`Discovery command: ${command}`); },
+    setSimulationSpeed: (scale) => characters.setTimeScale(scale),
     dispose: () => {
-      disposeGoal(); runtime.dispose(ctx.scene); discovery.dispose(ctx.scene); guide.dispose(); characters.dispose(); interiorManager.dispose(); interactions.dispose(); inventory.clear(); events.clear();
+      disposeGoal(); debugTest.dispose(); runtime.dispose(ctx.scene); discovery.dispose(ctx.scene); guide.dispose(); characters.dispose(); interiorManager.dispose(); interactions.dispose(); inventory.clear(); events.clear();
       ctx.scene.meshes.filter((mesh) => !baseMeshes.has(mesh)).forEach((mesh) => { if (!mesh.isDisposed()) mesh.dispose(false, false); });
       ctx.scene.materials.filter((material) => !baseMaterials.has(material)).forEach((material) => material.dispose());
       ctx.scene.lights.filter((light) => !baseLights.has(light)).forEach((light) => light.dispose());

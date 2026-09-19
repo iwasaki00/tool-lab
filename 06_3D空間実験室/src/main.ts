@@ -15,6 +15,7 @@ import { GameSession, type GameSessionSnapshot } from "./game/GameSession";
 import { decodeChallengeCode, encodeChallengeCode, type GameConfig, type GameMode } from "./game/GameTypes";
 import { resolveGameMode } from "./game/GameModeManager";
 import type { GameplayCallbacks } from "./gameplay/createDemoScenario";
+import { createDebugPanel } from "./debug/DebugPanel";
 
 const mobile = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
 document.body.classList.add(mobile ? "is-mobile" : "is-desktop");
@@ -77,6 +78,7 @@ try {
     random: () => { getLaboratory().randomize(); refresh("実験オブジェクトを再配置しました"); },
     debug: () => {
       debugMode = !debugMode;
+      document.body.classList.toggle("debug-enabled", debugMode);
       getLaboratory().setDebugMode(debugMode);
       controls.showToast(debugMode ? "描画テスト：赤いBoxを表示" : "描画テストを終了しました");
     },
@@ -116,6 +118,27 @@ try {
     navigationTest: (enabled) => { getLaboratory().setNavigationTest(enabled); refresh(`NAV TEST ${enabled ? "ON — 地面を選択してください" : "OFF"}`); },
   }, citySettings, movementSettings);
 
+  const debugPanel = createDebugPanel({
+    laboratory: getLaboratory,
+    completeGame: () => {
+      if (gameConfig.mode === "EXPLORATION") getLaboratory().debugDiscovery("all");
+      else for (let index = 0; index < 20 && !getLaboratory().missionDebug().state.complete; index += 1) getLaboratory().debugCommand("complete-current");
+    },
+    failGame: () => gameSession?.fail("[DEBUG] Forced game failure"),
+    pauseTimer: (paused) => gameSession?.debugPauseTimer(paused),
+    adjustTime: (seconds) => gameSession?.debugAdjustTime(seconds),
+    adjustScore: (points) => gameSession?.debugAdjustScore(points),
+    resetScore: () => gameSession?.debugResetScore(),
+    resetTestState,
+    restartGame: () => void startConfiguredGame(true),
+    setSpeedMultiplier: (multiplier) => getLaboratory().player.setMovementSpeeds({ normalSpeed: movementSettings.normalSpeed * multiplier, shiftSpeed: movementSettings.shiftSpeed * multiplier }),
+    guideMode: (mode) => { currentGuideMode = mode; getLaboratory().setMissionGuideMode(mode); },
+    setSimulationSpeed: (scale) => getLaboratory().setSimulationSpeed(scale),
+    setSimulationPaused: (paused) => { getLaboratory().setSimulationPaused(paused); gameSession?.debugPauseTimer(paused); },
+    snapshotHeader: () => { const state = gameSession?.snapshot(); return [`MODE=${gameConfig.mode}`, `DIFFICULTY=${gameConfig.difficulty}`, `STATE=${state?.state ?? "TITLE"}`, `CITY_SEED=${gameConfig.citySeed}`, `MISSION_SEED=${gameConfig.missionSeed}`, `TIMER=${formatGameTime(state?.elapsedSeconds ?? 0)}`, `SCORE=${state?.result?.score ?? gameSession?.debugScore() ?? 0}`]; },
+    panelOpenChanged: (open) => getLaboratory().player.setInputEnabled(!open && gameSession?.snapshot().state === "PLAYING"),
+  });
+
   function refresh(message: string): void {
     controls.showToast(message);
     updateDebugReadout(getEngine(), getLaboratory(), mobile);
@@ -126,6 +149,11 @@ try {
     getLaboratory().setDayMode(mode === "day");
     controls.setMode(mode);
     controls.showToast(mode === "day" ? "昼モードに切り替えました" : "夜モードに切り替えました");
+  }
+
+  function resetTestState(): void {
+    getLaboratory().restartMission(citySettings); getLaboratory().player.setMovementSpeeds(movementSettings); applyGameRules();
+    gameSession = new GameSession(gameConfig, renderGameSession); gameSession.start(); getLaboratory().setPaused(false); controls.showToast("[DEBUG] TEST STATE RESET");
   }
 
   function rebuildWorld(mode: WorldMode, settings: CitySettings, message: string): void {
@@ -141,6 +169,7 @@ try {
     hideInitializationError();
     if (mobile) detachMobileControls = attachMobileControls(laboratory.player);
     debugMode = false;
+    document.body.classList.remove("debug-enabled");
     controls.setWorldMode(mode);
     updateGuideMode(mode);
     refresh(message);
@@ -179,6 +208,7 @@ try {
   document.querySelector("#change-game-mode")?.addEventListener("click", showTitle);
   document.querySelector("#game-test-button")?.addEventListener("click", () => {
     gameConfig.testMode = !gameConfig.testMode; const button = document.querySelector<HTMLButtonElement>("#game-test-button"); if (button) button.textContent = `GAME TEST ${gameConfig.testMode ? "ON" : "OFF"}`;
+    document.body.classList.toggle("game-test-enabled", gameConfig.testMode);
     applyGameRules(); controls.showToast(gameConfig.testMode ? "GAME TEST: 敵停止 / DEBUG GUIDE" : "GAME TEST OFF");
   });
   document.querySelector("#tutorial-close")?.addEventListener("click", () => { tutorialScreen?.classList.remove("is-visible"); resumeGame(); });
@@ -219,6 +249,7 @@ try {
 
   function applyGameRules(): void {
     const rules = resolveGameMode(gameConfig); currentGuideMode = gameConfig.testMode ? "DEBUG_ALL" : rules.guide;
+    document.body.classList.toggle("game-test-enabled", gameConfig.testMode);
     getLaboratory().setMissionGuideMode(currentGuideMode); getLaboratory().setEnemyAI(rules.enemies && !gameConfig.testMode && enemyAIEnabled && !missionTestMode);
     getLaboratory().setDebugMode(gameConfig.testMode || debugMode);
     setText("game-mode-hud", gameConfig.mode); if (gameConfig.mode === "EXPLORATION") setText("objective-text", rules.objective);
@@ -296,7 +327,8 @@ try {
       const detectionFill = document.querySelector<HTMLElement>("#detection-fill"); if (detectionFill) detectionFill.style.width = `${Math.round(detectionValue * 100)}%`;
       if (detectionValue >= .99 && !detectionLatched) { detectionLatched = true; if (gameConfig.mode === "STEALTH") gameSession?.addDetection(); }
       if (detectionValue < .35) detectionLatched = false;
-      const game = gameSession?.snapshot(); if (game) { setText("game-debug-mode", gameConfig.mode); setText("game-debug-state", game.state); setText("game-debug-difficulty", gameConfig.difficulty); setText("game-debug-timer", formatGameTime(game.elapsedSeconds)); setText("game-debug-score", String(game.result?.score ?? 0)); setText("game-debug-discovery", `${game.discovery.discovered}/${game.discovery.target} ・ BLD ${game.discovery.buildingsVisited}/${game.discovery.buildingTarget}`); }
+      if (debugPanel.isOpen()) debugPanel.update();
+      const game = gameSession?.snapshot(); if (game) { setText("game-debug-mode", gameConfig.mode); setText("game-debug-state", game.state); setText("game-debug-difficulty", gameConfig.difficulty); setText("game-debug-timer", formatGameTime(game.elapsedSeconds)); setText("game-debug-score", String(game.result?.score ?? gameSession?.debugScore() ?? 0)); setText("game-debug-discovery", `${game.discovery.discovered}/${game.discovery.target} ・ BLD ${game.discovery.buildingsVisited}/${game.discovery.buildingTarget}`); }
       lastTelemetryUpdate = now;
     }
   });

@@ -11,6 +11,8 @@ export interface PlayerController {
   setSprinting: (active: boolean) => void;
   setMovementSpeeds: (settings: MovementSettings) => void;
   setInputEnabled: (enabled: boolean) => void;
+  setNoClip: (enabled: boolean) => void;
+  isNoClip: () => boolean;
   jump: () => void;
   rotate: (deltaX: number, deltaY: number) => void;
 }
@@ -46,10 +48,13 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
   let sprinting = false;
   let verticalVelocity = 0;
   let inputEnabled = true;
+  let noClip = false;
   scene.onBeforeRenderObservable.add(() => {
     const deltaTime = Math.min(scene.getEngine().getDeltaTime() / 1000, .05);
 
-    if (verticalVelocity <= 0 && isGrounded(scene, camera)) {
+    if (noClip) {
+      verticalVelocity = 0; camera.cameraDirection.y = sprinting ? -3.2 * deltaTime : 0;
+    } else if (verticalVelocity <= 0 && isGrounded(scene, camera)) {
       verticalVelocity = 0;
       camera.cameraDirection.y = -.02;
     } else {
@@ -86,6 +91,7 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
 
   function jump(): void {
     if (!inputEnabled) return;
+    if (noClip) { camera.position.y += .65; return; }
     if (verticalVelocity <= 0 && isGrounded(scene, camera)) verticalVelocity = jumpSpeed;
   }
 
@@ -98,6 +104,8 @@ export function createPlayer(scene: Scene, canvas: HTMLCanvasElement, mobile: bo
       inputEnabled = enabled; moveX = 0; moveY = 0; sprinting = false; applyCurrentSpeed();
       if (enabled) camera.attachControl(canvas, true); else { camera.detachControl(); if (document.pointerLockElement === canvas) void document.exitPointerLock(); }
     },
+    setNoClip: (enabled) => { noClip = enabled; camera.checkCollisions = !enabled; verticalVelocity = 0; camera.cameraDirection.y = 0; },
+    isNoClip: () => noClip,
     jump,
     rotate: (deltaX, deltaY) => {
       if (!inputEnabled) return;

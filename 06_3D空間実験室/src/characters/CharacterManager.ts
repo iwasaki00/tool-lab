@@ -15,6 +15,7 @@ import { NPCCharacter } from "./NPCCharacter";
 import { EnemyCharacter } from "./EnemyCharacter";
 import type { CharacterController, CharacterDebugInfo } from "./Character";
 import type { NavigationManager } from "../navigation/NavigationManager";
+import type { EnemyDebugState } from "./EnemyCharacter";
 
 export interface CharacterManagerDebug {
   npcCount: number;
@@ -22,6 +23,7 @@ export interface CharacterManagerDebug {
   selected?: CharacterDebugInfo;
   enemyAI: boolean;
   detection: number;
+  detectionInfo?: { level: number; lineOfSight: boolean; inFov: boolean; distance: number };
 }
 
 export class CharacterManager {
@@ -39,6 +41,9 @@ export class CharacterManager {
   private lastSpawnScan = 0;
   private readonly knownCharacterIds = new Set<string>();
   private paused = false;
+  private timeScale = 1;
+  private enemiesRemoved = false;
+  private readonly enemyPlacements: GamePlacement[];
 
   constructor(
     private readonly ctx: ObjectContext,
@@ -53,6 +58,7 @@ export class CharacterManager {
     private readonly onCaught: (id: string) => void = () => undefined,
     private readonly maxEnemies = Number.POSITIVE_INFINITY,
   ) {
+    this.enemyPlacements = placements.filter((placement) => placement.kind === "ENEMY").map((placement) => ({ ...placement, position: { ...placement.position } }));
     this.dialogue = new DialogueManager((paused) => setPlayerInputEnabled(!paused));
     placements.filter((placement) => placement.kind === "NPC").forEach((placement, index) => this.createNPC(placement, index));
     placements.filter((placement) => placement.kind === "ENEMY").forEach((placement, index) => this.createEnemy(placement, index));
@@ -69,8 +75,21 @@ export class CharacterManager {
   setEnemyAI(enabled: boolean): void { this.enemyAI = enabled; this.enemies.forEach((enemy) => enemy.setAIEnabled(enabled)); }
   setNavigationTest(enabled: boolean): void { this.navigationTest = enabled; }
   setPaused(paused: boolean): void { this.paused = paused; }
+  setTimeScale(scale: number): void { this.timeScale = Math.max(.05, Math.min(4, scale)); }
   setDebugVisible(visible: boolean): void { this.debugVisible = visible; this.characters.forEach((character) => character.setDebugVisible(visible)); }
-  debugInfo(): CharacterManagerDebug { return { npcCount: this.npcs.length, enemyCount: this.enemies.length, selected: this.selected?.debugInfo(), enemyAI: this.enemyAI, detection: Math.max(0, ...this.enemies.map((enemy) => enemy.detectionLevel())) }; }
+  debugInfo(): CharacterManagerDebug { const enemy = this.selected instanceof EnemyCharacter ? this.selected : this.enemies[0]; return { npcCount: this.npcs.length, enemyCount: this.enemies.length, selected: this.selected?.debugInfo(), enemyAI: this.enemyAI, detection: Math.max(0, ...this.enemies.map((item) => item.detectionLevel())), detectionInfo: enemy?.detectionInfo() }; }
+  debugEnemy(command: "freeze" | "resume" | "remove" | "respawn" | "vision-on" | "vision-off" | "force-detected" | "clear-detection" | "to-player" | "player-near" | EnemyDebugState): void {
+    const enemy = this.selected instanceof EnemyCharacter ? this.selected : this.enemies[0];
+    if (command === "freeze") { this.setEnemyAI(false); return; } if (command === "resume") { this.setEnemyAI(true); return; }
+    if (command === "remove") { this.removeAllEnemies(); return; }
+    if (command === "respawn") { this.respawnEnemies(); return; }
+    if (command === "vision-on" || command === "vision-off") { this.enemies.forEach((item) => item.setVisionDebugVisible(command === "vision-on")); return; }
+    if (!enemy) return;
+    if (command === "force-detected") enemy.debugForceDetected(); else if (command === "clear-detection") enemy.debugClearDetection();
+    else if (command === "to-player") enemy.rig.root.position.copyFrom(this.camera.position.add(new Vector3(0, -1.05, 2.2)));
+    else if (command === "player-near") this.camera.position.copyFrom(enemy.rig.root.position.add(new Vector3(0, 1.8, 2.2)));
+    else enemy.debugForceState(command);
+  }
 
   dispose(): void {
     this.dialogue.dispose(); this.ctx.scene.onBeforeRenderObservable.remove(this.observer); this.ctx.scene.onPointerObservable.remove(this.pointerObserver);
@@ -116,7 +135,7 @@ export class CharacterManager {
 
   private update(): void {
     if (this.paused) return;
-    const deltaSeconds = Math.min(this.ctx.scene.getEngine().getDeltaTime() / 1000, .05);
+    const deltaSeconds = Math.min(this.ctx.scene.getEngine().getDeltaTime() / 1000, .05) * this.timeScale;
     const player = this.camera.position;
     this.npcs.forEach((npc) => npc.update(deltaSeconds, player));
     this.enemies.forEach((enemy) => enemy.update(deltaSeconds));
@@ -125,13 +144,24 @@ export class CharacterManager {
   }
 
   private scanSemanticSpawns(): void {
-    if (this.maxEnemies <= this.enemies.length) return;
+    if (this.enemiesRemoved || this.maxEnemies <= this.enemies.length) return;
     const mobile = document.body.classList.contains("is-mobile");
     const enemyLimit = Math.min(mobile ? 6 : 8, this.maxEnemies);
     this.registry.getAreasByType("ENEMY_SPAWN").filter((area) => !this.knownCharacterIds.has(area.id)).slice(0, Math.max(0, enemyLimit - this.enemies.length)).forEach((area) => {
       const areaId = area.connections[0] ?? area.id;
       this.createEnemy({ id: area.id, kind: "ENEMY", areaId, position: { x: area.position.x, y: area.position.y, z: area.position.z } }, this.enemies.length);
     });
+  }
+
+  private removeAllEnemies(): void {
+    this.enemiesRemoved = true; if (this.selected instanceof EnemyCharacter) this.selected = undefined;
+    this.enemies.splice(0).forEach((enemy) => { const index = this.characters.indexOf(enemy); if (index >= 0) this.characters.splice(index, 1); this.knownCharacterIds.delete(enemy.id); enemy.dispose(); this.navigation?.clearPath(enemy.id); });
+  }
+
+  private respawnEnemies(): void {
+    this.removeAllEnemies(); this.enemiesRemoved = false;
+    this.enemyPlacements.slice(0, Number.isFinite(this.maxEnemies) ? this.maxEnemies : undefined).forEach((placement, index) => this.createEnemy(placement, index));
+    this.scanSemanticSpawns();
   }
 
   private applySeparation(): void {

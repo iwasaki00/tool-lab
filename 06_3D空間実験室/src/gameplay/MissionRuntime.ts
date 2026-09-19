@@ -51,6 +51,13 @@ export class MissionRuntime {
 
   isTargetActive(targetId: string): boolean { return this.plan.steps.some((step) => step.status === "ACTIVE" && step.targetIds.includes(targetId)); }
   isStepComplete(stepId: string): boolean { return this.plan.steps.some((step) => step.id === stepId && step.status === "COMPLETED"); }
+  debugCompleteCurrent(): boolean { const step = this.current(); return step ? this.complete(step.id, `[DEBUG] ${step.description}`) : false; }
+  debugJumpTo(stepId: string): boolean {
+    if (this.result) return false;
+    const targetIndex = this.plan.steps.findIndex((step) => step.id === stepId); if (targetIndex < 0) return false;
+    this.plan.steps.forEach((step, index) => { step.status = step.optional ? (index < targetIndex ? "COMPLETED" : "LOCKED") : index < targetIndex ? "COMPLETED" : index === targetIndex ? "ACTIVE" : "LOCKED"; });
+    const target = this.plan.steps[targetIndex]; this.objectives.set({ id: target.id, label: target.description, targetIds: target.targetIds, targetType: target.targetType }); this.log(`[DEBUG] Jumped to ${target.id}`); this.publish(); return true;
+  }
   current(): MissionStep | undefined { return this.plan.steps.find((step) => step.status === "ACTIVE" && !step.optional) ?? this.plan.steps.find((step) => step.status === "ACTIVE"); }
   snapshot(): MissionRuntimeSnapshot {
     const required = this.plan.steps.filter((step) => !step.optional);

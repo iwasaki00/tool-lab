@@ -16,6 +16,8 @@ export interface DoorController {
   close: () => void;
   toggle: () => void;
   unlock: () => void;
+  lock: () => void;
+  reset: () => void;
   isOpen: () => boolean;
   isLocked: () => boolean;
 }
@@ -66,9 +68,13 @@ export function createDoor(ctx: ObjectContext, interactions: InteractionManager,
     close: () => animateTo(false),
     toggle: () => animateTo(!open),
     unlock: () => { locked = false; panel.metadata = { ...panel.metadata, navigationDoorLocked: false }; },
+    lock: () => { if (open) animateTo(false); locked = true; panel.metadata = { ...panel.metadata, navigationDoorLocked: true }; },
+    reset: () => { if (open) animateTo(false); locked = options.locked ?? false; panel.metadata = { ...panel.metadata, navigationDoorOpen: false, navigationDoorLocked: locked }; },
     isOpen: () => open,
     isLocked: () => locked,
   };
+  hinge.metadata = { ...hinge.metadata, gameplayId: options.id, gameplayType: "door", debugDoorController: controller };
+  panel.metadata = { ...panel.metadata, gameplayId: options.id, gameplayType: "door", interactionType: "open", debugDoorController: controller };
 
   if (options.interactable !== false) interactions.register({
     id: options.id,

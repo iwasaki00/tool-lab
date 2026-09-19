@@ -18,7 +18,7 @@ import { createRandomScene, randomOpenPosition } from "./generators";
 import { setStreetLightsEnabled } from "../objects/streetLight";
 import { createCity } from "../world/cityGenerator";
 import { DEFAULT_CITY_SETTINGS, type CitySettings, type CityStats, type WorldMode } from "../world/types";
-import { createDemoScenario, type GameplayCallbacks } from "../gameplay/createDemoScenario";
+import { createDemoScenario, type DemoScenario, type GameplayCallbacks } from "../gameplay/createDemoScenario";
 import type { InteractionFocus } from "../interaction/Interactable";
 import type { InventoryEntry } from "../gameplay/InventoryManager";
 import type { InteriorNavigation } from "../interior/Room";
@@ -31,6 +31,7 @@ import type { MissionGuideDebugInfo, MissionGuideMode } from "../gameplay/Missio
 import type { CharacterManagerDebug } from "../characters/CharacterManager";
 import { NavigationManager, type NavigationStats } from "../navigation/NavigationManager";
 import type { DiscoverySnapshot, GameMode } from "../game/GameTypes";
+import type { DebugCommand, DebugTestSnapshot } from "../debug/DebugTestManager";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -62,6 +63,15 @@ export interface LaboratoryApi {
   navigationDebug: () => NavigationStats;
   useNavigationFallback: (reason: string) => void;
   retryNavigation: () => void;
+  debugTest: () => DebugTestSnapshot;
+  debugCommand: (command: DebugCommand, value?: string | number) => void;
+  debugJumpTo: (stepId: string) => void;
+  setDebugSelectMode: (enabled: boolean) => void;
+  setNoClip: (enabled: boolean) => void;
+  debugEnemy: (command: Parameters<DemoScenario["debugEnemy"]>[0]) => void;
+  debugDiscovery: (command: Parameters<DemoScenario["debugDiscovery"]>[0]) => void;
+  setSimulationPaused: (paused: boolean) => void;
+  setSimulationSpeed: (scale: number) => void;
   setNavigationTest: (enabled: boolean) => void;
   setPaused: (paused: boolean) => void;
   discovery: () => DiscoverySnapshot;
@@ -202,6 +212,15 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     navigationDebug: () => navigation.stats(),
     useNavigationFallback: (reason) => navigation.activateFallback(reason),
     retryNavigation: () => navigation.retry(),
+    debugTest: () => demoScenario.debugTest(),
+    debugCommand: (command, value) => demoScenario.debugCommand(command, value),
+    debugJumpTo: (stepId) => demoScenario.debugJumpTo(stepId),
+    setDebugSelectMode: (enabled) => demoScenario.setDebugSelectMode(enabled),
+    setNoClip: (enabled) => player.setNoClip(enabled),
+    debugEnemy: (command) => demoScenario.debugEnemy(command),
+    debugDiscovery: (command) => demoScenario.debugDiscovery(command),
+    setSimulationPaused: (paused) => demoScenario.setPaused(paused),
+    setSimulationSpeed: (scale) => { scene.animationTimeScale = scale; demoScenario.setSimulationSpeed(scale); },
     setNavigationTest: (enabled) => demoScenario.setNavigationTest(enabled),
     setPaused: (paused) => { player.setInputEnabled(!paused); demoScenario.setPaused(paused); },
     discovery: () => demoScenario.discovery(),
