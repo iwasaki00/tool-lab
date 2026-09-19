@@ -73,6 +73,13 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   setText("character-area-value", characters.selected?.area ?? "—");
   setText("enemy-ai-value", characters.enemyAI ? "ON" : "OFF");
   setText("navigation-status-value", navigation.status);
+  setText("navigation-mode-value", navigation.mode);
+  setText("navigation-error-value", navigation.error || "—");
+  setText("navigation-stack-value", navigation.stack || "—");
+  setText("navigation-target-mesh-value", String(navigation.targetMeshCount));
+  setText("navigation-walkable-mesh-value", String(navigation.walkableMeshCount));
+  setText("navigation-obstacle-mesh-value", String(navigation.obstacleMeshCount));
+  setText("navigation-parameters-value", navigation.buildParameters);
   setText("navmesh-triangles-value", String(navigation.triangles));
   setText("navmesh-build-time-value", `${navigation.buildTime.toFixed(1)} ms`);
   setText("navigation-validation-value", navigation.validation);

@@ -10,14 +10,35 @@ import { RecastJSPlugin } from "@babylonjs/core/Navigation/Plugins/recastJSPlugi
 import Recast from "recast-detour";
 import type { WorldRegistry } from "../world/WorldRegistry";
 
-export type NavigationStatus = "BUILDING" | "READY" | "ERROR";
-export interface NavigationStats { status: NavigationStatus; triangles: number; buildTime: number; pathFailures: number; validation: string }
+export type NavigationStatus = "BUILDING" | "READY" | "FALLBACK" | "ERROR";
+export type NavigationMode = "NAVMESH" | "WORLD_GRAPH" | "DIRECT_FALLBACK";
+export interface NavigationStats {
+  status: NavigationStatus;
+  mode: NavigationMode;
+  triangles: number;
+  buildTime: number;
+  pathFailures: number;
+  validation: string;
+  error: string;
+  stack: string;
+  targetMeshCount: number;
+  walkableMeshCount: number;
+  obstacleMeshCount: number;
+  buildParameters: string;
+}
+
+const NAVMESH_PARAMETERS = {
+  cs: .32, ch: .18, walkableSlopeAngle: 48, walkableHeight: 9, walkableClimb: 3, walkableRadius: 2,
+  maxEdgeLen: 24, maxSimplificationError: 1.3, minRegionArea: 8, mergeRegionArea: 20,
+  maxVertsPerPoly: 6, detailSampleDist: 6, detailSampleMaxError: 1, tileSize: 24,
+};
 
 export class NavigationManager {
   private plugin?: RecastJSPlugin;
   private debugMesh?: Mesh;
   private readonly debugPaths = new Map<string, LinesMesh>();
   private status: NavigationStatus = "BUILDING";
+  private mode: NavigationMode = "DIRECT_FALLBACK";
   private triangles = 0;
   private buildTime = 0;
   private pathFailures = 0;
@@ -28,6 +49,11 @@ export class NavigationManager {
   private lastSignature = "";
   private lastSignatureCheck = 0;
   private readonly observer: Observer<Scene>;
+  private error = "";
+  private stack = "";
+  private targetMeshCount = 0;
+  private walkableMeshCount = 0;
+  private obstacleMeshCount = 0;
 
   constructor(private readonly scene: Scene, private readonly registry: WorldRegistry) {
     this.observer = scene.onBeforeRenderObservable.add(() => this.monitorGeometry())!;
@@ -35,7 +61,16 @@ export class NavigationManager {
   }
 
   isReady(): boolean { return this.status === "READY" && Boolean(this.plugin); }
-  stats(): NavigationStats { return { status: this.status, triangles: this.triangles, buildTime: this.buildTime, pathFailures: this.pathFailures, validation: this.validation }; }
+  stats(): NavigationStats { return { status: this.status, mode: this.mode, triangles: this.triangles, buildTime: this.buildTime, pathFailures: this.pathFailures, validation: this.validation, error: this.error, stack: this.stack, targetMeshCount: this.targetMeshCount, walkableMeshCount: this.walkableMeshCount, obstacleMeshCount: this.obstacleMeshCount, buildParameters: JSON.stringify(NAVMESH_PARAMETERS) }; }
+
+  activateFallback(reason: string, cause?: unknown): void {
+    const graphAvailable = this.registry.getAll().some((area) => area.connections.some((id) => Boolean(this.registry.get(id))));
+    this.status = "FALLBACK"; this.mode = graphAvailable ? "WORLD_GRAPH" : "DIRECT_FALLBACK";
+    this.error = reason; this.stack = cause instanceof Error ? cause.stack ?? "" : ""; this.validation = graphAvailable ? "WORLD GRAPH READY" : "DIRECT MOVEMENT ONLY"; this.setLoading(false);
+    console.error("NAVIGATION FALLBACK", this.diagnostics(cause));
+  }
+
+  retry(): void { this.error = ""; this.stack = ""; this.status = "BUILDING"; this.mode = "DIRECT_FALLBACK"; void (this.plugin ? this.build() : this.initialize()); }
 
   requestRebuild(): void {
     this.rebuildRequested = true;
@@ -82,9 +117,15 @@ export class NavigationManager {
 
   private async initialize(): Promise<void> {
     try {
-      this.setLoading(true); const recast = await Recast(); this.plugin = new RecastJSPlugin(recast); this.plugin.setDefaultQueryExtent(new Vector3(3, 6, 3)); await this.build();
+      this.setLoading(true);
+      this.captureMeshDiagnostics(this.navigationMeshes());
+      if (isIOSSafari()) {
+        this.activateFallback("iOS Safari safety fallback: synchronous Recast build is disabled to avoid WebAssembly/build stalls.");
+        return;
+      }
+      const recast = await Recast(); this.plugin = new RecastJSPlugin(recast); this.plugin.setDefaultQueryExtent(new Vector3(3, 6, 3)); await this.build();
     } catch (error) {
-      this.status = "ERROR"; this.setLoading(false); console.error("NAVIGATION INITIALIZE ERROR", error);
+      this.activateFallback(error instanceof Error ? error.message : "Recast initialization failed", error);
     }
   }
 
@@ -94,15 +135,14 @@ export class NavigationManager {
     await new Promise<void>((resolve) => requestAnimationFrame(() => window.setTimeout(resolve, 0)));
     const started = performance.now();
     try {
-      const meshes = this.navigationMeshes();
-      this.plugin.createNavMesh(meshes, {
-        cs: .32, ch: .18, walkableSlopeAngle: 48, walkableHeight: 9, walkableClimb: 3, walkableRadius: 2,
-        maxEdgeLen: 24, maxSimplificationError: 1.3, minRegionArea: 8, mergeRegionArea: 20,
-        maxVertsPerPoly: 6, detailSampleDist: 6, detailSampleMaxError: 1, tileSize: 24,
-      });
+      const meshes = this.navigationMeshes(); this.captureMeshDiagnostics(meshes);
+      if (!meshes.length || !this.walkableMeshCount) throw new Error(`NavMesh source is invalid: targets=${meshes.length}, walkable=${this.walkableMeshCount}`);
+      this.plugin.createNavMesh(meshes, NAVMESH_PARAMETERS);
       this.debugMesh?.dispose(false, true); this.debugMesh = this.plugin.createDebugNavMesh(this.scene); this.debugMesh.name = "navigation-debug-mesh"; this.debugMesh.isPickable = false;
       const material = new StandardMaterial("navigation-debug-material", this.scene); material.diffuseColor = new Color3(.05, .72, .54); material.emissiveColor = new Color3(.03, .28, .2); material.alpha = .34; material.wireframe = true; this.debugMesh.material = material; this.debugMesh.isVisible = this.debugVisible;
-      this.triangles = Math.floor(this.debugMesh.getTotalIndices() / 3); this.buildTime = performance.now() - started; this.status = "READY"; this.lastSignature = this.geometrySignature();
+      this.triangles = Math.floor(this.debugMesh.getTotalIndices() / 3); this.buildTime = performance.now() - started;
+      if (!this.triangles) throw new Error("Recast returned an empty NavMesh.");
+      this.status = "READY"; this.mode = "NAVMESH"; this.error = ""; this.stack = ""; this.lastSignature = this.geometrySignature();
       const candidates = [
         ...["start_area", "park_main", "plaza_main"].map((id) => this.registry.get(id)),
         ...this.registry.getAreasByType("BUILDING_ENTRANCE").slice(0, 2),
@@ -112,7 +152,7 @@ export class NavigationManager {
       ].filter((area, index, values) => Boolean(area) && values.findIndex((candidate) => candidate?.id === area?.id) === index);
       if (candidates.length > 1) this.validate(candidates.map((area) => ({ id: area!.id, position: new Vector3(area!.position.x, area!.position.y, area!.position.z) })));
     } catch (error) {
-      this.status = "ERROR"; console.error("NAVMESH BUILD ERROR", error);
+      this.buildTime = performance.now() - started; this.activateFallback(error instanceof Error ? error.message : "NavMesh build failed", error);
     } finally {
       this.rebuilding = false; this.setLoading(false); if (this.rebuildRequested) window.setTimeout(() => void this.build(), 120);
     }
@@ -130,12 +170,37 @@ export class NavigationManager {
     return this.navigationMeshes().map((mesh) => `${mesh.uniqueId}:${mesh.getTotalVertices()}:${mesh.metadata?.navigationDoorOpen ? 1 : 0}`).join("|");
   }
 
+  private captureMeshDiagnostics(meshes: Mesh[]): void {
+    this.targetMeshCount = meshes.length;
+    this.walkableMeshCount = meshes.filter((mesh) => isWalkable(mesh)).length;
+    this.obstacleMeshCount = meshes.length - this.walkableMeshCount;
+  }
+
+  private diagnostics(cause?: unknown): Record<string, unknown> {
+    return {
+      message: this.error, stack: cause instanceof Error ? cause.stack : this.stack,
+      targetMeshCount: this.targetMeshCount, walkableMeshCount: this.walkableMeshCount, obstacleMeshCount: this.obstacleMeshCount,
+      buildParameters: NAVMESH_PARAMETERS, worldAreas: this.registry.getAll().length, navigationMode: this.mode,
+    };
+  }
+
   private monitorGeometry(): void {
     const now = performance.now(); if (now - this.lastSignatureCheck < 900 || this.status !== "READY") return; this.lastSignatureCheck = now;
     const signature = this.geometrySignature(); if (signature !== this.lastSignature) this.requestRebuild();
   }
 
   private setLoading(visible: boolean): void { document.querySelector("#navigation-loading")?.classList.toggle("is-visible", visible); }
+}
+
+function isWalkable(mesh: Mesh): boolean {
+  if (mesh.metadata?.navigationWalkable) return true;
+  return /ground|road|sidewalk|floor|plaza|park|stair|ramp|platform/i.test(mesh.name);
+}
+
+function isIOSSafari(): boolean {
+  const agent = navigator.userAgent;
+  const ios = /iPad|iPhone|iPod/.test(agent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  return ios && /Safari/.test(agent) && !/CriOS|FxiOS|EdgiOS/.test(agent);
 }
 
 function simplify(path: Vector3[]): Vector3[] {

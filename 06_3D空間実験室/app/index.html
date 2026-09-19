@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#071018" />
     <meta name="description" content="プロシージャル生成した街で遊べるBabylon.js 3D空間実験室 Ver.10。" />
     <title>3D空間実験室 Ver.10 — ゲームモード化</title>
-    <script type="module" crossorigin src="./assets/index-By2OEsCu.js"></script>
+    <script type="module" crossorigin src="./assets/index-Ctufffqp.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-CFhTbee0.css">
   </head>
   <body>
@@ -100,7 +100,14 @@
         <div><dt>Char State</dt><dd id="character-state-value">—</dd></div>
         <div><dt>Char Target</dt><dd id="character-target-value">—</dd></div>
         <div><dt>Char Area</dt><dd id="character-area-value">—</dd></div>
-        <div><dt>Navigation</dt><dd id="navigation-status-value">BUILDING</dd></div>
+        <div><dt>Navigation Status</dt><dd id="navigation-status-value">BUILDING</dd></div>
+        <div><dt>Navigation Mode</dt><dd id="navigation-mode-value">DIRECT_FALLBACK</dd></div>
+        <div class="interpretation-row"><dt>Nav Error</dt><dd id="navigation-error-value">—</dd></div>
+        <div class="interpretation-row"><dt>Nav Stack</dt><dd id="navigation-stack-value">—</dd></div>
+        <div><dt>Target Meshes</dt><dd id="navigation-target-mesh-value">0</dd></div>
+        <div><dt>Walkable Meshes</dt><dd id="navigation-walkable-mesh-value">0</dd></div>
+        <div><dt>Obstacle Meshes</dt><dd id="navigation-obstacle-mesh-value">0</dd></div>
+        <div class="interpretation-row"><dt>Nav Parameters</dt><dd id="navigation-parameters-value">—</dd></div>
         <div><dt>Triangles</dt><dd id="navmesh-triangles-value">0</dd></div>
         <div><dt>Nav Build</dt><dd id="navmesh-build-time-value">—</dd></div>
         <div><dt>Nav Valid</dt><dd id="navigation-validation-value">PENDING</dd></div>
@@ -293,6 +300,7 @@
     <section class="game-screen" id="pause-screen" role="dialog" aria-modal="true"><div class="game-card compact-card"><span class="game-eyebrow">GAME PAUSED</span><h2>PAUSE</h2><button type="button" id="resume-game">RESUME</button><button type="button" id="pause-restart">RESTART</button><button type="button" id="pause-title">TITLE</button></div></section>
     <section class="game-screen" id="tutorial-screen" role="dialog" aria-modal="true"><div class="game-card compact-card"><span class="game-eyebrow">HOW TO PLAY</span><h2 id="tutorial-title">ESCAPE</h2><p id="tutorial-text"></p><button type="button" id="tutorial-close">PLAY</button></div></section>
     <section class="game-screen" id="result-screen" role="dialog" aria-modal="true"><div class="game-card result-card"><span class="game-eyebrow" id="result-status">MISSION COMPLETE</span><h2 id="result-score">0 PTS</h2><div id="result-details"></div><p id="result-best"></p><div class="result-actions"><button type="button" id="result-restart">RESTART</button><button type="button" id="result-new">NEW GAME</button><button type="button" id="result-title">TITLE</button></div></div></section>
+    <section class="game-screen" id="generation-error-screen" role="alertdialog" aria-modal="true"><div class="game-card compact-card generation-error-card"><span class="game-eyebrow">GAME GENERATION ERROR</span><h2>ゲームを開始できませんでした</h2><p id="generation-error-message"></p><button type="button" id="generation-retry">RETRY GENERATION</button><button type="button" id="generation-title">TITLE</button></div></section>
     <div class="orientation-hint">横向きにすると、より広く遊べます</div>
   </body>
 </html>

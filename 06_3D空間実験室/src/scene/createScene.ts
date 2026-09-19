@@ -60,6 +60,8 @@ export interface LaboratoryApi {
   setEnemyAI: (enabled: boolean) => void;
   characterDebug: () => CharacterManagerDebug;
   navigationDebug: () => NavigationStats;
+  useNavigationFallback: (reason: string) => void;
+  retryNavigation: () => void;
   setNavigationTest: (enabled: boolean) => void;
   setPaused: (paused: boolean) => void;
   discovery: () => DiscoverySnapshot;
@@ -198,6 +200,8 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     setEnemyAI: (enabled) => { currentEnemyAI = enabled; demoScenario.setEnemyAI(enabled); },
     characterDebug: () => demoScenario.characterDebug(),
     navigationDebug: () => navigation.stats(),
+    useNavigationFallback: (reason) => navigation.activateFallback(reason),
+    retryNavigation: () => navigation.retry(),
     setNavigationTest: (enabled) => demoScenario.setNavigationTest(enabled),
     setPaused: (paused) => { player.setInputEnabled(!paused); demoScenario.setPaused(paused); },
     discovery: () => demoScenario.discovery(),

@@ -151,6 +151,7 @@ try {
   const pauseScreen = document.querySelector<HTMLElement>("#pause-screen");
   const tutorialScreen = document.querySelector<HTMLElement>("#tutorial-screen");
   const resultScreen = document.querySelector<HTMLElement>("#result-screen");
+  const generationErrorScreen = document.querySelector<HTMLElement>("#generation-error-screen");
   let selectedMode: GameMode = "ESCAPE";
 
   document.querySelectorAll<HTMLButtonElement>("[data-game-mode]").forEach((button) => button.addEventListener("click", () => {
@@ -173,6 +174,8 @@ try {
   document.querySelector("#result-new")?.addEventListener("click", () => { setInput("game-city-seed", String(randomSeed())); setInput("game-mission-seed", String(randomSeed())); void startConfiguredGame(false); });
   document.querySelector("#pause-title")?.addEventListener("click", showTitle);
   document.querySelector("#result-title")?.addEventListener("click", showTitle);
+  document.querySelector("#generation-retry")?.addEventListener("click", () => void startConfiguredGame(true));
+  document.querySelector("#generation-title")?.addEventListener("click", showTitle);
   document.querySelector("#change-game-mode")?.addEventListener("click", showTitle);
   document.querySelector("#game-test-button")?.addEventListener("click", () => {
     gameConfig.testMode = !gameConfig.testMode; const button = document.querySelector<HTMLButtonElement>("#game-test-button"); if (button) button.textContent = `GAME TEST ${gameConfig.testMode ? "ON" : "OFF"}`;
@@ -210,7 +213,7 @@ try {
       setText("game-loading-title", "READY"); for (const label of ["3", "2", "1", "START"]) { setText("game-countdown", label); await delay(label === "START" ? 450 : 650); }
       gameLoading?.classList.remove("is-visible"); setText("game-countdown", ""); gameSession.start(); getLaboratory().setPaused(false); applyGameRules(); maybeShowTutorial();
     } catch (error) {
-      console.error("GAME GENERATION FAILED", error); gameSession.fail(error instanceof Error ? error.message : String(error));
+      console.error("GAME GENERATION FAILED", error); showGenerationError(error);
     }
   }
 
@@ -224,7 +227,11 @@ try {
   function pauseGame(): void { if (gameSession?.snapshot().state !== "PLAYING") return; gameSession.pause(); getLaboratory().setPaused(true); pauseScreen?.classList.add("is-visible"); if (document.pointerLockElement) document.exitPointerLock(); }
   function resumeGame(): void { if (gameSession?.snapshot().state !== "PAUSED") return; pauseScreen?.classList.remove("is-visible"); gameSession.resume(); getLaboratory().setPaused(false); }
   function showTitle(): void { getLaboratory().setPaused(true); gameSession?.setState("TITLE"); hideGameScreens(); gameTitle?.classList.add("is-visible"); updateBestPreview(); }
-  function hideGameScreens(): void { [gameTitle, gameLoading, pauseScreen, tutorialScreen, resultScreen].forEach((screen) => screen?.classList.remove("is-visible")); }
+  function hideGameScreens(): void { [gameTitle, gameLoading, pauseScreen, tutorialScreen, resultScreen, generationErrorScreen].forEach((screen) => screen?.classList.remove("is-visible")); }
+  function showGenerationError(error: unknown): void {
+    gameSession?.setState("FAILED"); try { getLaboratory().setPaused(true); } catch { /* The scene may not exist after a world generation failure. */ }
+    hideGameScreens(); setText("generation-error-message", error instanceof Error ? error.message : String(error)); generationErrorScreen?.classList.add("is-visible");
+  }
   function maybeShowTutorial(): void {
     const key = `3d-space-lab-tutorial-${gameConfig.mode}`; if (localStorage.getItem(key)) return;
     localStorage.setItem(key, "1"); gameSession?.pause(); getLaboratory().setPaused(true); setText("tutorial-title", gameConfig.mode);
@@ -250,7 +257,20 @@ try {
     const store = new GameSession({ ...gameConfig, mode: selectedMode, difficulty }, () => undefined); const preview = store.best(); setText("title-best-score", preview ? `BEST ${preview.score.toLocaleString()} PTS / ${formatGameTime(preview.clearTimeSeconds)}` : "BEST SCORE —");
     const list = document.querySelector<HTMLOListElement>("#play-history-list"); if (list) list.replaceChildren(...store.history().slice(0, 5).map((entry) => { const row = document.createElement("li"); row.textContent = `${entry.mode} ${entry.difficulty} / ${entry.score} PTS / ${formatGameTime(entry.clearTimeSeconds)} / ${entry.citySeed}`; return row; }));
   }
-  async function waitForNavigation(): Promise<void> { const start = performance.now(); while (getLaboratory().navigationDebug().status === "BUILDING") { if (performance.now() - start > 20000) throw new Error("Navigation generation timed out"); await delay(100); } if (getLaboratory().navigationDebug().status === "ERROR") throw new Error("Navigation generation failed"); }
+  async function waitForNavigation(): Promise<void> {
+    const start = performance.now();
+    while (getLaboratory().navigationDebug().status === "BUILDING") {
+      if (performance.now() - start > 7000) { getLaboratory().useNavigationFallback("NavMesh build timed out after 7 seconds"); break; }
+      await delay(100);
+    }
+    const navigation = getLaboratory().navigationDebug();
+    if (navigation.status === "ERROR") getLaboratory().useNavigationFallback(navigation.error || "NavMesh build failed");
+    const resolved = getLaboratory().navigationDebug();
+    if (resolved.status === "FALLBACK") {
+      console.warn("GAME CONTINUES WITH NAVIGATION FALLBACK", { citySeed: gameConfig.citySeed, gameMode: gameConfig.mode, difficulty: gameConfig.difficulty, ...resolved });
+      controls.showToast(`NAVIGATION FALLBACK — ${resolved.mode}`);
+    }
+  }
   function normalizedSeed(id: string): number { const value = Math.floor(Number(document.querySelector<HTMLInputElement>(`#${id}`)?.value)); return Number.isFinite(value) && value > 0 ? Math.min(4294967295, value) : randomSeed(); }
   function randomSeed(): number { return Math.floor(Math.random() * 4294967294) + 1; }
   function setInput(id: string, value: string): void { const input = document.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`); if (input) input.value = value; }
