@@ -27,6 +27,8 @@ import type { MissionResult, MissionRuntimeSnapshot } from "./MissionTypes";
 import type { MissionDifficulty, MissionType } from "./MissionTypes";
 import { CharacterManager, type CharacterManagerDebug } from "../characters/CharacterManager";
 import type { NavigationManager } from "../navigation/NavigationManager";
+import type { DiscoverySnapshot, GameMode } from "../game/GameTypes";
+import { DiscoveryManager } from "../game/DiscoveryManager";
 
 export interface GameplayCallbacks {
   onFocus: (focus?: InteractionFocus) => void;
@@ -35,6 +37,8 @@ export interface GameplayCallbacks {
   onInventory: (items: InventoryEntry[]) => void;
   onMissionState: (state: MissionRuntimeSnapshot) => void;
   onMissionComplete: (result: MissionResult) => void;
+  onPlayerCaught?: (id: string) => void;
+  onDiscovery?: (snapshot: DiscoverySnapshot) => void;
 }
 
 export interface DemoScenario {
@@ -53,6 +57,8 @@ export interface DemoScenario {
   setEnemyAI: (enabled: boolean) => void;
   characterDebug: () => CharacterManagerDebug;
   setNavigationTest: (enabled: boolean) => void;
+  setPaused: (paused: boolean) => void;
+  discovery: () => DiscoverySnapshot;
   dispose: () => void;
 }
 
@@ -70,6 +76,7 @@ export function createDemoScenario(
   mobile = false,
   setPlayerInputEnabled: (enabled: boolean) => void = () => undefined,
   navigation?: NavigationManager,
+  gameMode: GameMode = "ESCAPE",
 ): DemoScenario {
   const baseMeshes = new Set(ctx.scene.meshes);
   const baseMaterials = new Set(ctx.scene.materials);
@@ -132,9 +139,10 @@ export function createDemoScenario(
   events.on("OPEN_GATE_A", () => { gateActivated = true; gate.open(); });
   if (gateActivated) gate.open();
 
-  createSemanticSpawnPoints(placement, registry, spawn, missionDifficulty, mobile);
+  const characterCounts = createSemanticSpawnPoints(placement, registry, spawn, missionDifficulty, mobile, gameMode);
   placement.createDebugMarkers(ctx);
-  const characters = new CharacterManager(ctx, camera, placement.getPlacements(), registry, interactions, objectives, callbacks.onMessage, setPlayerInputEnabled, navigation);
+  const characters = new CharacterManager(ctx, camera, placement.getPlacements(), registry, interactions, objectives, callbacks.onMessage, setPlayerInputEnabled, navigation, (id) => callbacks.onPlayerCaught?.(id), characterCounts.enemyCount);
+  const discovery = new DiscoveryManager(ctx.scene, camera, registry, gameMode === "EXPLORATION", (snapshot) => callbacks.onDiscovery?.(snapshot));
   createInspectables(ctx, interactions, missionPosition, callbacks.onMessage);
   const disposeGoal = createGoalZone(ctx, camera, { id: "goal_001", position: goalPosition, onEnter: () => gateActivated && runtime.completeByTarget("goal_001", "Goal reached") });
   const guide = new MissionGuideManager(ctx.scene, camera, registry, objectives, () => plan.steps, navigation);
@@ -157,8 +165,10 @@ export function createDemoScenario(
     setEnemyAI: (enabled) => characters.setEnemyAI(enabled),
     characterDebug: () => characters.debugInfo(),
     setNavigationTest: (enabled) => characters.setNavigationTest(enabled),
+    setPaused: (paused) => { characters.setPaused(paused); runtime.setPaused(paused); },
+    discovery: () => discovery.snapshot(),
     dispose: () => {
-      disposeGoal(); runtime.dispose(ctx.scene); guide.dispose(); characters.dispose(); interiorManager.dispose(); interactions.dispose(); inventory.clear(); events.clear();
+      disposeGoal(); runtime.dispose(ctx.scene); discovery.dispose(ctx.scene); guide.dispose(); characters.dispose(); interiorManager.dispose(); interactions.dispose(); inventory.clear(); events.clear();
       ctx.scene.meshes.filter((mesh) => !baseMeshes.has(mesh)).forEach((mesh) => { if (!mesh.isDisposed()) mesh.dispose(false, false); });
       ctx.scene.materials.filter((material) => !baseMaterials.has(material)).forEach((material) => material.dispose());
       ctx.scene.lights.filter((light) => !baseLights.has(light)).forEach((light) => light.dispose());
@@ -169,9 +179,9 @@ export function createDemoScenario(
   };
 }
 
-function createSemanticSpawnPoints(placement: GamePlacementManager, registry: WorldRegistry, start: Vector3, difficulty: MissionDifficulty, mobile: boolean): void {
-  const enemyCount = difficulty === "EASY" ? 2 : difficulty === "HARD" ? (mobile ? 5 : 6) : 3;
-  const npcCount = mobile ? 3 : 4;
+function createSemanticSpawnPoints(placement: GamePlacementManager, registry: WorldRegistry, start: Vector3, difficulty: MissionDifficulty, mobile: boolean, gameMode: GameMode): { enemyCount: number; npcCount: number } {
+  const enemyCount = gameMode === "EXPLORATION" ? 0 : gameMode === "STEALTH" ? (difficulty === "EASY" ? 2 : difficulty === "HARD" ? (mobile ? 6 : 8) : 5) : difficulty === "EASY" ? 0 : difficulty === "HARD" ? 4 : 2;
+  const npcCount = gameMode === "EXPLORATION" ? (mobile ? 4 : 6) : mobile ? 2 : 3;
   for (let index = 0; index < enemyCount; index += 1) {
     const enemyArea = placement.chooseArea(["ALLEY", "STORAGE", "CORRIDOR", "ROAD"], ["danger", "dark", "dead_end"], start, 12);
     if (enemyArea) { const enemy = placement.place(`enemy_${index + 1}`, "ENEMY", enemyArea, .12); placement.registerSpawn(enemy); registry.connect(enemy.id, enemy.areaId); }
@@ -180,6 +190,7 @@ function createSemanticSpawnPoints(placement: GamePlacementManager, registry: Wo
     const npcArea = placement.chooseArea(["PLAZA", "PARK", "SIDEWALK", "BUILDING_ENTRANCE", "OFFICE"], ["safe", "public", "bright"], start, 5);
     if (npcArea) { const npc = placement.place(`npc_${index + 1}`, "NPC", npcArea, .12); placement.registerSpawn(npc); registry.connect(npc.id, npc.areaId); }
   }
+  return { enemyCount, npcCount };
 }
 
 function createMissionFrame(ctx: ObjectContext, position: Vector3, rotation: number, color: Color3): void {

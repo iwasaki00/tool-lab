@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#071018" />
-    <meta name="description" content="WorldGraphとNavMeshを連携したBabylon.js 3D空間実験室 Ver.9。" />
-    <title>3D空間実験室 Ver.9 — NavMesh・本格経路探索</title>
+    <meta name="description" content="プロシージャル生成した街で遊べるBabylon.js 3D空間実験室 Ver.10。" />
+    <title>3D空間実験室 Ver.10 — ゲームモード化</title>
   </head>
   <body>
     <canvas id="render-canvas" aria-label="3D空間実験室"></canvas>
@@ -15,7 +15,7 @@
 
     <header class="brand-plate">
       <span class="brand-index">06</span>
-      <span><strong>3D 空間実験室 <em>VER.9</em></strong><small>NAVMESH PATHFINDING / BABYLON.JS</small></span>
+      <span><strong>3D 空間実験室 <em>VER.10</em></strong><small>GAME MODE FOUNDATION / BABYLON.JS</small></span>
     </header>
 
     <div class="compact-status" aria-live="polite">
@@ -112,6 +112,7 @@
         <div><dt>Stuck Count</dt><dd id="stuck-count-value">0</dd></div>
         <div class="interpretation-row"><dt>Last Stuck</dt><dd id="last-stuck-value">—</dd></div>
         <div class="interpretation-row"><dt>Rules</dt><dd id="interpretation-value">—</dd></div>
+        <div><dt>Game Mode</dt><dd id="game-debug-mode">TITLE</dd></div><div><dt>Game State</dt><dd id="game-debug-state">TITLE</dd></div><div><dt>Game Difficulty</dt><dd id="game-debug-difficulty">NORMAL</dd></div><div><dt>Game Timer</dt><dd id="game-debug-timer">00:00</dd></div><div><dt>Game Score</dt><dd id="game-debug-score">0</dd></div><div class="interpretation-row"><dt>Discovery</dt><dd id="game-debug-discovery">0 / 5</dd></div>
       </dl>
     </div>
 
@@ -133,6 +134,12 @@
       <strong id="objective-text">鍵を探す</strong>
       <small id="mission-progress">MISSION 0 / 0</small>
     </section>
+    <section class="game-status-hud" id="game-status-hud" aria-live="polite">
+      <span id="game-mode-hud">ESCAPE</span><b id="game-timer">00:00</b>
+      <div class="detection-meter" id="detection-meter" hidden><i id="detection-fill"></i><strong>DETECTION <span id="detection-value">0%</span></strong></div>
+      <div class="discovery-progress" id="discovery-progress" hidden>DISCOVERY <b id="discovery-value">0 / 5</b><small id="discovery-landmark">LANDMARK 未発見</small></div>
+    </section>
+    <div class="discovery-notice" id="discovery-notice" role="status"></div>
     <div class="mission-guide-edge" id="mission-guide-edge" aria-live="polite" hidden>
       <span class="mission-guide-arrow" id="mission-guide-arrow">▲</span>
       <strong id="mission-guide-label">KEY</strong>
@@ -225,6 +232,7 @@
       </div>
       <button type="button" class="inventory-toggle" id="inventory-toggle" aria-expanded="false"><span>▣</span> INVENTORY <kbd>I</kbd></button>
       <button type="button" class="reset-button" data-action="reset">シーン初期化</button>
+      <section class="game-menu-settings"><p class="panel-label">GAME SESSION</p><div class="mission-actions"><button type="button" id="pause-game-button">PAUSE GAME</button><button type="button" id="game-test-button">GAME TEST OFF</button><button type="button" id="change-game-mode">CHANGE GAME MODE</button></div></section>
     </aside>
 
     <section class="inventory-panel inventory-overlay" id="inventory-panel" aria-label="所持アイテム" hidden>
@@ -260,6 +268,30 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <div class="navigation-loading" id="navigation-loading" role="status" aria-live="polite"><i></i> GENERATING NAVIGATION...</div>
+    <section class="game-screen game-title-screen is-visible" id="game-title-screen" role="dialog" aria-modal="true">
+      <div class="game-card title-card">
+        <span class="game-eyebrow">3D SPACE LAB / VER.10</span><h1>GAME MODE</h1>
+        <p>コードだけで生成された街を、目的の異なる3つのルールで探索します。</p>
+        <div class="game-mode-grid" role="group" aria-label="ゲームモード">
+          <button type="button" class="game-mode-option is-selected" data-game-mode="ESCAPE"><b>ESCAPE</b><span>鍵・ドア・Goalを攻略して脱出</span></button>
+          <button type="button" class="game-mode-option" data-game-mode="STEALTH"><b>STEALTH</b><span>敵の視界を避けMissionを達成</span></button>
+          <button type="button" class="game-mode-option" data-game-mode="EXPLORATION"><b>EXPLORATION</b><span>街の場所とランドマークを発見</span></button>
+        </div>
+        <div class="game-config-grid">
+          <label>DIFFICULTY<select id="game-difficulty"><option value="EASY">EASY</option><option value="NORMAL" selected>NORMAL</option><option value="HARD">HARD</option></select></label>
+          <label>CITY SEED<input id="game-city-seed" type="number" min="1" max="4294967295" value="12345"></label>
+          <label>MISSION SEED<input id="game-mission-seed" type="number" min="1" max="4294967295" value="67890"></label>
+        </div>
+        <label class="challenge-label">CHALLENGE CODE<span><input id="challenge-code" type="text" placeholder="E-N-12345-67890"><button type="button" id="load-challenge">LOAD</button></span></label>
+        <label class="test-mode-label"><input id="title-test-mode" type="checkbox"> GAME TEST MODE（敵停止・強いガイド）</label>
+        <button type="button" class="start-game-button" id="start-game-button">START GAME</button><small id="title-best-score">BEST SCORE —</small><details class="play-history"><summary>PLAY HISTORY</summary><ol id="play-history-list"></ol></details>
+      </div>
+    </section>
+    <section class="game-screen" id="game-loading-screen" aria-live="polite"><div class="game-card compact-card"><i class="loading-ring"></i><h2 id="game-loading-title">GENERATING WORLD...</h2><p id="game-loading-stage">WORLD 1 / 4</p><b id="game-countdown"></b></div></section>
+    <section class="game-screen" id="pause-screen" role="dialog" aria-modal="true"><div class="game-card compact-card"><span class="game-eyebrow">GAME PAUSED</span><h2>PAUSE</h2><button type="button" id="resume-game">RESUME</button><button type="button" id="pause-restart">RESTART</button><button type="button" id="pause-title">TITLE</button></div></section>
+    <section class="game-screen" id="tutorial-screen" role="dialog" aria-modal="true"><div class="game-card compact-card"><span class="game-eyebrow">HOW TO PLAY</span><h2 id="tutorial-title">ESCAPE</h2><p id="tutorial-text"></p><button type="button" id="tutorial-close">PLAY</button></div></section>
+    <section class="game-screen" id="result-screen" role="dialog" aria-modal="true"><div class="game-card result-card"><span class="game-eyebrow" id="result-status">MISSION COMPLETE</span><h2 id="result-score">0 PTS</h2><div id="result-details"></div><p id="result-best"></p><div class="result-actions"><button type="button" id="result-restart">RESTART</button><button type="button" id="result-new">NEW GAME</button><button type="button" id="result-title">TITLE</button></div></div></section>
+    <div class="orientation-hint">横向きにすると、より広く遊べます</div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

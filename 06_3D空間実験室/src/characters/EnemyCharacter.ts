@@ -27,6 +27,8 @@ export class EnemyCharacter extends CharacterController {
   private chaseRepath = 0;
   private handledStuckCount = 0;
   private patrolRetry = 0;
+  private detectionLevelValue = 0;
+  private wasFullyDetected = false;
 
   constructor(id: string, rig: HumanoidRig, areaId: string, private readonly scene: Scene, registry: WorldRegistry, seed: number, private readonly playerPosition: () => Vector3, private readonly onCaught: (id: string) => void, private readonly navMesh?: NavigationManager) {
     super(id, "ENEMY", rig, areaId, 1.5, "PATROL", 15);
@@ -42,12 +44,18 @@ export class EnemyCharacter extends CharacterController {
   }
 
   setAIEnabled(enabled: boolean): void { this.aiEnabled = enabled; if (!enabled) { this.machine.transition("IDLE"); this.currentTarget = "—"; } else if (this.machine.state === "IDLE") this.machine.transition("PATROL"); }
+  detectionLevel(): number { return this.detectionLevelValue; }
   override setDebugVisible(visible: boolean): void { super.setDebugVisible(visible); this.detectionDebug.isVisible = visible; }
 
   update(deltaSeconds: number): void {
     const player = this.playerPosition(); this.caughtCooldown = Math.max(0, this.caughtCooldown - deltaSeconds);
     if (this.aiEnabled) {
       const result = this.detection.detect(this.rig.root.position, this.rig.root.rotation.y, player, this.detectionRange);
+      const exposed = result.inFov && result.lineOfSight && result.distance <= this.detectionRange;
+      const proximity = exposed ? Math.max(.15, 1 - result.distance / this.detectionRange) : 0;
+      this.detectionLevelValue = Math.max(0, Math.min(1, this.detectionLevelValue + (exposed ? (.35 + proximity) * deltaSeconds : -1.15 * deltaSeconds)));
+      if (this.detectionLevelValue >= 1 && !this.wasFullyDetected) { this.wasFullyDetected = true; this.onCaught(`${this.id}:detected`); }
+      if (this.detectionLevelValue < .35) this.wasFullyDetected = false;
       if (result.detected) {
         this.lastKnownPlayerPosition = player.clone(); this.lostSeconds = 0;
         if (this.machine.state === "PATROL" || this.machine.state === "RETURN") this.machine.transition("ALERT");

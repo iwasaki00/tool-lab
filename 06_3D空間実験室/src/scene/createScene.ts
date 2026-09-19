@@ -30,6 +30,7 @@ import type { MissionValidation } from "../gameplay/MissionValidator";
 import type { MissionGuideDebugInfo, MissionGuideMode } from "../gameplay/MissionGuideManager";
 import type { CharacterManagerDebug } from "../characters/CharacterManager";
 import { NavigationManager, type NavigationStats } from "../navigation/NavigationManager";
+import type { DiscoverySnapshot, GameMode } from "../game/GameTypes";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -60,12 +61,15 @@ export interface LaboratoryApi {
   characterDebug: () => CharacterManagerDebug;
   navigationDebug: () => NavigationStats;
   setNavigationTest: (enabled: boolean) => void;
+  setPaused: (paused: boolean) => void;
+  discovery: () => DiscoverySnapshot;
 }
 
 export interface SceneOptions {
   worldMode?: WorldMode;
   citySettings?: CitySettings;
   gameplayCallbacks?: GameplayCallbacks;
+  gameMode?: GameMode;
 }
 
 export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement, mobile: boolean, options: SceneOptions = {}): LaboratoryApi {
@@ -127,7 +131,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   let currentGuideMode: MissionGuideMode = "DEBUG";
   let currentEnemyAI = true;
   const navigation = new NavigationManager(scene, registry);
-  const createMission = (settings: CitySettings) => createDemoScenario(ctx, camera, missionSpawn.clone(), callbacks, registry, generatedCity?.interiorSites, settings.seed, settings.missionSeed, settings.missionType, settings.missionDifficulty, mobile, (enabled) => player.setInputEnabled(enabled), navigation);
+  const createMission = (settings: CitySettings) => createDemoScenario(ctx, camera, missionSpawn.clone(), callbacks, registry, generatedCity?.interiorSites, settings.seed, settings.missionSeed, settings.missionType, settings.missionDifficulty, mobile, (enabled) => player.setInputEnabled(enabled), navigation, options.gameMode ?? "ESCAPE");
   let demoScenario = createMission(citySettings);
 
   const spawnAhead = (height: number): Vector3 => {
@@ -195,6 +199,8 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     characterDebug: () => demoScenario.characterDebug(),
     navigationDebug: () => navigation.stats(),
     setNavigationTest: (enabled) => demoScenario.setNavigationTest(enabled),
+    setPaused: (paused) => { player.setInputEnabled(!paused); demoScenario.setPaused(paused); },
+    discovery: () => demoScenario.discovery(),
     restartMission: (settings) => {
       demoScenario.dispose();
       camera.position.copyFrom(missionSpawn); camera.cameraDirection.setAll(0); camera.cameraRotation.setAll(0);

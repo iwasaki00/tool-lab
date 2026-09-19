@@ -21,6 +21,7 @@ export interface CharacterManagerDebug {
   enemyCount: number;
   selected?: CharacterDebugInfo;
   enemyAI: boolean;
+  detection: number;
 }
 
 export class CharacterManager {
@@ -37,6 +38,7 @@ export class CharacterManager {
   private navigationTest = false;
   private lastSpawnScan = 0;
   private readonly knownCharacterIds = new Set<string>();
+  private paused = false;
 
   constructor(
     private readonly ctx: ObjectContext,
@@ -48,6 +50,8 @@ export class CharacterManager {
     private readonly onMessage: (message: string) => void,
     setPlayerInputEnabled: (enabled: boolean) => void,
     private readonly navigation?: NavigationManager,
+    private readonly onCaught: (id: string) => void = () => undefined,
+    private readonly maxEnemies = Number.POSITIVE_INFINITY,
   ) {
     this.dialogue = new DialogueManager((paused) => setPlayerInputEnabled(!paused));
     placements.filter((placement) => placement.kind === "NPC").forEach((placement, index) => this.createNPC(placement, index));
@@ -64,8 +68,9 @@ export class CharacterManager {
 
   setEnemyAI(enabled: boolean): void { this.enemyAI = enabled; this.enemies.forEach((enemy) => enemy.setAIEnabled(enabled)); }
   setNavigationTest(enabled: boolean): void { this.navigationTest = enabled; }
+  setPaused(paused: boolean): void { this.paused = paused; }
   setDebugVisible(visible: boolean): void { this.debugVisible = visible; this.characters.forEach((character) => character.setDebugVisible(visible)); }
-  debugInfo(): CharacterManagerDebug { return { npcCount: this.npcs.length, enemyCount: this.enemies.length, selected: this.selected?.debugInfo(), enemyAI: this.enemyAI }; }
+  debugInfo(): CharacterManagerDebug { return { npcCount: this.npcs.length, enemyCount: this.enemies.length, selected: this.selected?.debugInfo(), enemyAI: this.enemyAI, detection: Math.max(0, ...this.enemies.map((enemy) => enemy.detectionLevel())) }; }
 
   dispose(): void {
     this.dialogue.dispose(); this.ctx.scene.onBeforeRenderObservable.remove(this.observer); this.ctx.scene.onPointerObservable.remove(this.pointerObserver);
@@ -86,7 +91,7 @@ export class CharacterManager {
   private createEnemy(placement: GamePlacement, index: number): void {
     if (this.knownCharacterIds.has(placement.id)) return; this.knownCharacterIds.add(placement.id);
     const rig = createHumanoid(this.ctx, placement.id, "ENEMY"); rig.root.position.copyFrom(toVector(placement.position));
-    const enemy = new EnemyCharacter(placement.id, rig, placement.areaId, this.ctx.scene, this.registry, 12011 + index * 53, () => this.camera.position.clone(), (id) => this.onMessage(`PLAYER DETECTED — ${id.toUpperCase()} に捕捉されました`), this.navigation);
+    const enemy = new EnemyCharacter(placement.id, rig, placement.areaId, this.ctx.scene, this.registry, 12011 + index * 53, () => this.camera.position.clone(), (id) => { this.onMessage(id.endsWith(":detected") ? "DETECTED — 敵に発見されました" : `PLAYER CAUGHT — ${id.toUpperCase()}`); this.onCaught(id); }, this.navigation);
     this.characters.push(enemy); this.enemies.push(enemy); enemy.setAIEnabled(this.enemyAI); enemy.setDebugVisible(this.debugVisible);
   }
 
@@ -110,6 +115,7 @@ export class CharacterManager {
   }
 
   private update(): void {
+    if (this.paused) return;
     const deltaSeconds = Math.min(this.ctx.scene.getEngine().getDeltaTime() / 1000, .05);
     const player = this.camera.position;
     this.npcs.forEach((npc) => npc.update(deltaSeconds, player));
@@ -119,8 +125,9 @@ export class CharacterManager {
   }
 
   private scanSemanticSpawns(): void {
+    if (this.maxEnemies <= this.enemies.length) return;
     const mobile = document.body.classList.contains("is-mobile");
-    const enemyLimit = mobile ? 5 : 8;
+    const enemyLimit = Math.min(mobile ? 6 : 8, this.maxEnemies);
     this.registry.getAreasByType("ENEMY_SPAWN").filter((area) => !this.knownCharacterIds.has(area.id)).slice(0, Math.max(0, enemyLimit - this.enemies.length)).forEach((area) => {
       const areaId = area.connections[0] ?? area.id;
       this.createEnemy({ id: area.id, kind: "ENEMY", areaId, position: { x: area.position.x, y: area.position.y, z: area.position.z } }, this.enemies.length);

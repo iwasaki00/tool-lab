@@ -11,6 +11,9 @@ export class MissionRuntime {
   private result?: MissionResult;
   private observer?: Observer<Scene>;
   private lastPositionCheck = 0;
+  private paused = false;
+  private pausedAt = 0;
+  private pausedTotal = 0;
 
   constructor(
     private readonly plan: MissionPlan,
@@ -22,7 +25,7 @@ export class MissionRuntime {
 
   attachPositionTracking(scene: Scene, camera: Camera, registry: WorldRegistry): void {
     this.observer = scene.onBeforeRenderObservable.add(() => {
-      const now = performance.now(); if (now - this.lastPositionCheck < 250 || this.result) return; this.lastPositionCheck = now;
+      const now = performance.now(); if (this.paused || now - this.lastPositionCheck < 250 || this.result) return; this.lastPositionCheck = now;
       const step = this.current(); if (!step || (step.type !== "VISIT" && step.type !== "OPEN_DOOR")) return;
       const reached = step.targetIds.some((id) => { const area = registry.get(id); if (!area) return false; return Math.hypot(area.position.x - camera.position.x, area.position.y - camera.position.y, area.position.z - camera.position.z) < (step.type === "VISIT" ? 3.2 : 2.1); });
       if (reached && step.type === "VISIT") this.complete(step.id, `Reached ${step.description}`);
@@ -54,6 +57,11 @@ export class MissionRuntime {
     return { plan: this.plan, current: this.current(), completed: required.filter((step) => step.status === "COMPLETED").length, total: required.length, logs: [...this.logs], elapsedSeconds: this.elapsed(), complete: Boolean(this.result), result: this.result };
   }
   dispose(scene: Scene): void { if (this.observer) scene.onBeforeRenderObservable.remove(this.observer); }
+  setPaused(paused: boolean): void {
+    if (paused === this.paused) return;
+    this.paused = paused;
+    if (paused) this.pausedAt = performance.now(); else this.pausedTotal += performance.now() - this.pausedAt;
+  }
 
   private activateAvailable(): void {
     for (const step of this.plan.steps) {
@@ -72,7 +80,7 @@ export class MissionRuntime {
     this.log("Mission Complete"); this.objectives.complete(); this.publish();
   }
 
-  private elapsed(): number { return (performance.now() - this.startedAt) / 1000; }
+  private elapsed(): number { return ((this.paused ? this.pausedAt : performance.now()) - this.startedAt - this.pausedTotal) / 1000; }
   private log(message: string): void { this.logs.push({ elapsedSeconds: this.elapsed(), message }); }
   private publish(): void { this.onChange(this.snapshot()); }
 }
