@@ -24,6 +24,13 @@ body {
   -webkit-touch-callout: none;
 }
 
+#e2e-demo-status {
+  position: fixed; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translateX(-50%); z-index: 200;
+  padding: 10px 16px; border: 1px solid rgba(77, 231, 202, .78); border-radius: 7px; color: #eafffb;
+  background: rgba(3, 18, 25, .9); box-shadow: 0 8px 30px rgba(0, 0, 0, .32); font: 700 12px/1.2 monospace;
+  pointer-events: none; white-space: nowrap;
+}
+
 #render-canvas {
   position: fixed;
   z-index: 0;

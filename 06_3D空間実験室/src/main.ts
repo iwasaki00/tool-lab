@@ -16,6 +16,7 @@ import { decodeChallengeCode, encodeChallengeCode, type GameConfig, type GameMod
 import { resolveGameMode } from "./game/GameModeManager";
 import type { GameplayCallbacks } from "./gameplay/createDemoScenario";
 import { createDebugPanel } from "./debug/DebugPanel";
+import { installTestBridge, type TestStartOptions } from "./testing/TestBridge";
 
 const mobile = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
 document.body.classList.add(mobile ? "is-mobile" : "is-desktop");
@@ -307,6 +308,15 @@ try {
   function setInput(id: string, value: string): void { const input = document.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`); if (input) input.value = value; }
   function nextPaint(): Promise<void> { return new Promise((resolve) => requestAnimationFrame(() => resolve())); }
   function delay(ms: number): Promise<void> { return new Promise((resolve) => window.setTimeout(resolve, ms)); }
+  async function startTestGame(options: TestStartOptions): Promise<void> {
+    selectedMode = options.mode;
+    document.querySelectorAll<HTMLElement>("[data-game-mode]").forEach((item) => item.classList.toggle("is-selected", item.dataset.gameMode === selectedMode));
+    setInput("game-difficulty", options.difficulty ?? "NORMAL"); setInput("game-city-seed", String(options.citySeed ?? 123456)); setInput("game-mission-seed", String(options.missionSeed ?? 654321));
+    const testMode = document.querySelector<HTMLInputElement>("#title-test-mode"); if (testMode) testMode.checked = options.testMode ?? true;
+    await startConfiguredGame(false);
+    if (gameSession?.snapshot().state === "PAUSED" && tutorialScreen?.classList.contains("is-visible")) { tutorialScreen.classList.remove("is-visible"); resumeGame(); }
+  }
+  installTestBridge({ laboratory: getLaboratory, canvas, config: () => ({ ...gameConfig }), session: () => gameSession?.snapshot(), startGame: startTestGame });
   setInput("game-city-seed", String(citySettings.seed)); setInput("game-mission-seed", String(citySettings.missionSeed)); updateBestPreview();
 
   resizeEngine();

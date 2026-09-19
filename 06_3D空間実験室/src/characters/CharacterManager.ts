@@ -24,6 +24,7 @@ export interface CharacterManagerDebug {
   enemyAI: boolean;
   detection: number;
   detectionInfo?: { level: number; lineOfSight: boolean; inFov: boolean; distance: number };
+  enemies: CharacterDebugInfo[];
 }
 
 export class CharacterManager {
@@ -77,7 +78,7 @@ export class CharacterManager {
   setPaused(paused: boolean): void { this.paused = paused; }
   setTimeScale(scale: number): void { this.timeScale = Math.max(.05, Math.min(4, scale)); }
   setDebugVisible(visible: boolean): void { this.debugVisible = visible; this.characters.forEach((character) => character.setDebugVisible(visible)); }
-  debugInfo(): CharacterManagerDebug { const enemy = this.selected instanceof EnemyCharacter ? this.selected : this.enemies[0]; return { npcCount: this.npcs.length, enemyCount: this.enemies.length, selected: this.selected?.debugInfo(), enemyAI: this.enemyAI, detection: Math.max(0, ...this.enemies.map((item) => item.detectionLevel())), detectionInfo: enemy?.detectionInfo() }; }
+  debugInfo(): CharacterManagerDebug { const enemy = this.selected instanceof EnemyCharacter ? this.selected : this.enemies[0]; return { npcCount: this.npcs.length, enemyCount: this.enemies.length, selected: this.selected?.debugInfo(), enemyAI: this.enemyAI, detection: Math.max(0, ...this.enemies.map((item) => item.detectionLevel())), detectionInfo: enemy?.detectionInfo(), enemies: this.enemies.map((item) => item.debugInfo()) }; }
   debugEnemy(command: "freeze" | "resume" | "remove" | "respawn" | "vision-on" | "vision-off" | "force-detected" | "clear-detection" | "to-player" | "player-near" | EnemyDebugState): void {
     const enemy = this.selected instanceof EnemyCharacter ? this.selected : this.enemies[0];
     if (command === "freeze") { this.setEnemyAI(false); return; } if (command === "resume") { this.setEnemyAI(true); return; }

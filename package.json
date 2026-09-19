@@ -6,13 +6,19 @@
   "scripts": {
     "dev": "vite 06_3D空間実験室",
     "build": "tsc -p 06_3D空間実験室/tsconfig.json && vite build 06_3D空間実験室",
-    "preview": "vite preview 06_3D空間実験室"
+    "preview": "vite preview 06_3D空間実験室",
+    "test:e2e": "playwright test",
+    "test:smoke": "playwright test tests/e2e/smoke.spec.ts",
+    "test:stability": "playwright test tests/e2e/stability.spec.ts",
+    "demo": "playwright test tests/e2e/demo.spec.ts --headed --workers=1",
+    "demo:e2e": "playwright test tests/e2e/demo.spec.ts --headed --workers=1"
   },
   "dependencies": {
     "@babylonjs/core": "^8.26.0",
     "recast-detour": "^1.6.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "typescript": "^5.9.2",
     "vite": "^7.1.5"
   }

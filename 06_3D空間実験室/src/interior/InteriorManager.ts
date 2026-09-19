@@ -42,12 +42,13 @@ export class InteriorManager {
 
   navigation(): InteriorNavigation | undefined {
     for (const site of this.sites) {
-      if (site.state !== "GENERATED" || !site.floorData) continue;
+      if (site.state !== "GENERATED" || !site.floorData?.length) continue;
       const inverse = Matrix.Invert(site.root.getWorldMatrix());
       const local = Vector3.TransformCoordinates(this.camera.position, inverse);
       if (Math.abs(local.x) > site.width / 2 || Math.abs(local.z) > site.depth / 2 || local.y < 0 || local.y > site.floors * site.floorHeight) continue;
       const floorIndex = Math.min(site.floorData.length - 1, Math.max(0, Math.floor(local.y / site.floorHeight)));
       const floor = site.floorData[floorIndex];
+      if (!floor) continue;
       const room = floor.rooms.find((candidate) => inside(candidate.bounds, local.x, local.z));
       return { building: site.id, floor: floor.floor, room: room?.id ?? `${site.id}_corridor_${floor.floor}` };
     }
