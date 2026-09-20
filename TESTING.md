@@ -53,6 +53,8 @@ npx playwright show-report test-results/report
 ```sh
 npm run test:chunks   # boundary, expansion, export/import, hybrid, unload
 npm run demo:chunks   # headed chunk-streaming demonstration
+npm run test:visual   # environment, quality and chunk visual reload
+npm run demo:visual   # headed DAY/SUNSET/NIGHT/FOGGY demonstration
 ```
 
 Map bridge API:

@@ -20,9 +20,9 @@ export function createRoad(ctx: ObjectContext, options: RoadOptions): Mesh {
   const { position, width, length, rotation = 0, markings = true, sidewalkWidth = 1.8 } = options;
   const root = new Mesh("city-road", ctx.scene);
   root.position.copyFrom(position); root.rotation.y = rotation;
-  const asphalt = createMaterial(ctx.scene, "city-asphalt", options.roadColor ?? new Color3(.075, .09, .105), .04);
-  const concrete = createMaterial(ctx.scene, "city-sidewalk", options.sidewalkColor ?? new Color3(.45, .47, .46), .08);
-  const paint = createMaterial(ctx.scene, "road-paint", new Color3(.91, .89, .72), .05);
+  const asphalt = ctx.materials?.getRoadMaterial(options.roadColor) ?? createMaterial(ctx.scene, "city-asphalt", options.roadColor ?? new Color3(.075, .09, .105), .04);
+  const concrete = ctx.materials?.getConcreteMaterial(options.sidewalkColor) ?? createMaterial(ctx.scene, "city-sidewalk", options.sidewalkColor ?? new Color3(.45, .47, .46), .08);
+  const paint = ctx.materials?.getPaintMaterial() ?? createMaterial(ctx.scene, "road-paint", new Color3(.91, .89, .72), .05);
   const road = MeshBuilder.CreateBox("road-carriageway", { width, depth: length, height: .08 }, ctx.scene);
   road.position.y = .04; road.parent = root; road.material = asphalt; road.checkCollisions = true; road.receiveShadows = true;
   if (sidewalkWidth > 0) {
@@ -52,7 +52,7 @@ export function createSidewalk(ctx: ObjectContext, roadWidth: number, length: nu
 export function createIntersection(ctx: ObjectContext, position: Vector3, roadWidth: number): Mesh {
   const root = new Mesh("city-intersection", ctx.scene);
   root.position.copyFrom(position);
-  const paint = createMaterial(ctx.scene, "crosswalk-paint", new Color3(.92, .92, .88), .08);
+  const paint = ctx.materials?.getPaintMaterial() ?? createMaterial(ctx.scene, "crosswalk-paint", new Color3(.92, .92, .88), .08);
   for (let direction = 0; direction < 2; direction += 1) {
     for (let i = -3; i <= 3; i += 1) {
       const stripe = MeshBuilder.CreateBox("crosswalk", { width: .55, depth: 2.6, height: .03 }, ctx.scene);

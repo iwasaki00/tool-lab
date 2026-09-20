@@ -134,7 +134,7 @@ export function createCity(ctx: ObjectContext, settings: CitySettings, mobile: b
 
   const generationTime = performance.now() - started;
   const generatedMeshes = ctx.scene.meshes.slice(meshStart);
-  const generatedMaterials = ctx.scene.materials.slice(materialStart);
+  const generatedMaterials = ctx.scene.materials.slice(materialStart).filter((material) => !material.metadata?.sharedVisual);
   let disposed = false;
   const spawn = { x: 0, y: 2.55, z: -extent + 7 };
   const startRoad = registry.getNearestArea(spawn, ["ROAD", "PLAZA", "PARK"]);

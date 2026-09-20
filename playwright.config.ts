@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-const demoRun = process.env.npm_lifecycle_event === "demo" || process.env.npm_lifecycle_event === "demo:e2e" || process.env.npm_lifecycle_event === "demo:chunks";
+const demoRun = process.env.npm_lifecycle_event === "demo" || process.env.npm_lifecycle_event === "demo:e2e" || process.env.npm_lifecycle_event === "demo:chunks" || process.env.npm_lifecycle_event === "demo:visual";
 
 export default defineConfig({
   testDir: "./tests/e2e",

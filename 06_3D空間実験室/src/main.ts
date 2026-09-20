@@ -19,6 +19,7 @@ import { createDebugPanel } from "./debug/DebugPanel";
 import { installTestBridge, type TestStartOptions } from "./testing/TestBridge";
 import { FRAMEWORK_VERSION, MAP_FORMAT_VERSION, logFrameworkVersion } from "./core/version";
 import type { WorldMapData } from "./map/WorldMapData";
+import type { EnvironmentPreset, VisualQuality } from "./visual/VisualConfig";
 
 const mobile = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
 logFrameworkVersion();
@@ -46,6 +47,8 @@ let detectionLatched = false;
 let discoveryNoticeTimer = 0;
 let autoExpansion = true;
 let chunkUnload = true;
+let environmentPreset: EnvironmentPreset = "CLEAR_DAY";
+let visualQuality: VisualQuality = mobile ? "AUTO" : "AUTO";
 
 const gameCallbacks: GameplayCallbacks = {
   ...gameplayUi.callbacks,
@@ -66,7 +69,9 @@ try {
 
   // Babylon EngineはWebGL2を優先し、利用できない端末ではWebGLへ自動フォールバックする。
   engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: false }, false);
-  engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
+  // Mobile Safari/Chrome can report DPR 3–4. Rendering at that full backing resolution
+  // multiplies fill cost without improving playability on a small screen.
+  engine.setHardwareScalingLevel(mobile ? 1 : 1 / Math.min(window.devicePixelRatio || 1, 2));
   laboratory = createLaboratoryScene(engine, canvas, mobile, { worldMode: currentWorld, citySettings, gameplayCallbacks: gameCallbacks, gameMode: gameConfig.mode });
   laboratory.player.setMovementSpeeds(movementSettings);
   laboratory.setMissionGuideMode(currentGuideMode);
@@ -124,6 +129,7 @@ try {
     navigationTest: (enabled) => { getLaboratory().setNavigationTest(enabled); refresh(`NAV TEST ${enabled ? "ON — 地面を選択してください" : "OFF"}`); },
   }, citySettings, movementSettings);
   installMapControls();
+  installVisualControls();
 
   const debugPanel = createDebugPanel({
     laboratory: getLaboratory,
@@ -153,6 +159,7 @@ try {
 
   function setTime(mode: "day" | "night"): void {
     currentTime = mode;
+    environmentPreset = mode === "day" ? "CLEAR_DAY" : "NIGHT";
     getLaboratory().setDayMode(mode === "day");
     controls.setMode(mode);
     controls.showToast(mode === "day" ? "昼モードに切り替えました" : "夜モードに切り替えました");
@@ -173,6 +180,8 @@ try {
     laboratory.setEnemyAI(enemyAIEnabled && !missionTestMode);
     laboratory.setAutoExpansion(autoExpansion);
     laboratory.setChunkUnload(chunkUnload);
+    laboratory.setEnvironmentPreset(environmentPreset);
+    laboratory.setVisualQuality(visualQuality);
     gameplayUi.setInteractHandler(() => getLaboratory().interact());
     laboratory.setDayMode(currentTime === "day");
     hideInitializationError();
@@ -333,6 +342,13 @@ try {
     fileInput?.addEventListener("change", async () => { const file = fileInput.files?.[0]; if (!file) return; try { await applyImportedMap(JSON.parse(await file.text()) as unknown); controls.showToast("MAP IMPORTED"); } catch (error) { console.error("MAP IMPORT ERROR", error); controls.showToast(error instanceof Error ? error.message : "MAP IMPORT ERROR"); } finally { fileInput.value = ""; } });
     document.querySelector("#map-browser-list")?.addEventListener("click", async (event) => { const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-map-id]"); if (!button) return; const id = button.dataset.mapId!; if (button.dataset.mapAction === "delete") { getLaboratory().deleteMapFromBrowser(id); renderMapBrowser(); return; } try { await applyImportedMap(getLaboratory().loadMapFromBrowser(id)); controls.showToast(`MAP LOADED — ${id}`); } catch (error) { console.error("MAP LOAD ERROR", error); controls.showToast(error instanceof Error ? error.message : "MAP LOAD ERROR"); } });
     syncButtons(); renderMapBrowser();
+  }
+  function installVisualControls(): void {
+    const environment = document.querySelector<HTMLSelectElement>("#environment-preset-select"); const quality = document.querySelector<HTMLSelectElement>("#visual-quality-select");
+    if (environment) { environment.value = environmentPreset; environment.addEventListener("change", () => { environmentPreset = environment.value as EnvironmentPreset; currentTime = environmentPreset === "NIGHT" ? "night" : "day"; getLaboratory().setEnvironmentPreset(environmentPreset); controls.setMode(currentTime); controls.showToast(`ENVIRONMENT ${environmentPreset}`); }); }
+    if (quality) { quality.value = visualQuality; quality.addEventListener("change", () => { visualQuality = quality.value as VisualQuality; getLaboratory().setVisualQuality(visualQuality); controls.showToast(`VISUAL QUALITY ${visualQuality}`); }); }
+    const debugToggles: Array<[string, "LIGHTS" | "LOD" | "CHUNK_LOD"]> = [["show-lights-toggle", "LIGHTS"], ["show-lod-toggle", "LOD"], ["show-chunk-lod-toggle", "CHUNK_LOD"]];
+    debugToggles.forEach(([id, kind]) => { const button = document.querySelector<HTMLButtonElement>(`#${id}`); let enabled = false; button?.addEventListener("click", () => { enabled = !enabled; getLaboratory().setVisualDebug(kind, enabled); button.textContent = `SHOW ${kind.replace("_", " ")} ${enabled ? "ON" : "OFF"}`; button.classList.toggle("is-active", enabled); }); });
   }
   async function applyImportedMap(value: unknown): Promise<void> {
     const candidate = value as Partial<WorldMapData>; if (!Number.isFinite(candidate.seed)) throw new Error("INVALID MAP DATA");

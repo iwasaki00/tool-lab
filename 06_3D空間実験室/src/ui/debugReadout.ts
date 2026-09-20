@@ -21,6 +21,7 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   const characters = laboratory.characterDebug();
   const navigation = laboratory.navigationDebug();
   const map = laboratory.mapState();
+  const visual = laboratory.visualState();
   setText("renderer-value", getRendererName(engine));
   setText("framework-version-value", FRAMEWORK_VERSION);
   setText("map-format-version-value", String(MAP_FORMAT_VERSION));
@@ -29,6 +30,15 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   setText("device-value", mobile ? "Mobile" : "Desktop");
   setText("fps-value", String(Math.round(engine.getFps())));
   setText("mesh-value", String(laboratory.objectCount()));
+  setText("active-mesh-value", String(visual.activeMeshes));
+  setText("visual-environment-value", visual.environment);
+  setText("visual-quality-value", `${visual.quality} (${visual.resolvedQuality})`);
+  setText("visual-fog-value", visual.fog);
+  setText("visual-shadow-value", visual.shadow ? "ON" : "OFF");
+  setText("visual-lod-value", `LEVEL ${visual.lod}`);
+  setText("active-lights-value", String(visual.activeLights));
+  setText("material-count-value", String(visual.materials));
+  setText("shadow-caster-value", String(visual.shadowCasters));
   setText("camera-value", `${telemetry.x.toFixed(1)} / ${telemetry.y.toFixed(1)} / ${telemetry.z.toFixed(1)}`);
   setText("map-mode-value", map.mode);
   setText("map-seed-value", String(map.worldSeed));

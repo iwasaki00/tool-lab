@@ -8,12 +8,12 @@ import type { ObjectContext } from "./primitives";
 export function createTree(ctx: ObjectContext, position: Vector3, scale = 1): Mesh {
   const root = new Mesh("city-tree", ctx.scene);
   root.position.copyFrom(position);
-  const trunkMat = createMaterial(ctx.scene, "tree-trunk", new Color3(.34, .2, .08));
-  const leafMat = createMaterial(ctx.scene, "tree-leaves", new Color3(.14, .47, .22));
+  const trunkMat = ctx.materials?.getWoodMaterial() ?? createMaterial(ctx.scene, "tree-trunk", new Color3(.34, .2, .08));
+  const leafMat = ctx.materials?.getGrassMaterial() ?? createMaterial(ctx.scene, "tree-leaves", new Color3(.14, .47, .22));
   const trunk = MeshBuilder.CreateCylinder("tree-trunk", { height: 2.2 * scale, diameter: .42 * scale, tessellation: 8 }, ctx.scene);
   trunk.position.y = 1.1 * scale; trunk.parent = root; trunk.material = trunkMat; trunk.checkCollisions = true;
   const crown = MeshBuilder.CreateSphere("tree-crown", { diameter: 2.2 * scale, segments: 8 }, ctx.scene);
-  crown.position.y = 2.65 * scale; crown.parent = root; crown.material = leafMat;
+  crown.position.y = 2.65 * scale; crown.parent = root; crown.material = leafMat; crown.metadata = { visualLod: 1 };
   ctx.shadows.addShadowCaster(trunk); ctx.shadows.addShadowCaster(crown);
   ctx.registerDynamic?.(root);
   return root;

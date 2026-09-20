@@ -9,8 +9,8 @@ import type { ObjectContext } from "./primitives";
 export function createStreetLight(ctx: ObjectContext, position: Vector3, lampMaterials: StandardMaterial[]): Mesh {
   const root = new Mesh("city-street-light", ctx.scene);
   root.position.copyFrom(position);
-  const metal = createMaterial(ctx.scene, "street-light-metal", new Color3(.08, .1, .12));
-  const lamp = createMaterial(ctx.scene, "street-light-lamp", new Color3(.85, .76, .42), .5);
+  const metal = ctx.materials?.getMetalMaterial() ?? createMaterial(ctx.scene, "street-light-metal", new Color3(.08, .1, .12));
+  const lamp = ctx.materials?.getLampMaterial() ?? createMaterial(ctx.scene, "street-light-lamp", new Color3(.85, .76, .42), .5);
   lamp.emissiveColor = Color3.Black();
   lamp.metadata = { nightColor: [1, .72, .22] };
   lampMaterials.push(lamp);

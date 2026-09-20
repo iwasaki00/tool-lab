@@ -1,8 +1,5 @@
 import "@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent";
 import type { Engine } from "@babylonjs/core/Engines/engine";
-import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
-import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
-import { ShadowGenerator } from "@babylonjs/core/Lights/Shadows/shadowGenerator";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
@@ -10,12 +7,11 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { Scene } from "@babylonjs/core/scene";
 import { createBoundaryWall, createBuilding, createStairs } from "../objects/building";
-import { createGround, createLamp, createRoad, createSky } from "../objects/environment";
+import { createGround, createLamp, createRoad } from "../objects/environment";
 import { createBox, createCylinder, createPillar, createPlatform, createSphere, type ObjectContext } from "../objects/primitives";
 import { createPlayer, type PlayerController } from "../player/createPlayer";
 import { createMaterial } from "../utils/materials";
 import { createRandomScene, randomOpenPosition } from "./generators";
-import { setStreetLightsEnabled } from "../objects/streetLight";
 import { createCity } from "../world/cityGenerator";
 import { DEFAULT_CITY_SETTINGS, type CitySettings, type CityStats, type WorldMode } from "../world/types";
 import { createDemoScenario, type DemoScenario, type GameplayCallbacks } from "../gameplay/createDemoScenario";
@@ -34,6 +30,8 @@ import type { DiscoverySnapshot, GameMode } from "../game/GameTypes";
 import type { DebugCommand, DebugTestSnapshot } from "../debug/DebugTestManager";
 import { WorldMapManager } from "../map/WorldMapManager";
 import type { MapStateSnapshot, WorldMapData } from "../map/WorldMapData";
+import { VisualManager } from "../visual/VisualManager";
+import type { EnvironmentPreset, VisualQuality, VisualState } from "../visual/VisualConfig";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -88,6 +86,10 @@ export interface LaboratoryApi {
   setAutoExpansion: (enabled: boolean) => void;
   setChunkUnload: (enabled: boolean) => void;
   teleportNearChunkEdge: (direction: "north" | "south" | "east" | "west", cross?: boolean) => void;
+  visualState: () => VisualState;
+  setEnvironmentPreset: (preset: EnvironmentPreset) => void;
+  setVisualQuality: (quality: VisualQuality) => void;
+  setVisualDebug: (kind: "LIGHTS" | "LOD" | "CHUNK_LOD", enabled: boolean) => void;
 }
 
 export interface SceneOptions {
@@ -107,29 +109,22 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   const player = createPlayer(scene, canvas, mobile);
   const camera = player.camera;
 
-  const ambient = new HemisphericLight("ambient", new Vector3(0, 1, 0), scene);
-  ambient.intensity = .68;
-  ambient.groundColor = new Color3(.17, .2, .22);
-  const sun = new DirectionalLight("sun", new Vector3(-.55, -1, .35), scene);
-  sun.position = new Vector3(25, 38, -25);
-  sun.intensity = 1.15;
-  const shadows = new ShadowGenerator(mobile ? 1024 : 2048, sun);
-  shadows.useBlurExponentialShadowMap = true;
-  shadows.blurKernel = 24;
-  const skyMaterial = createSky(scene);
+  const visuals = new VisualManager(scene, camera, mobile, { environmentPreset: "CLEAR_DAY", quality: "AUTO" });
+  const shadows = visuals.shadows;
   let currentMode: "day" | "night" = "day";
 
   const dynamicRoots: Mesh[] = [];
   const registerDynamic = (mesh: Mesh) => dynamicRoots.push(mesh);
-  const ctx: ObjectContext = { scene, shadows, registerDynamic };
+  const ctx: ObjectContext = { scene, shadows, registerDynamic, materials: visuals.materials };
   const registry = new WorldRegistry();
 
-  const ground = createGround(scene);
+  const ground = createGround(scene); ground.material = visuals.materials.getGroundMaterial();
   let generatedCity: ReturnType<typeof createCity> | undefined;
   if (worldMode === "city") {
     // 街本体はSceneの寿命で管理し、追加オブジェクト用のdynamicRootsとは分離する。
     // これにより既存の「ランダム配置」を使っても街全体が消えない。
-    generatedCity = createCity({ scene, shadows }, citySettings, mobile, registry);
+    generatedCity = createCity({ scene, shadows, materials: visuals.materials }, citySettings, mobile, registry);
+    visuals.setStreetLightMaterials(generatedCity.lampMaterials);
     camera.position.set(generatedCity.spawn.x, generatedCity.spawn.y, generatedCity.spawn.z);
     camera.rotation.set(0, 0, 0);
   } else {
@@ -169,21 +164,8 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
 
   const setDayMode = (isDay: boolean) => {
     currentMode = isDay ? "day" : "night";
-    if (generatedCity) setStreetLightsEnabled(generatedCity.lampMaterials, !isDay);
     demoScenario.setDayMode(isDay);
-    if (isDay) {
-      scene.clearColor = new Color4(.38, .65, .82, 1);
-      skyMaterial.diffuseColor = new Color3(.34, .62, .82);
-      skyMaterial.emissiveColor = new Color3(.34, .62, .82);
-      ambient.intensity = .68;
-      sun.intensity = 1.15;
-    } else {
-      scene.clearColor = new Color4(.025, .055, .11, 1);
-      skyMaterial.diffuseColor = new Color3(.025, .055, .11);
-      skyMaterial.emissiveColor = new Color3(.025, .055, .11);
-      ambient.intensity = .27;
-      sun.intensity = .18;
-    }
+    visuals.setEnvironmentPreset(isDay ? "CLEAR_DAY" : "NIGHT");
   };
 
   return {
@@ -200,17 +182,12 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
       navigation.setDebugVisible(enabled);
       worldMap.setDebugVisible(enabled);
       groundMaterial.diffuseColor = enabled ? new Color3(.12, .72, .22) : new Color3(.25, .34, .28);
-      if (enabled) {
-        skyMaterial.diffuseColor = new Color3(.12, .55, .95);
-        skyMaterial.emissiveColor = new Color3(.12, .55, .95);
-      } else {
-        setDayMode(currentMode === "day");
-      }
+      if (!enabled) setDayMode(currentMode === "day");
     },
     objectCount: () => scene.meshes.filter((mesh) => mesh.name !== "sky").length,
     telemetry: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, mode: currentMode, worldMode, seed: generatedCity?.stats.seed, style: generatedCity?.stats.styleLabel }),
     cityStats: () => generatedCity?.stats,
-    disposeWorld: () => { demoScenario.dispose(); worldMap.dispose(); navigation.dispose(); generatedCity?.dispose(); },
+    disposeWorld: () => { demoScenario.dispose(); worldMap.dispose(); navigation.dispose(); generatedCity?.dispose(); visuals.dispose(); },
     interact: () => demoScenario.interact(),
     interactionDebug: () => demoScenario.focus(),
     inventory: () => demoScenario.inventory(),
@@ -250,6 +227,10 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     setAutoExpansion: (enabled) => worldMap.setAutoExpansion(enabled),
     setChunkUnload: (enabled) => worldMap.setChunkUnload(enabled),
     teleportNearChunkEdge: (direction, cross) => worldMap.teleportNearChunkEdge(direction, cross),
+    visualState: () => visuals.state(),
+    setEnvironmentPreset: (preset) => { currentMode = preset === "NIGHT" ? "night" : "day"; visuals.setEnvironmentPreset(preset); demoScenario.setDayMode(preset !== "NIGHT"); },
+    setVisualQuality: (quality) => visuals.setQuality(quality),
+    setVisualDebug: (kind, enabled) => visuals.setDebugView(kind, enabled),
     restartMission: (settings) => {
       demoScenario.dispose();
       camera.position.copyFrom(missionSpawn); camera.cameraDirection.setAll(0); camera.cameraRotation.setAll(0);

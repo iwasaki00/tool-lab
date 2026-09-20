@@ -1,7 +1,7 @@
 {
   "name": "tool-lab-3d-space-laboratory",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite 06_3D空間実験室",
@@ -11,9 +11,11 @@
     "test:smoke": "playwright test tests/e2e/smoke.spec.ts",
     "test:stability": "playwright test tests/e2e/stability.spec.ts",
     "test:chunks": "playwright test tests/e2e/map-chunks.spec.ts",
+    "test:visual": "playwright test tests/e2e/visual.spec.ts",
     "demo": "playwright test tests/e2e/demo.spec.ts --headed --workers=1",
     "demo:e2e": "playwright test tests/e2e/demo.spec.ts --headed --workers=1",
-    "demo:chunks": "playwright test tests/e2e/chunk-demo.spec.ts --headed --workers=1"
+    "demo:chunks": "playwright test tests/e2e/chunk-demo.spec.ts --headed --workers=1",
+    "demo:visual": "playwright test tests/e2e/visual-demo.spec.ts --headed --workers=1"
   },
   "dependencies": {
     "@babylonjs/core": "^8.26.0",

@@ -34,9 +34,9 @@ export function createBuilding(ctx: ObjectContext, options: CityBuildingOptions)
   const root = new Mesh(`city-building-${options.type}`, ctx.scene);
   root.position.copyFrom(options.position); root.rotation.y = options.rotation ?? 0;
   root.metadata = { buildingId: options.buildingId, buildingType: options.type, interiorMode: options.interiorMode ?? "exterior", hasInterior: options.hasInterior ?? false };
-  const bodyMat = createMaterial(ctx.scene, `building-${options.type}-body`, options.color, .1);
-  const trimMat = createMaterial(ctx.scene, `building-${options.type}-trim`, options.color.scale(.5), .12);
-  const glassMat = createMaterial(ctx.scene, "building-window", new Color3(.16, .42, .58), .5);
+  const bodyMat = ctx.materials?.getBuildingMaterial(options.type, options.color) ?? createMaterial(ctx.scene, `building-${options.type}-body`, options.color, .1);
+  const trimMat = ctx.materials?.getRoofMaterial(options.roofShape, options.color.scale(.5)) ?? createMaterial(ctx.scene, `building-${options.type}-trim`, options.color.scale(.5), .12);
+  const glassMat = ctx.materials?.getGlassMaterial() ?? createMaterial(ctx.scene, "building-window", new Color3(.16, .42, .58), .5);
   glassMat.emissiveColor = new Color3(.015, .05, .07);
 
   if (options.hasInterior) createExteriorShell(ctx, root, options.width, options.depth, height, bodyMat);
@@ -64,7 +64,7 @@ function createFacade(ctx: ObjectContext, root: Mesh, options: CityBuildingOptio
     }
   }
   const merged = windows.length ? Mesh.MergeMeshes(windows, true, true, undefined, false, true) : null;
-  if (merged) { merged.name = "building-windows"; merged.parent = root; }
+  if (merged) { merged.name = "building-windows"; merged.parent = root; merged.metadata = { visualRole: "window", visualLod: 0 }; }
 
   if (options.hasInterior) return;
   const doorX = options.doorPosition === "left" ? -options.width * .28 : options.doorPosition === "right" ? options.width * .28 : 0;
@@ -74,6 +74,7 @@ function createFacade(ctx: ObjectContext, root: Mesh, options: CityBuildingOptio
   entrance.position.set(doorX, .09, -options.depth / 2 - .55); entrance.parent = root; entrance.material = trim; entrance.checkCollisions = true;
   const awning = MeshBuilder.CreateBox("building-awning", { width: 2.2, height: .16, depth: .9 }, ctx.scene);
   awning.position.set(doorX, 2.45, -options.depth / 2 - .42); awning.parent = root; awning.material = trim;
+  awning.metadata = { visualLod: 0 };
 }
 
 function createExteriorShell(ctx: ObjectContext, root: Mesh, width: number, depth: number, height: number, material: StandardMaterial): void {

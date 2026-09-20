@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#071018" />
     <meta name="description" content="Mission・Navigation・Enemyを短時間で検証できるBabylon.js 3D空間実験室 Ver.11。" />
     <title>3D空間実験室 Ver.11 — プレイ検証・デバッグツール</title>
-    <script type="module" crossorigin src="./assets/index-B6xH_868.js"></script>
+    <script type="module" crossorigin src="./assets/index-CnFcGove.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-DpAcDZOk.css">
   </head>
   <body>
@@ -17,7 +17,7 @@
 
     <header class="brand-plate">
       <span class="brand-index">06</span>
-      <span><strong>3D 空間実験室 <em>VER.11</em></strong><small>PLAY TEST TOOL / BABYLON.JS</small></span>
+      <span><strong>3D 空間実験室 <em>FRAMEWORK 1.2</em></strong><small>VISUAL SYSTEM / BABYLON.JS</small></span>
     </header>
 
     <div class="compact-status" aria-live="polite">
@@ -71,6 +71,15 @@
         <div><dt>Device</dt><dd id="device-value">—</dd></div>
         <div><dt>FPS</dt><dd id="fps-value">0</dd></div>
         <div><dt>Meshes</dt><dd id="mesh-value">0</dd></div>
+        <div><dt>Active Mesh</dt><dd id="active-mesh-value">0</dd></div>
+        <div><dt>Environment</dt><dd id="visual-environment-value">—</dd></div>
+        <div><dt>Quality</dt><dd id="visual-quality-value">—</dd></div>
+        <div><dt>Fog</dt><dd id="visual-fog-value">—</dd></div>
+        <div><dt>Shadow</dt><dd id="visual-shadow-value">—</dd></div>
+        <div><dt>LOD</dt><dd id="visual-lod-value">0</dd></div>
+        <div><dt>Active Lights</dt><dd id="active-lights-value">0</dd></div>
+        <div><dt>Materials</dt><dd id="material-count-value">0</dd></div>
+        <div><dt>Shadow Casters</dt><dd id="shadow-caster-value">0</dd></div>
         <div><dt>Camera</dt><dd id="camera-value">0 / 0 / 0</dd></div>
         <div><dt>Map Mode</dt><dd id="map-mode-value">—</dd></div>
         <div><dt>World Seed</dt><dd id="map-seed-value">—</dd></div>
@@ -248,6 +257,13 @@
         <div class="mission-actions"><button type="button" id="export-map-button">EXPORT MAP</button><button type="button" id="import-map-button">IMPORT MAP</button><button type="button" id="save-map-button">SAVE LOCAL</button></div>
         <input id="map-file-input" type="file" accept="application/json,.json" hidden>
         <div id="map-browser-list" class="map-browser-list"><small>保存Mapなし</small></div>
+      </section>
+
+      <section class="visual-settings" aria-label="Visual設定">
+        <p class="panel-label">VISUAL SYSTEM</p>
+        <label>ENVIRONMENT<select id="environment-preset-select"><option value="CLEAR_DAY">CLEAR DAY</option><option value="CLOUDY">CLOUDY</option><option value="SUNSET">SUNSET</option><option value="NIGHT">NIGHT</option><option value="FOGGY">FOGGY</option></select></label>
+        <label>VISUAL QUALITY<select id="visual-quality-select"><option value="AUTO">AUTO</option><option value="LOW">LOW</option><option value="MEDIUM">MEDIUM</option><option value="HIGH">HIGH</option></select></label>
+        <div class="mission-actions"><button type="button" id="show-lights-toggle">SHOW LIGHTS OFF</button><button type="button" id="show-lod-toggle">SHOW LOD OFF</button><button type="button" id="show-chunk-lod-toggle">SHOW CHUNK LOD OFF</button></div>
       </section>
 
       <section class="movement-settings" aria-label="プレイヤー移動速度">

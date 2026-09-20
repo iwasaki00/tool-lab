@@ -1,4 +1,4 @@
-export const FRAMEWORK_VERSION = "1.1.0";
+export const FRAMEWORK_VERSION = "1.2.0";
 export const MAP_FORMAT_VERSION = 1;
 
 export function logFrameworkVersion(): void {

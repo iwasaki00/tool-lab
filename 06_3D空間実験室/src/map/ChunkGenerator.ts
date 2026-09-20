@@ -17,7 +17,8 @@ export function generateChunkData(worldSeed: number, x: number, z: number, chunk
   for (const sx of offsets) for (const sz of offsets) {
     if (random.next() < .18) continue; const width = random.range(8, 13); const depth = random.range(8, 13); const height = random.range(5, style.includes("future") ? 22 : 14);
     const px = cx + sx * random.range(15, chunkSize / 2 - 10); const pz = cz + sz * random.range(15, chunkSize / 2 - 10); const buildingId = `${id}_building_${++buildingIndex}`;
-    objects.push(object(buildingId, "BUILDING", px, height / 2, pz, width, height, depth, random.pick(["#54717a", "#7a6654", "#59677c", "#6d7456"])));
+    const building = object(buildingId, "BUILDING", px, height / 2, pz, width, height, depth, random.pick(["#54717a", "#7a6654", "#59677c", "#6d7456"]));
+    building.parameters = { visualStyle: random.pick(["RESIDENTIAL", "OFFICE", "INDUSTRIAL", "MODERN", "GENERIC"]), roofStyle: random.pick(["FLAT", "SLOPE", "STEP", "INDUSTRIAL"]), windowPattern: random.integer(0, 65535) }; objects.push(building);
     semantics.push({ ...semantic(buildingId, "BUILDING", px, 0, pz, width, depth, [], ["private"], height), metadata: { generated: true, chunkId: id, height } });
   }
   return { id, x, z, seed, state: "UNLOADED", source: "PROCEDURAL", objects, semantics, edges: { northConnections: [0], southConnections: [0], eastConnections: [0], westConnections: [0] }, metadata: { style } };

@@ -2,6 +2,7 @@ import type { GameConfig, GameMode } from "../game/GameTypes";
 import type { GameSessionSnapshot } from "../game/GameSession";
 import type { MissionDifficulty, MissionRuntimeSnapshot } from "../gameplay/MissionTypes";
 import type { LaboratoryApi } from "../scene/createScene";
+import type { EnvironmentPreset, VisualQuality } from "../visual/VisualConfig";
 
 export interface TestStartOptions {
   mode: GameMode;
@@ -31,6 +32,9 @@ export interface SpaceLabTestBridge {
   teleportNearChunkEdge: (direction?: "north" | "south" | "east" | "west", cross?: boolean) => void;
   exportMap: () => ReturnType<LaboratoryApi["saveMap"]>;
   importMap: (data: unknown) => Promise<ReturnType<LaboratoryApi["saveMap"]>>;
+  getVisualState: () => ReturnType<LaboratoryApi["visualState"]> & { fps: number };
+  setEnvironmentPreset: (preset: EnvironmentPreset) => void;
+  setVisualQuality: (quality: VisualQuality) => void;
   teleportToObjective: () => void;
   teleportToStart: () => void;
   teleportToGoal: () => void;
@@ -79,6 +83,9 @@ export function installTestBridge(options: {
     teleportNearChunkEdge: (direction = "east", cross = false) => lab().teleportNearChunkEdge(direction, cross),
     exportMap: () => lab().saveMap(),
     importMap: (data) => lab().loadMap(data),
+    getVisualState: () => ({ ...lab().visualState(), fps: lab().scene.getEngine().getFps() }),
+    setEnvironmentPreset: (preset) => lab().setEnvironmentPreset(preset),
+    setVisualQuality: (quality) => lab().setVisualQuality(quality),
     teleportToObjective: () => lab().debugCommand("teleport-current"),
     teleportToStart: () => lab().debugCommand("teleport-start"),
     teleportToGoal: () => lab().debugCommand("teleport-goal"),

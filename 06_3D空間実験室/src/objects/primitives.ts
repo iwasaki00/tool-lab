@@ -6,11 +6,13 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { ShadowGenerator } from "@babylonjs/core/Lights/Shadows/shadowGenerator";
 import type { Scene } from "@babylonjs/core/scene";
 import { createMaterial } from "../utils/materials";
+import type { MaterialLibrary } from "../visual/MaterialLibrary";
 
 export interface ObjectContext {
   scene: Scene;
   shadows: ShadowGenerator;
   registerDynamic?: (mesh: Mesh) => void;
+  materials?: MaterialLibrary;
 }
 
 const palette = [

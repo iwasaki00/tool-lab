@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- Added the shared Visual System with environment and quality presets.
+- Added procedural sky, lightweight clouds, fog, palette-managed lighting and day/night emissive states.
+- Added a cached Material Library for roads, concrete, glass, metal, wood, grass and building surfaces.
+- Added deterministic chunk building appearance, window lighting, roof variants and distance-based visual LOD.
+- Added visual performance metrics, debug views, Test Bridge APIs, screenshots and Playwright visual tests.
+
 ## 1.1.0
 
 - Added World Map System and JSON map format v1.

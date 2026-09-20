@@ -67,6 +67,7 @@ declare global {
       setEnemyAI(enabled: boolean): void; enemyCommand(command: string): void; discover(command: "current" | "all" | "reset"): void;
       setDemoStep(step: number, total: number, label: string): void; clearDemoStep(): void;
       getMapState(): any; getCurrentChunk(): any; getLoadedChunks(): string[]; setAutoExpansion(enabled: boolean): void; setChunkUnload(enabled: boolean): void; teleportNearChunkEdge(direction?: "north" | "south" | "east" | "west", cross?: boolean): void; exportMap(): any; importMap(data: unknown): Promise<any>;
+      getVisualState(): any; setEnvironmentPreset(preset: "CLEAR_DAY" | "CLOUDY" | "SUNSET" | "NIGHT" | "FOGGY"): void; setVisualQuality(quality: "AUTO" | "LOW" | "MEDIUM" | "HIGH"): void;
     };
   }
 }
