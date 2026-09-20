@@ -1,4 +1,4 @@
-# 3D空間実験室 Ver.6 — 意味を持つゲームマップ化
+# 3D空間実験室 — Common 3D Framework 1.1.0
 
 Babylon.jsのプリミティブ形状とTypeScriptだけで構築した、一人称視点の3D実験フィールド／プロシージャル街です。Ver.6では道路、広場、公園、建物入口、部屋、廊下、階段へ意味情報と接続関係を付与し、Seedから鍵、カードキー、Goal、Enemy/NPC Spawnとミッションを配置します。外部3Dモデルや外部AI APIは使用していません。
 
@@ -36,3 +36,22 @@ npm run dev
 起動時は街生成モードです。`MENU`から街スタイル、街のイメージ、Seed、街サイズ、建物密度、高さ構成を指定できます。「住宅」「高層」「狭い」「公園」「路地」「工場」「未来」「暗い」「海」などを組み合わせると、プリセットを基準に生成ルールを補正します。最後に使用した設定は端末内へ保存されます。従来の実験フィールドへも切り替えられます。
 
 生成処理は `src/world`、街の小物は `src/objects`、Seed乱数は `src/random`、シーン構成は `src/scene`、プレイヤー操作は `src/player`、画面UIは `src/ui` に分割しています。
+
+## World Map System
+
+Framework VersionとMap Format Versionは`src/core/version.ts`で一元管理します。MapはBabylon.js Meshではなく、再構築可能なObject／Semantic／ChunkパラメータをJSONとして保存します。
+
+- `PROCEDURAL`: SeedとChunk座標から実行時生成
+- `PREBUILT`: 保存済みChunkを読み込み
+- `HYBRID`: 保存Mapを起点に不足Chunkを自動生成
+
+MENUの`WORLD MAP SYSTEM`からAuto Expansion、Chunk Unload、JSON Import／Export、LocalStorage保存・読込を操作できます。
+
+## Version運用
+
+- Framework API互換性を壊す変更ではSemVerのMAJORを上げます。
+- 機能追加ではMINOR、不具合修正ではPATCHを上げます。
+- 保存Map互換性を壊す変更では`MAP_FORMAT_VERSION`を上げ、`migrateMapData()`へ順次Migrationを追加します。
+- Framework Version更新時は動作確認とCHANGELOG更新後、`v1.1.0`のようなGit Tagを付けます。
+
+Git Tagは作業ツリーと対象コミットを確認してから作成し、未コミット変更がある状態では自動作成しません。

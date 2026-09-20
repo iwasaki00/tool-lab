@@ -23,6 +23,14 @@ export interface SpaceLabTestBridge {
   getWorldState: () => ReturnType<LaboratoryApi["debugTest"]>;
   getEnemyStates: () => ReturnType<LaboratoryApi["characterDebug"]>;
   getDiscoveryState: () => ReturnType<LaboratoryApi["discovery"]>;
+  getMapState: () => ReturnType<LaboratoryApi["mapState"]>;
+  getCurrentChunk: () => ReturnType<LaboratoryApi["mapState"]>["currentChunk"];
+  getLoadedChunks: () => string[];
+  setAutoExpansion: (enabled: boolean) => void;
+  setChunkUnload: (enabled: boolean) => void;
+  teleportNearChunkEdge: (direction?: "north" | "south" | "east" | "west", cross?: boolean) => void;
+  exportMap: () => ReturnType<LaboratoryApi["saveMap"]>;
+  importMap: (data: unknown) => Promise<ReturnType<LaboratoryApi["saveMap"]>>;
   teleportToObjective: () => void;
   teleportToStart: () => void;
   teleportToGoal: () => void;
@@ -63,6 +71,14 @@ export function installTestBridge(options: {
     getWorldState: () => lab().debugTest(),
     getEnemyStates: () => lab().characterDebug(),
     getDiscoveryState: () => lab().discovery(),
+    getMapState: () => lab().mapState(),
+    getCurrentChunk: () => lab().mapState().currentChunk,
+    getLoadedChunks: () => lab().mapState().loadedChunks,
+    setAutoExpansion: (enabled) => lab().setAutoExpansion(enabled),
+    setChunkUnload: (enabled) => lab().setChunkUnload(enabled),
+    teleportNearChunkEdge: (direction = "east", cross = false) => lab().teleportNearChunkEdge(direction, cross),
+    exportMap: () => lab().saveMap(),
+    importMap: (data) => lab().loadMap(data),
     teleportToObjective: () => lab().debugCommand("teleport-current"),
     teleportToStart: () => lab().debugCommand("teleport-start"),
     teleportToGoal: () => lab().debugCommand("teleport-goal"),

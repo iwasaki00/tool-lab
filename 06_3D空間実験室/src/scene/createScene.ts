@@ -32,6 +32,8 @@ import type { CharacterManagerDebug } from "../characters/CharacterManager";
 import { NavigationManager, type NavigationStats } from "../navigation/NavigationManager";
 import type { DiscoverySnapshot, GameMode } from "../game/GameTypes";
 import type { DebugCommand, DebugTestSnapshot } from "../debug/DebugTestManager";
+import { WorldMapManager } from "../map/WorldMapManager";
+import type { MapStateSnapshot, WorldMapData } from "../map/WorldMapData";
 
 export interface LaboratoryApi {
   scene: Scene;
@@ -75,6 +77,17 @@ export interface LaboratoryApi {
   setNavigationTest: (enabled: boolean) => void;
   setPaused: (paused: boolean) => void;
   discovery: () => DiscoverySnapshot;
+  mapState: () => MapStateSnapshot;
+  saveMap: () => WorldMapData;
+  createProceduralMap: (seed?: number, style?: string) => WorldMapData;
+  loadMap: (data: unknown) => Promise<WorldMapData>;
+  saveMapToBrowser: (name?: string) => WorldMapData;
+  listBrowserMaps: () => ReturnType<WorldMapManager["listBrowserMaps"]>;
+  loadMapFromBrowser: (id: string) => WorldMapData;
+  deleteMapFromBrowser: (id: string) => void;
+  setAutoExpansion: (enabled: boolean) => void;
+  setChunkUnload: (enabled: boolean) => void;
+  teleportNearChunkEdge: (direction: "north" | "south" | "east" | "west", cross?: boolean) => void;
 }
 
 export interface SceneOptions {
@@ -145,6 +158,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   const navigation = new NavigationManager(scene, registry);
   const createMission = (settings: CitySettings) => createDemoScenario(ctx, camera, missionSpawn.clone(), callbacks, registry, generatedCity?.interiorSites, settings.seed, settings.missionSeed, settings.missionType, settings.missionDifficulty, mobile, (enabled) => player.setInputEnabled(enabled), navigation, options.gameMode ?? "ESCAPE");
   let demoScenario = createMission(citySettings);
+  const worldMap = new WorldMapManager(ctx, registry, camera, citySettings.seed, citySettings.style, () => navigation.requestRebuild());
 
   const spawnAhead = (height: number): Vector3 => {
     const direction = camera.getForwardRay().direction.clone();
@@ -184,6 +198,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
       debugBox.isVisible = enabled;
       demoScenario.setDebugMode(enabled);
       navigation.setDebugVisible(enabled);
+      worldMap.setDebugVisible(enabled);
       groundMaterial.diffuseColor = enabled ? new Color3(.12, .72, .22) : new Color3(.25, .34, .28);
       if (enabled) {
         skyMaterial.diffuseColor = new Color3(.12, .55, .95);
@@ -195,7 +210,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     objectCount: () => scene.meshes.filter((mesh) => mesh.name !== "sky").length,
     telemetry: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, mode: currentMode, worldMode, seed: generatedCity?.stats.seed, style: generatedCity?.stats.styleLabel }),
     cityStats: () => generatedCity?.stats,
-    disposeWorld: () => { demoScenario.dispose(); navigation.dispose(); generatedCity?.dispose(); },
+    disposeWorld: () => { demoScenario.dispose(); worldMap.dispose(); navigation.dispose(); generatedCity?.dispose(); },
     interact: () => demoScenario.interact(),
     interactionDebug: () => demoScenario.focus(),
     inventory: () => demoScenario.inventory(),
@@ -224,6 +239,17 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     setNavigationTest: (enabled) => demoScenario.setNavigationTest(enabled),
     setPaused: (paused) => { player.setInputEnabled(!paused); demoScenario.setPaused(paused); },
     discovery: () => demoScenario.discovery(),
+    mapState: () => worldMap.snapshot(),
+    saveMap: () => worldMap.saveMap(),
+    createProceduralMap: (seed, style) => worldMap.createProceduralMap(seed, style),
+    loadMap: (data) => worldMap.loadMap(data),
+    saveMapToBrowser: (name) => worldMap.saveToBrowser(name),
+    listBrowserMaps: () => worldMap.listBrowserMaps(),
+    loadMapFromBrowser: (id) => worldMap.loadFromBrowser(id),
+    deleteMapFromBrowser: (id) => worldMap.deleteFromBrowser(id),
+    setAutoExpansion: (enabled) => worldMap.setAutoExpansion(enabled),
+    setChunkUnload: (enabled) => worldMap.setChunkUnload(enabled),
+    teleportNearChunkEdge: (direction, cross) => worldMap.teleportNearChunkEdge(direction, cross),
     restartMission: (settings) => {
       demoScenario.dispose();
       camera.position.copyFrom(missionSpawn); camera.cameraDirection.setAll(0); camera.cameraRotation.setAll(0);

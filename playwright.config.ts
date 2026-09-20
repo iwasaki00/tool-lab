@@ -1,10 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
-const demoRun = process.env.npm_lifecycle_event === "demo" || process.env.npm_lifecycle_event === "demo:e2e";
+const demoRun = process.env.npm_lifecycle_event === "demo" || process.env.npm_lifecycle_event === "demo:e2e" || process.env.npm_lifecycle_event === "demo:chunks";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testIgnore: demoRun ? undefined : "**/demo.spec.ts",
+  testIgnore: demoRun ? undefined : "**/*demo*.spec.ts",
   timeout: 90_000,
   expect: { timeout: 12_000 },
   fullyParallel: false,

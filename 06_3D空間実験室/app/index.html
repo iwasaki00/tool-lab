@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#071018" />
     <meta name="description" content="Mission・Navigation・Enemyを短時間で検証できるBabylon.js 3D空間実験室 Ver.11。" />
     <title>3D空間実験室 Ver.11 — プレイ検証・デバッグツール</title>
-    <script type="module" crossorigin src="./assets/index-D0qPWYST.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-PWROukHK.css">
+    <script type="module" crossorigin src="./assets/index-B6xH_868.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DpAcDZOk.css">
   </head>
   <body>
     <canvas id="render-canvas" aria-label="3D空間実験室"></canvas>
@@ -64,12 +64,21 @@
       <span class="debug-title"><i></i> RENDER STATUS</span>
       <dl>
         <div><dt>Renderer</dt><dd id="renderer-value">STARTING</dd></div>
+        <div><dt>Framework</dt><dd id="framework-version-value">—</dd></div>
+        <div><dt>Map Format</dt><dd id="map-format-version-value">—</dd></div>
         <div><dt>Canvas</dt><dd id="canvas-value">0 × 0</dd></div>
         <div><dt>Viewport</dt><dd id="viewport-value">0 × 0</dd></div>
         <div><dt>Device</dt><dd id="device-value">—</dd></div>
         <div><dt>FPS</dt><dd id="fps-value">0</dd></div>
         <div><dt>Meshes</dt><dd id="mesh-value">0</dd></div>
         <div><dt>Camera</dt><dd id="camera-value">0 / 0 / 0</dd></div>
+        <div><dt>Map Mode</dt><dd id="map-mode-value">—</dd></div>
+        <div><dt>World Seed</dt><dd id="map-seed-value">—</dd></div>
+        <div><dt>Current Chunk</dt><dd id="current-chunk-value">—</dd></div>
+        <div><dt>Loaded Chunks</dt><dd id="loaded-chunks-value">0</dd></div>
+        <div><dt>Total Chunks</dt><dd id="total-chunks-value">0</dd></div>
+        <div><dt>Auto Expansion</dt><dd id="auto-expansion-value">—</dd></div>
+        <div><dt>Chunk Unload</dt><dd id="chunk-unload-value">—</dd></div>
         <div><dt>Seed</dt><dd id="city-seed-value">—</dd></div>
         <div><dt>Style</dt><dd id="city-style-value">—</dd></div>
         <div><dt>Buildings</dt><dd id="building-count-value">0</dd></div>
@@ -232,6 +241,15 @@
         <small>MISSION TESTではEnemyを停止します</small>
       </section>
 
+      <section class="map-settings" aria-label="World Map設定">
+        <p class="panel-label">WORLD MAP SYSTEM</p>
+        <label>Map Name<input id="map-name-input" type="text" value="Procedural World" maxlength="60"></label>
+        <div class="mission-actions"><button type="button" class="is-active" id="auto-expansion-toggle">AUTO EXPANSION ON</button><button type="button" class="is-active" id="chunk-unload-toggle">CHUNK UNLOAD ON</button></div>
+        <div class="mission-actions"><button type="button" id="export-map-button">EXPORT MAP</button><button type="button" id="import-map-button">IMPORT MAP</button><button type="button" id="save-map-button">SAVE LOCAL</button></div>
+        <input id="map-file-input" type="file" accept="application/json,.json" hidden>
+        <div id="map-browser-list" class="map-browser-list"><small>保存Mapなし</small></div>
+      </section>
+
       <section class="movement-settings" aria-label="プレイヤー移動速度">
         <p class="panel-label">PLAYER SPEED</p>
         <div class="movement-setting-grid">
@@ -276,6 +294,7 @@
     </section>
 
     <div class="look-zone" id="look-zone" aria-label="ドラッグして視点移動"></div>
+    <div id="chunk-status" class="chunk-status" role="status">GENERATING AREA...</div>
     <div class="mobile-controls" aria-label="タッチ操作">
       <div class="joystick" id="joystick" aria-label="移動スティック"><span id="joystick-knob"></span></div>
       <div class="mobile-actions">

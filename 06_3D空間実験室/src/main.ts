@@ -17,8 +17,11 @@ import { resolveGameMode } from "./game/GameModeManager";
 import type { GameplayCallbacks } from "./gameplay/createDemoScenario";
 import { createDebugPanel } from "./debug/DebugPanel";
 import { installTestBridge, type TestStartOptions } from "./testing/TestBridge";
+import { FRAMEWORK_VERSION, MAP_FORMAT_VERSION, logFrameworkVersion } from "./core/version";
+import type { WorldMapData } from "./map/WorldMapData";
 
 const mobile = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+logFrameworkVersion();
 document.body.classList.add(mobile ? "is-mobile" : "is-desktop");
 configureGuide(mobile);
 
@@ -37,10 +40,12 @@ let currentGuideMode: MissionGuideMode = "DEBUG";
 let movementSettings: MovementSettings = loadMovementSettings();
 let enemyAIEnabled = true;
 let missionTestMode = false;
-let gameConfig: GameConfig = { mode: "ESCAPE", difficulty: citySettings.missionDifficulty, citySeed: citySettings.seed, missionSeed: citySettings.missionSeed, testMode: false };
+let gameConfig: GameConfig = { mode: "ESCAPE", difficulty: citySettings.missionDifficulty, citySeed: citySettings.seed, missionSeed: citySettings.missionSeed, testMode: false, autoExpansion: true, chunkUnload: true };
 let gameSession: GameSession | undefined;
 let detectionLatched = false;
 let discoveryNoticeTimer = 0;
+let autoExpansion = true;
+let chunkUnload = true;
 
 const gameCallbacks: GameplayCallbacks = {
   ...gameplayUi.callbacks,
@@ -118,6 +123,7 @@ try {
     missionTestMode: (enabled) => { missionTestMode = enabled; getLaboratory().setEnemyAI(enemyAIEnabled && !enabled); refresh(`MISSION TEST ${enabled ? "ON — Enemy停止" : "OFF"}`); },
     navigationTest: (enabled) => { getLaboratory().setNavigationTest(enabled); refresh(`NAV TEST ${enabled ? "ON — 地面を選択してください" : "OFF"}`); },
   }, citySettings, movementSettings);
+  installMapControls();
 
   const debugPanel = createDebugPanel({
     laboratory: getLaboratory,
@@ -165,6 +171,8 @@ try {
     laboratory.player.setMovementSpeeds(movementSettings);
     laboratory.setMissionGuideMode(currentGuideMode);
     laboratory.setEnemyAI(enemyAIEnabled && !missionTestMode);
+    laboratory.setAutoExpansion(autoExpansion);
+    laboratory.setChunkUnload(chunkUnload);
     gameplayUi.setInteractHandler(() => getLaboratory().interact());
     laboratory.setDayMode(currentTime === "day");
     hideInitializationError();
@@ -225,6 +233,8 @@ try {
         difficulty: (document.querySelector<HTMLSelectElement>("#game-difficulty")?.value ?? "NORMAL") as GameConfig["difficulty"],
         citySeed: normalizedSeed("game-city-seed"), missionSeed: normalizedSeed("game-mission-seed"),
         testMode: Boolean(document.querySelector<HTMLInputElement>("#title-test-mode")?.checked),
+        autoExpansion,
+        chunkUnload,
       };
     }
     selectedMode = gameConfig.mode; detectionLatched = false; currentWorld = "city";
@@ -250,6 +260,10 @@ try {
 
   function applyGameRules(): void {
     const rules = resolveGameMode(gameConfig); currentGuideMode = gameConfig.testMode ? "DEBUG_ALL" : rules.guide;
+    autoExpansion = gameConfig.autoExpansion ?? autoExpansion;
+    chunkUnload = gameConfig.chunkUnload ?? chunkUnload;
+    getLaboratory().setAutoExpansion(autoExpansion);
+    getLaboratory().setChunkUnload(chunkUnload);
     document.body.classList.toggle("game-test-enabled", gameConfig.testMode);
     getLaboratory().setMissionGuideMode(currentGuideMode); getLaboratory().setEnemyAI(rules.enemies && !gameConfig.testMode && enemyAIEnabled && !missionTestMode);
     getLaboratory().setDebugMode(gameConfig.testMode || debugMode);
@@ -308,6 +322,24 @@ try {
   function setInput(id: string, value: string): void { const input = document.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`); if (input) input.value = value; }
   function nextPaint(): Promise<void> { return new Promise((resolve) => requestAnimationFrame(() => resolve())); }
   function delay(ms: number): Promise<void> { return new Promise((resolve) => window.setTimeout(resolve, ms)); }
+  function installMapControls(): void {
+    const expansionButton = document.querySelector<HTMLButtonElement>("#auto-expansion-toggle"); const unloadButton = document.querySelector<HTMLButtonElement>("#chunk-unload-toggle"); const fileInput = document.querySelector<HTMLInputElement>("#map-file-input");
+    const syncButtons = () => { if (expansionButton) { expansionButton.textContent = `AUTO EXPANSION ${autoExpansion ? "ON" : "OFF"}`; expansionButton.classList.toggle("is-active", autoExpansion); } if (unloadButton) { unloadButton.textContent = `CHUNK UNLOAD ${chunkUnload ? "ON" : "OFF"}`; unloadButton.classList.toggle("is-active", chunkUnload); } };
+    expansionButton?.addEventListener("click", () => { autoExpansion = !autoExpansion; getLaboratory().setAutoExpansion(autoExpansion); syncButtons(); controls.showToast(`AUTO WORLD EXPANSION ${autoExpansion ? "ON" : "OFF"}`); });
+    unloadButton?.addEventListener("click", () => { chunkUnload = !chunkUnload; getLaboratory().setChunkUnload(chunkUnload); syncButtons(); controls.showToast(`CHUNK UNLOAD ${chunkUnload ? "ON" : "OFF"}`); });
+    document.querySelector("#export-map-button")?.addEventListener("click", () => { const map = getLaboratory().saveMap(); downloadMap(map); controls.showToast(`MAP EXPORTED — ${map.chunks.length} CHUNKS`); });
+    document.querySelector("#import-map-button")?.addEventListener("click", () => fileInput?.click());
+    document.querySelector("#save-map-button")?.addEventListener("click", () => { const name = document.querySelector<HTMLInputElement>("#map-name-input")?.value; const map = getLaboratory().saveMapToBrowser(name); renderMapBrowser(); controls.showToast(`MAP SAVED — ${map.mapName}`); });
+    fileInput?.addEventListener("change", async () => { const file = fileInput.files?.[0]; if (!file) return; try { await applyImportedMap(JSON.parse(await file.text()) as unknown); controls.showToast("MAP IMPORTED"); } catch (error) { console.error("MAP IMPORT ERROR", error); controls.showToast(error instanceof Error ? error.message : "MAP IMPORT ERROR"); } finally { fileInput.value = ""; } });
+    document.querySelector("#map-browser-list")?.addEventListener("click", async (event) => { const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-map-id]"); if (!button) return; const id = button.dataset.mapId!; if (button.dataset.mapAction === "delete") { getLaboratory().deleteMapFromBrowser(id); renderMapBrowser(); return; } try { await applyImportedMap(getLaboratory().loadMapFromBrowser(id)); controls.showToast(`MAP LOADED — ${id}`); } catch (error) { console.error("MAP LOAD ERROR", error); controls.showToast(error instanceof Error ? error.message : "MAP LOAD ERROR"); } });
+    syncButtons(); renderMapBrowser();
+  }
+  async function applyImportedMap(value: unknown): Promise<void> {
+    const candidate = value as Partial<WorldMapData>; if (!Number.isFinite(candidate.seed)) throw new Error("INVALID MAP DATA");
+    currentWorld = "city"; citySettings = { ...citySettings, seed: Number(candidate.seed) }; saveCitySettings(citySettings); rebuildWorld("city", citySettings, "保存Mapを読み込みました"); const map = await getLaboratory().loadMap(value); autoExpansion = map.metadata.autoExpansion; chunkUnload = map.metadata.chunkUnload; renderMapBrowser();
+  }
+  function downloadMap(map: WorldMapData): void { const blob = new Blob([JSON.stringify(map, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `${map.mapId}.json`; anchor.click(); window.setTimeout(() => URL.revokeObjectURL(url), 0); }
+  function renderMapBrowser(): void { const container = document.querySelector<HTMLElement>("#map-browser-list"); if (!container || !laboratory) return; const maps = getLaboratory().listBrowserMaps(); if (!maps.length) { container.innerHTML = "<small>保存Mapなし</small>"; return; } container.replaceChildren(...maps.map((map) => { const row = document.createElement("div"); row.className = "map-browser-entry"; const label = document.createElement("span"); label.textContent = `${map.mapName}\n${map.mapId} / v${map.mapFormatVersion} / SEED ${map.seed} / ${map.chunkCount} chunks`; const load = document.createElement("button"); load.textContent = "LOAD"; load.dataset.mapAction = "load"; load.dataset.mapId = map.mapId; const remove = document.createElement("button"); remove.textContent = "DELETE"; remove.dataset.mapAction = "delete"; remove.dataset.mapId = map.mapId; row.append(label, load, remove); return row; })); }
   async function startTestGame(options: TestStartOptions): Promise<void> {
     selectedMode = options.mode;
     document.querySelectorAll<HTMLElement>("[data-game-mode]").forEach((item) => item.classList.toggle("is-selected", item.dataset.gameMode === selectedMode));
@@ -317,6 +349,7 @@ try {
     if (gameSession?.snapshot().state === "PAUSED" && tutorialScreen?.classList.contains("is-visible")) { tutorialScreen.classList.remove("is-visible"); resumeGame(); }
   }
   installTestBridge({ laboratory: getLaboratory, canvas, config: () => ({ ...gameConfig }), session: () => gameSession?.snapshot(), startGame: startTestGame });
+  console.info(`[3D SPACE LAB] Ready — Framework ${FRAMEWORK_VERSION}, Map Format ${MAP_FORMAT_VERSION}`);
   setInput("game-city-seed", String(citySettings.seed)); setInput("game-mission-seed", String(citySettings.missionSeed)); updateBestPreview();
 
   resizeEngine();

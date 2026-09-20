@@ -48,6 +48,20 @@ npx playwright show-report test-results/report
 - `getEnemyStates()` / `setEnemyAI()` / `enemyCommand()`
 - `getDiscoveryState()` / `discover()`
 
+### World Map / Chunk testing
+
+```sh
+npm run test:chunks   # boundary, expansion, export/import, hybrid, unload
+npm run demo:chunks   # headed chunk-streaming demonstration
+```
+
+Map bridge API:
+
+- `getMapState()` / `getCurrentChunk()` / `getLoadedChunks()`
+- `setAutoExpansion()` / `setChunkUnload()`
+- `teleportNearChunkEdge()`
+- `exportMap()` / `importMap()`
+
 ## 失敗時の確認
 
 Console Errorと`pageerror`はテスト失敗として収集されます。失敗したStep、Expected／Actual、Seed、Game／Mission／Navigation状態はPlaywrightのエラーとTraceから確認できます。Navigationが`NAVMESH`ではなく`WORLD_GRAPH`へフォールバックしても、ゲームが`PLAYING`まで到達すれば正常扱いです。

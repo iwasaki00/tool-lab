@@ -31,6 +31,21 @@ body {
   pointer-events: none; white-space: nowrap;
 }
 
+.chunk-status {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 24; transform: translate(-50%, 12px);
+  padding: 8px 13px; border: 1px solid rgba(70, 224, 194, .7); border-radius: 5px; color: #cffff5; background: rgba(3, 18, 24, .88);
+  font: 700 11px/1.2 monospace; letter-spacing: .08em; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s;
+}
+.chunk-status.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.chunk-status.is-boundary { border-color: #ffb15a; color: #ffe0b8; }
+.map-settings { display: grid; gap: 8px; }
+.map-settings > label { display: grid; gap: 4px; font-size: 10px; color: #89a9b4; }
+.map-settings input[type="text"] { width: 100%; }
+.map-browser-list { display: grid; gap: 6px; max-height: 150px; overflow: auto; }
+.map-browser-entry { display: grid; grid-template-columns: 1fr auto auto; gap: 5px; align-items: center; padding: 6px; border: 1px solid rgba(100, 185, 202, .25); border-radius: 4px; }
+.map-browser-entry span { min-width: 0; font: 10px/1.35 monospace; color: #b9d0d9; overflow-wrap: anywhere; }
+.map-browser-entry button { padding: 5px 7px; font-size: 9px; }
+
 #render-canvas {
   position: fixed;
   z-index: 0;

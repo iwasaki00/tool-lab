@@ -9,6 +9,9 @@ export interface GameConfig {
   citySeed: number;
   missionSeed: number;
   testMode: boolean;
+  /** World Map System options. Omitted values use the framework defaults. */
+  autoExpansion?: boolean;
+  chunkUnload?: boolean;
 }
 
 export interface DiscoverySnapshot {

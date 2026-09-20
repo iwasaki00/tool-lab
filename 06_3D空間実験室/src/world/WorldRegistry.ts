@@ -23,6 +23,10 @@ export class WorldRegistry {
   remove(id: string): void {
     const area = this.areas.get(id);
     if (!area) return;
+    area.connections.forEach((connectedId) => {
+      const connected = this.areas.get(connectedId);
+      if (connected) connected.connections = connected.connections.filter((candidate) => candidate !== id);
+    });
     this.areas.delete(id);
     this.byType.get(area.type)?.delete(id);
     area.tags.forEach((tag) => this.byTag.get(tag)?.delete(id));
@@ -96,4 +100,3 @@ function contains(area: WorldArea, p: WorldPosition): boolean { const b = area.b
 function distanceSquared(a: WorldPosition, b: WorldPosition): number { return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2; }
 function volume(area: WorldArea): number { const b = area.bounds; return (b.maxX - b.minX) * Math.max(.1, b.maxY - b.minY) * (b.maxZ - b.minZ); }
 function locationPriority(area: WorldArea): number { return area.tags.includes("indoor") ? 30 : area.type === "BUILDING_ENTRANCE" ? 25 : area.type === "STAIR" ? 20 : area.importance ?? 0; }
-

@@ -66,6 +66,7 @@ declare global {
       setDoorState(id: string, state: "LOCKED" | "UNLOCKED" | "OPEN" | "CLOSED"): void; setSwitchState(id: string, state: "ON" | "OFF" | "TOGGLE"): void;
       setEnemyAI(enabled: boolean): void; enemyCommand(command: string): void; discover(command: "current" | "all" | "reset"): void;
       setDemoStep(step: number, total: number, label: string): void; clearDemoStep(): void;
+      getMapState(): any; getCurrentChunk(): any; getLoadedChunks(): string[]; setAutoExpansion(enabled: boolean): void; setChunkUnload(enabled: boolean): void; teleportNearChunkEdge(direction?: "north" | "south" | "east" | "west", cross?: boolean): void; exportMap(): any; importMap(data: unknown): Promise<any>;
     };
   }
 }

@@ -1,5 +1,6 @@
 import type { Engine } from "@babylonjs/core/Engines/engine";
 import type { LaboratoryApi } from "../scene/createScene";
+import { FRAMEWORK_VERSION, MAP_FORMAT_VERSION } from "../core/version";
 
 export type RendererName = "WebGL2" | "WebGL";
 
@@ -19,13 +20,23 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   const guide = laboratory.missionGuideDebug();
   const characters = laboratory.characterDebug();
   const navigation = laboratory.navigationDebug();
+  const map = laboratory.mapState();
   setText("renderer-value", getRendererName(engine));
+  setText("framework-version-value", FRAMEWORK_VERSION);
+  setText("map-format-version-value", String(MAP_FORMAT_VERSION));
   setText("canvas-value", canvas ? `${canvas.width} × ${canvas.height}` : "0 × 0");
   setText("viewport-value", `${Math.round(window.visualViewport?.width ?? window.innerWidth)} × ${Math.round(window.visualViewport?.height ?? window.innerHeight)}`);
   setText("device-value", mobile ? "Mobile" : "Desktop");
   setText("fps-value", String(Math.round(engine.getFps())));
   setText("mesh-value", String(laboratory.objectCount()));
   setText("camera-value", `${telemetry.x.toFixed(1)} / ${telemetry.y.toFixed(1)} / ${telemetry.z.toFixed(1)}`);
+  setText("map-mode-value", map.mode);
+  setText("map-seed-value", String(map.worldSeed));
+  setText("current-chunk-value", `${map.currentChunk.x},${map.currentChunk.z}`);
+  setText("loaded-chunks-value", String(map.loadedChunks.length));
+  setText("total-chunks-value", String(map.totalChunks));
+  setText("auto-expansion-value", map.autoExpansion ? "ON" : "OFF");
+  setText("chunk-unload-value", map.chunkUnload ? "ON" : "OFF");
   setText("city-seed-value", city ? String(city.seed) : "—");
   setText("building-count-value", city ? String(city.buildingCount) : "0");
   setText("road-count-value", city ? String(city.roadCount) : "0");
