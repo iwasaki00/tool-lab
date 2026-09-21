@@ -27,10 +27,3 @@ export function createStreetLight(ctx: ObjectContext, position: Vector3, lampMat
   ctx.registerDynamic?.(root);
   return root;
 }
-
-export function setStreetLightsEnabled(materials: StandardMaterial[], enabled: boolean): void {
-  materials.forEach((material) => {
-    const color = material.metadata?.nightColor as number[] | undefined;
-    material.emissiveColor = enabled ? new Color3(color?.[0] ?? 1, color?.[1] ?? .72, color?.[2] ?? .22) : Color3.Black();
-  });
-}

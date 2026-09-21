@@ -327,6 +327,124 @@ laboratory.framework.services.visual
 - Phase 4: `minimal/world/simulation/game/development` profile と Feature Toggle。
 - Map Format 1 は継続し、将来の Game Save は別 schema/version とする。
 
-## 11. Git
+## 11. Phase 2: Game-specific Separation
+
+### 11.1 Result
+
+Framework Version は **1.2.1**、Map Format Version は **1** のまま維持した。新しいゲーム機能は追加せず、既存の ESCAPE / STEALTH / EXPLORATION を Sample Game として外側から合成する構造へ変更した。
+
+| Metric | Before Phase 2 | After Phase 2 | Change |
+|---|---:|---:|---:|
+| Problematic Dependencies | 7 | **4** | -3 |
+| Game-specific Leaks | 11 | **4** | -7 |
+| Circular Dependencies | 0 | **0** | unchanged |
+
+After の集計は Phase 1 の audit ID を継続して再判定した値。解消した Problematic Dependency は P01、P05、P06。残る4件は persistence、巨大 facade、application host 集中、optional feature API 境界に関するもの。
+
+### 11.2 Game-specific leak inventory
+
+| Audit ID | Phase 2 result | Treatment |
+|---|---|---|
+| G01 fixed GameMode union | Remaining | Sample Game の外部設定型として `game/GameTypes.ts` に限定 |
+| G02 mode-specific Mission/Enemy/Objective branches | Resolved | `IGameMode.configure()` と mode strategy |
+| G03 mode-specific clear/fail conditions | Resolved | `IGameMode.completeOnMission`, `failOnCaught`, `isDiscoveryComplete` |
+| G04 mode-specific score formula | Resolved | 各 mode の `calculateScore()` strategy |
+| G05 mode/difficulty character counts | Resolved | `GameScenarioPolicy` を Sample Scenario へ注入 |
+| G06 Scene creates default ESCAPE/DemoScenario | Resolved | `ScenarioFactory` injection。Scene は concrete Demo factory を import しない |
+| G07 game area kinds in closed Core union | Resolved | Core kind + open string extension、game vocabulary は `GameSemantics.ts` |
+| G08 game tags in closed Core union | Resolved | Core tag + open string extension。Map Format 1 の文字列互換を維持 |
+| G09 scenario-owned IDs | Remaining | `game/sample/createDemoScenario.ts` 内に隔離 |
+| G13 fixed gameplay UI | Remaining, reduced | mode visibility/tutorial は `GameUiAdapter` へ移動。Mission/Inventory facade は維持 |
+| G14 mission/debug methods on LaboratoryApi | Remaining | Public API / TestBridge 互換のため Phase 3 へ延期 |
+
+G10-G12 は Phase 1 で解消済み。
+
+### 11.3 Introduced contracts, policies and strategies
+
+- `IGameMode`: configure、scenario policy、clear/fail、detection、debug completion、UI policy、score strategy。
+- `GameModeRegistry`: ESCAPE / STEALTH / EXPLORATION の明示登録と取得。
+- `ScenarioFactory` / `ScenarioPolicy` / `LaboratoryScenario`: Framework Scene と Sample composition の境界。
+- `MissionTemplateSource`: MissionGenerator が具体的なテンプレート集合を知らず、外部 source から取得・instantiateする境界。
+- `GameUiAdapter`: Detection / Discovery / Tutorial の mode-specific 表示方針。
+- `MISSION_COMPLETED` / `AREA_DISCOVERED`: 既存 typed `EventManager` を拡張。新規 Event Bus は追加していない。
+
+Dependency direction は `Game -> Gameplay/Optional -> Framework Services -> Core`。`src/gameplay` から `src/game` への import は0件。`FrameworkContext` に game-specific service は追加していない。
+
+### 11.4 DemoScenario separation
+
+- 実装を `src/game/sample/createDemoScenario.ts` へ移動。
+- Mission template definitions を `src/game/sample/MissionTemplates.ts` へ移動。
+- `scene/createScene.ts` は concrete DemoScenario を importせず、`ScenarioFactory` を受け取る。
+- `main.ts` が Sample Game composition root として factory と mode policy を注入する。
+- `LaboratoryApi`、`LaboratoryApi.framework`、`TestBridge` の既存操作面は維持。
+
+### 11.5 Semantic extension
+
+`AreaType` / `AreaTag` を closed union から次の互換形へ変更した。
+
+```ts
+type AreaType = CoreAreaType | (string & {});
+type AreaTag = CoreAreaTag | (string & {});
+```
+
+Core は ROAD / ROOM / CORRIDOR / PARK / BUILDING_ENTRANCE 等を所有し、ITEM / GOAL_AREA / ENEMY_SPAWN / mission / danger 等の Sample Game 語彙は `game/GameSemantics.ts` で定義する。保存形式は従来どおり string のため Map Format 1 の変更はない。
+
+### 11.6 Visual / Objects boundary
+
+`VisualManager -> objects/streetLight` の依存を削除した。Street light は night color metadata を登録し、VisualManager は受け取った material collection のみを制御する。Objects 側から VisualManager への逆参照はない。
+
+### 11.7 Files moved and added
+
+Moved:
+
+- `src/gameplay/createDemoScenario.ts` -> `src/game/sample/createDemoScenario.ts`
+- `src/gameplay/MissionTemplates.ts` -> `src/game/sample/MissionTemplates.ts`
+- `src/game/DiscoveryManager.ts` -> `src/gameplay/DiscoveryManager.ts`（旧パスは compatibility export）
+
+Added:
+
+- `src/contracts/ScenarioContracts.ts`
+- `src/game/GameMode.ts`
+- `src/game/GameModeRegistry.ts`
+- `src/game/GameUiAdapter.ts`
+- `src/game/GameSemantics.ts`
+- `src/game/modes/escapeMode.ts`
+- `src/game/modes/stealthMode.ts`
+- `src/game/modes/explorationMode.ts`
+
+### 11.8 Regression
+
+| Check | Result | Classification |
+|---|---|---|
+| BUILD | PASS | Framework regression |
+| SMOKE | PASS 1/1 | Framework + Sample composition |
+| E2E | PASS 11/11 | Full regression |
+| STABILITY | PASS 3 seed pairs | Framework world/sample mission |
+| VISUAL | PASS desktop + mobile | Framework visual |
+| CHUNK | PASS export/import/expansion/boundary/hybrid/unload | Framework map |
+| PERFORMANCE | PASS normal/stress/mobile-low budget | Framework performance |
+| ESCAPE | PASS start/mission/guide/navigation/complete/result | Sample Game |
+| STEALTH | PASS start/mode flow/navigation/result | Sample Game |
+| EXPLORATION | PASS start/discovery/navigation/result | Sample Game |
+
+Main production bundle: approximately **2,124.11 kB** minified / **607.98 kB gzip**。Phase 2 は registration/policy 分の小幅増加で、Performance budget は全測定で `OK`。
+
+### 11.9 Remaining high risks
+
+1. `main.ts` が bootstrap、Game UI、Scene rebuild、Debug/Test composition を集中所有している。
+2. `LaboratoryApi` が Mission/Character/Debug/Test の巨大 compatibility facade のまま。
+3. Scenario contract が既存 facade 互換のため多くの optional feature method を含む。
+4. CitySettings / world persistence に Mission settings が残る。
+5. Map / Score / Movement persistence が browser `localStorage` に直接依存する。
+
+### 11.10 Phase 3 top 5
+
+1. `ApplicationHost` と Sample Game bootstrap を分離し、`main.ts` を縮小する。
+2. `LaboratoryApi` を Framework / Gameplay / Diagnostics / TestControl namespace に段階分割する。
+3. Optional feature registration と `minimal/world/simulation/game/development` profile を導入する。
+4. StoragePort + browser adapter で Map/Score/Movement persistence を分離する。
+5. Recast と development-only tools を dynamic import / bundle entry へ分離する。
+
+## 12. Git
 
 この Phase では commit と tag を作成していない。

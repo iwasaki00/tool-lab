@@ -10,7 +10,6 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import type { Observer } from "@babylonjs/core/Misc/observable";
 import { Scene } from "@babylonjs/core/scene";
-import { setStreetLightsEnabled } from "../objects/streetLight";
 import { MaterialLibrary } from "./MaterialLibrary";
 import { DEFAULT_VISUAL_FEATURES, PERFORMANCE_BUDGETS, VISUAL_PALETTE, type EnvironmentPreset, type FogPreset, type ResolvedVisualQuality, type VisualConfig, type VisualFeatureConfig, type VisualQuality, type VisualState } from "./VisualConfig";
 
@@ -88,7 +87,7 @@ export class VisualManager {
   }
   private applyFog(fog: FogPreset): void { if (!this.features.fog || fog === "OFF") { this.scene.fogMode = Scene.FOGMODE_NONE; return; } const value = environmentValues(this.environment); this.scene.fogMode = Scene.FOGMODE_LINEAR; this.scene.fogColor = value.horizon; const ranges = this.resolvedQuality === "LOW" ? [35, 105] : this.resolvedQuality === "MEDIUM" ? [48, 145] : [65, 210]; const factor = fog === "HEAVY" ? .45 : fog === "MEDIUM" ? .68 : 1; this.scene.fogStart = ranges[0] * factor; this.scene.fogEnd = ranges[1] * factor; }
   private activeFog(): FogPreset { return this.fogOverride ?? environmentValues(this.environment).fog; }
-  private updateEmissiveState(): void { const night = this.environment === "NIGHT"; setStreetLightsEnabled(this.streetLights, night); this.scene.materials.forEach((material) => { if (!(material instanceof StandardMaterial) || material.metadata?.visualRole !== "window") return; material.emissiveColor = night ? new Color3(.34, .26, .12) : new Color3(.01, .025, .035); }); }
+  private updateEmissiveState(): void { const night = this.environment === "NIGHT"; this.streetLights.forEach((material) => { const color = material.metadata?.nightColor as number[] | undefined; material.emissiveColor = night ? new Color3(color?.[0] ?? 1, color?.[1] ?? .72, color?.[2] ?? .22) : Color3.Black(); }); this.scene.materials.forEach((material) => { if (!(material instanceof StandardMaterial) || material.metadata?.visualRole !== "window") return; material.emissiveColor = night ? new Color3(.34, .26, .12) : new Color3(.01, .025, .035); }); }
   private createClouds(): void { for (let index = 0; index < 16; index += 1) { const cloud = MeshBuilder.CreatePlane(`visual-cloud-${index}`, { width: 20 + index % 4 * 5, height: 7 + index % 3 * 2 }, this.scene); const angle = index * 2.399; const radius = 45 + index % 5 * 15; cloud.position.set(Math.cos(angle) * radius, 35 + index % 4 * 4, Math.sin(angle) * radius); cloud.rotation.x = Math.PI / 2; cloud.rotation.z = angle; cloud.material = this.cloudMaterial; cloud.isPickable = false; cloud.metadata = { visualRole: "cloud", visualLod: 2 }; this.clouds.push(cloud); } }
   private update(): void {
     const now = performance.now(); if (now - this.lastLodUpdate < 400) return; this.lastLodUpdate = now;

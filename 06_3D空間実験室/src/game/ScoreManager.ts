@@ -1,17 +1,11 @@
 import type { GameMode, GameResult } from "./GameTypes";
 import type { MissionDifficulty } from "../gameplay/MissionTypes";
+import type { IGameMode, ScoreContext } from "./GameMode";
 
 const HISTORY_KEY = "3d-space-lab-game-history-v1";
 
 export class ScoreManager {
-  calculate(mode: GameMode, seconds: number, detections: number, discovered: number, landmark: boolean, complete: boolean): number {
-    if (!complete) return Math.max(0, discovered * 150);
-    const base = mode === "STEALTH" ? 12000 : mode === "EXPLORATION" ? 5000 : 10000;
-    const timeBonus = Math.max(0, 6000 - Math.floor(seconds * 12));
-    const stealthBonus = mode === "STEALTH" && detections === 0 ? 3000 : 0;
-    const explorationBonus = discovered * 500 + (landmark ? 2000 : 0);
-    return Math.max(0, base + timeBonus + stealthBonus + explorationBonus - detections * 750);
-  }
+  calculate(policy: IGameMode, context: ScoreContext): number { return policy.calculateScore(context); }
 
   save(result: GameResult): void {
     const history = this.history(); history.unshift(result);

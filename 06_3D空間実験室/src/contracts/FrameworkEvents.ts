@@ -6,6 +6,7 @@ export const FRAMEWORK_EVENT = {
   SWITCH_STATE_CHANGED: "SWITCH_STATE_CHANGED",
   AREA_DISCOVERED: "AREA_DISCOVERED",
   MISSION_STEP_CHANGED: "MISSION_STEP_CHANGED",
+  MISSION_COMPLETED: "MISSION_COMPLETED",
   MAP_STATUS_CHANGED: "MAP_STATUS_CHANGED",
   NAVIGATION_STATUS_CHANGED: "NAVIGATION_STATUS_CHANGED",
 } as const;
@@ -27,6 +28,7 @@ export interface FrameworkEventMap {
   SWITCH_STATE_CHANGED: { switchId: string; active: boolean };
   AREA_DISCOVERED: { areaId: string; label?: string };
   MISSION_STEP_CHANGED: { stepId: string; status: MissionStepStatus };
+  MISSION_COMPLETED: { missionType: string; difficulty: string; seed: number; clearTimeSeconds: number };
   MAP_STATUS_CHANGED: MapStatusEvent;
   NAVIGATION_STATUS_CHANGED: NavigationStatusEvent;
 }

@@ -1,15 +1,19 @@
-export type AreaType =
+/** Framework-owned semantic kinds. Games may add their own string kinds. */
+export type CoreAreaType =
   | "ROAD" | "SIDEWALK" | "ALLEY" | "INTERSECTION"
-  | "PLAZA" | "PARK" | "BUILDING" | "BUILDING_ENTRANCE" | "DOOR" | "SWITCH"
+  | "PLAZA" | "PARK" | "BUILDING" | "BUILDING_ENTRANCE" | "DOOR"
   | "ROOM" | "CORRIDOR" | "STAIR" | "DEAD_END"
-  | "CONTROL_ROOM" | "STORAGE" | "OFFICE" | "LIVING_ROOM"
-  | "ROOFTOP" | "GOAL_AREA" | "START"
-  | "ITEM" | "ENEMY_SPAWN" | "NPC_SPAWN";
+  | "STORAGE" | "OFFICE" | "LIVING_ROOM" | "ROOFTOP" | "START";
 
-export type AreaTag =
-  | "indoor" | "outdoor" | "public" | "private" | "safe" | "danger"
+export type AreaType = CoreAreaType | (string & {});
+
+/** Framework-owned tags. Game packages may register/use additional strings. */
+export type CoreAreaTag =
+  | "indoor" | "outdoor" | "public" | "private"
   | "wide" | "narrow" | "dead_end" | "high_floor" | "ground_floor"
-  | "landmark" | "dark" | "bright" | "room" | "spawn" | "mission";
+  | "landmark" | "dark" | "bright" | "room" | "spawn";
+
+export type AreaTag = CoreAreaTag | (string & {});
 
 export interface WorldPosition { x: number; y: number; z: number }
 

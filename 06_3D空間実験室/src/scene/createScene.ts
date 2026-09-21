@@ -1,40 +1,33 @@
 import "@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent";
 import type { Engine } from "@babylonjs/core/Engines/engine";
-import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { Mesh } from "@babylonjs/core/Meshes/mesh";
-import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
-import { Scene } from "@babylonjs/core/scene";
-import { createBoundaryWall, createBuilding, createStairs } from "../objects/building";
-import { createGround, createLamp, createRoad } from "../objects/environment";
-import { createBox, createCylinder, createPillar, createPlatform, createSphere, type ObjectContext } from "../objects/primitives";
-import { createPlayer, type PlayerController } from "../player/createPlayer";
-import { createMaterial } from "../utils/materials";
+import type { Scene } from "@babylonjs/core/scene";
+import { createBuilding } from "../objects/building";
+import { createBox, createSphere } from "../objects/primitives";
+import type { PlayerController } from "../player/createPlayer";
 import { createRandomScene, randomOpenPosition } from "./generators";
-import { createCity } from "../world/cityGenerator";
 import { DEFAULT_CITY_SETTINGS, type CitySettings, type CityStats, type WorldMode } from "../world/types";
-import { createDemoScenario, type DemoScenario, type GameplayCallbacks } from "../gameplay/createDemoScenario";
+import type { GameplayCallbacks, LaboratoryScenario, ScenarioFactory, ScenarioPolicy } from "../contracts/ScenarioContracts";
 import type { InteractionFocus } from "../interaction/Interactable";
 import type { InventoryEntry } from "../gameplay/InventoryManager";
 import type { InteriorNavigation } from "../interior/Room";
-import { WorldRegistry } from "../world/WorldRegistry";
-import { createBounds, type MapArea2D, type SemanticLocation, type WorldStatistics } from "../world/SemanticTypes";
+import type { MapArea2D, SemanticLocation, WorldStatistics } from "../world/SemanticTypes";
 import type { MissionPlan } from "../gameplay/MissionGenerator";
 import type { MissionRuntimeSnapshot } from "../gameplay/MissionTypes";
 import type { MissionValidation } from "../gameplay/MissionValidator";
 import type { MissionGuideDebugInfo, MissionGuideMode } from "../gameplay/MissionGuideManager";
 import type { CharacterManagerDebug } from "../characters/CharacterManager";
-import { NavigationManager, type NavigationStats } from "../navigation/NavigationManager";
-import type { DiscoverySnapshot, GameMode } from "../game/GameTypes";
+import type { NavigationStats } from "../navigation/NavigationManager";
+import type { DiscoverySnapshot } from "../gameplay/DiscoveryManager";
 import type { DebugCommand, DebugTestSnapshot } from "../debug/DebugTestManager";
 import { WorldMapManager } from "../map/WorldMapManager";
 import type { MapStateSnapshot, WorldMapData } from "../map/WorldMapData";
-import { VisualManager } from "../visual/VisualManager";
 import type { EnvironmentPreset, VisualQuality, VisualState } from "../visual/VisualConfig";
-import { EventManager } from "../gameplay/EventManager";
-import { FRAMEWORK_EVENT, type FrameworkEventMap, type MapStatusEvent, type NavigationStatusEvent } from "../contracts/FrameworkEvents";
+import type { MapStatusEvent, NavigationStatusEvent } from "../contracts/FrameworkEvents";
 import type { FrameworkContext } from "../contracts/FrameworkContext";
+import { createFrameworkScene } from "./FrameworkSceneBootstrap";
+import { laboratoryFeatureInitializer } from "../features/LaboratoryFeatureInitializer";
 
 export interface LaboratoryApi {
   framework: FrameworkContext;
@@ -72,8 +65,8 @@ export interface LaboratoryApi {
   debugJumpTo: (stepId: string) => void;
   setDebugSelectMode: (enabled: boolean) => void;
   setNoClip: (enabled: boolean) => void;
-  debugEnemy: (command: Parameters<DemoScenario["debugEnemy"]>[0]) => void;
-  debugDiscovery: (command: Parameters<DemoScenario["debugDiscovery"]>[0]) => void;
+  debugEnemy: (command: Parameters<LaboratoryScenario["debugEnemy"]>[0]) => void;
+  debugDiscovery: (command: Parameters<LaboratoryScenario["debugDiscovery"]>[0]) => void;
   setSimulationPaused: (paused: boolean) => void;
   setSimulationSpeed: (scale: number) => void;
   setNavigationTest: (enabled: boolean) => void;
@@ -100,7 +93,8 @@ export interface SceneOptions {
   worldMode?: WorldMode;
   citySettings?: CitySettings;
   gameplayCallbacks?: GameplayCallbacks;
-  gameMode?: GameMode;
+  scenarioPolicy?: ScenarioPolicy;
+  scenarioFactory?: ScenarioFactory;
   onMapStatus?: (event: MapStatusEvent) => void;
   onNavigationStatus?: (event: NavigationStatusEvent) => void;
 }
@@ -108,28 +102,12 @@ export interface SceneOptions {
 export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement, mobile: boolean, options: SceneOptions = {}): LaboratoryApi {
   const worldMode = options.worldMode ?? "field";
   const citySettings = options.citySettings ?? DEFAULT_CITY_SETTINGS;
-  const scene = new Scene(engine);
-  scene.clearColor = new Color4(.38, .65, .82, 1);
-  scene.gravity = new Vector3(0, -.22, 0);
-  scene.collisionsEnabled = true;
-  const player = createPlayer(scene, canvas, mobile);
+  if (!options.scenarioFactory) throw new Error("SCENARIO FACTORY REQUIRED: compose a game/sample scenario outside the framework scene.");
+  const base = createFrameworkScene({ engine, canvas, mobile, worldMode, citySettings, onMapStatus: options.onMapStatus, onNavigationStatus: options.onNavigationStatus });
+  const { scene, player, visuals, objectContext: ctx, registry, dynamicRoots, groundMaterial, debugBox, generatedCity } = base;
   const camera = player.camera;
-
-  const visuals = new VisualManager(scene, camera, mobile, { environmentPreset: "CLEAR_DAY", quality: "AUTO" });
-  const shadows = visuals.shadows;
   let currentMode: "day" | "night" = "day";
-
-  const dynamicRoots: Mesh[] = [];
-  const registerDynamic = (mesh: Mesh) => dynamicRoots.push(mesh);
-  const ctx: ObjectContext = { scene, shadows, registerDynamic, materials: visuals.materials };
-  const registry = new WorldRegistry();
-  const frameworkEvents = new EventManager<FrameworkEventMap>();
-  if (options.onMapStatus) frameworkEvents.on(FRAMEWORK_EVENT.MAP_STATUS_CHANGED, options.onMapStatus);
-  if (options.onNavigationStatus) frameworkEvents.on(FRAMEWORK_EVENT.NAVIGATION_STATUS_CHANGED, options.onNavigationStatus);
-
-  const ground = createGround(scene); ground.material = visuals.materials.getGroundMaterial();
-  let generatedCity: ReturnType<typeof createCity> | undefined;
-  if (worldMode === "city") {
+  /* World construction moved to createFrameworkScene.
     // 街本体はSceneの寿命で管理し、追加オブジェクト用のdynamicRootsとは分離する。
     // これにより既存の「ランダム配置」を使っても街全体が消えない。
     generatedCity = createCity({ scene, shadows, materials: visuals.materials }, citySettings, mobile, registry);
@@ -144,37 +122,25 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     registry.register({ id: "field_intersection", type: "INTERSECTION", position: { x: 0, y: 0, z: 8 }, bounds: createBounds({ x: 0, y: 0, z: 8 }, 8, 8, 0, 3), connections: ["field_road_main", "field_road_cross"], tags: ["outdoor", "public", "safe", "wide"] });
     registry.register({ id: "start_area", type: "START", position: camera.position, bounds: createBounds(camera.position, 3, 3, 0, 4), connections: ["field_road_main"], tags: ["outdoor", "public", "safe", "spawn"], importance: 10 });
     createInitialField(ctx);
-  }
+  */
 
+  /* Debug marker construction moved to createFrameworkScene.
   const debugBox = MeshBuilder.CreateBox("debug-red-box", { size: 3 }, scene);
   debugBox.position = new Vector3(0, 1.5, -4);
   debugBox.material = createMaterial(scene, "debug-red-material", new Color3(1, 0, 0));
   debugBox.isVisible = false;
   debugBox.isPickable = false;
   const groundMaterial = ground.material as StandardMaterial;
+  */
   const callbacks = options.gameplayCallbacks ?? {
     onFocus: () => undefined, onMessage: () => undefined, onObjective: () => undefined,
     onInventory: () => undefined, onMissionState: () => undefined, onMissionComplete: () => undefined,
   };
-  const missionSpawn = camera.position.clone();
   let currentGuideMode: MissionGuideMode = "DEBUG";
   let currentEnemyAI = true;
-  const navigation = new NavigationManager(scene, registry, (event) => frameworkEvents.emit(FRAMEWORK_EVENT.NAVIGATION_STATUS_CHANGED, event));
-  const createMission = (settings: CitySettings) => createDemoScenario(ctx, camera, missionSpawn.clone(), callbacks, registry, generatedCity?.interiorSites, settings.seed, settings.missionSeed, settings.missionType, settings.missionDifficulty, mobile, (enabled) => player.setInputEnabled(enabled), navigation, options.gameMode ?? "ESCAPE", frameworkEvents);
-  let demoScenario = createMission(citySettings);
-  const worldMap = new WorldMapManager(ctx, registry, camera, citySettings.seed, citySettings.style, () => navigation.requestRebuild(), mobile, (event) => frameworkEvents.emit(FRAMEWORK_EVENT.MAP_STATUS_CHANGED, event));
-  const framework: FrameworkContext = {
-    scene,
-    player,
-    services: {
-      world: registry,
-      navigation,
-      map: worldMap,
-      get interaction() { return demoScenario.interactionService; },
-      events: frameworkEvents,
-      visual: visuals,
-    },
-  };
+  const features = laboratoryFeatureInitializer.initialize({ base, mobile, citySettings, callbacks, scenarioFactory: options.scenarioFactory, scenarioPolicy: options.scenarioPolicy });
+  const { navigation, worldMap, framework } = features;
+  let demoScenario: LaboratoryScenario = features.scenario;
 
   const spawnAhead = (height: number): Vector3 => {
     const direction = camera.getForwardRay().direction.clone();

@@ -1,5 +1,5 @@
 import type { InventoryEntry } from "../gameplay/InventoryManager";
-import type { GameplayCallbacks } from "../gameplay/createDemoScenario";
+import type { GameplayCallbacks } from "../contracts/ScenarioContracts";
 import type { InteractionFocus } from "../interaction/Interactable";
 import type { MissionResult, MissionRuntimeSnapshot } from "../gameplay/MissionTypes";
 

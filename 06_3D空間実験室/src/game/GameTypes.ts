@@ -1,5 +1,7 @@
 import type { MissionDifficulty } from "../gameplay/MissionTypes";
 
+export type { DiscoverySnapshot } from "../gameplay/DiscoveryManager";
+
 export type GameMode = "ESCAPE" | "STEALTH" | "EXPLORATION";
 export type GameState = "TITLE" | "GENERATING" | "READY" | "PLAYING" | "PAUSED" | "COMPLETE" | "FAILED";
 
@@ -12,15 +14,6 @@ export interface GameConfig {
   /** World Map System options. Omitted values use the framework defaults. */
   autoExpansion?: boolean;
   chunkUnload?: boolean;
-}
-
-export interface DiscoverySnapshot {
-  discovered: number;
-  target: number;
-  buildingsVisited: number;
-  buildingTarget: number;
-  landmarkFound: boolean;
-  lastLabel?: string;
 }
 
 export interface GameResult {

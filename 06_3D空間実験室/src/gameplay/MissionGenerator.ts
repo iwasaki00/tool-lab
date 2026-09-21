@@ -2,20 +2,29 @@ import { SeededRandom } from "../random/seededRandom";
 import type { WorldArea, WorldPosition } from "../world/SemanticTypes";
 import type { WorldRegistry } from "../world/WorldRegistry";
 import type { GamePlacement, GamePlacementManager, PlacementKind } from "./GamePlacementManager";
-import { instantiateTemplate, MISSION_TEMPLATES } from "./MissionTemplates";
-import type { MissionDifficulty, MissionItemSpec, MissionPlan, MissionType } from "./MissionTypes";
+import type { MissionDifficulty, MissionItemSpec, MissionPlan, MissionStep, MissionType } from "./MissionTypes";
 
 export type { MissionPlan } from "./MissionTypes";
 
+export interface MissionTemplateDefinition {
+  id: string;
+  requiredSwitches: readonly string[];
+}
+
+export interface MissionTemplateSource {
+  get(type: MissionType): MissionTemplateDefinition;
+  instantiate(type: MissionType, difficulty: MissionDifficulty, targets: Record<string, string[]>): MissionStep[];
+}
+
 export class MissionGenerator {
   private readonly random: SeededRandom;
-  constructor(private readonly registry: WorldRegistry, private readonly placement: GamePlacementManager, private readonly citySeed: number, private readonly seed: number) {
+  constructor(private readonly registry: WorldRegistry, private readonly placement: GamePlacementManager, private readonly citySeed: number, private readonly seed: number, private readonly templates: MissionTemplateSource) {
     this.random = new SeededRandom(seed);
   }
 
   generate(startPosition: WorldPosition, missionBuildingId: string, type: MissionType, difficulty: MissionDifficulty, retryCount = 0): MissionPlan {
     // 先にTemplateでMission構造を決め、その要求をSemantic Areaへ割り当てる。
-    const template = MISSION_TEMPLATES[type];
+    const template = this.templates.get(type);
     const startArea = this.registry.getNearestArea(startPosition, ["PLAZA", "PARK", "ROAD", "BUILDING_ENTRANCE"]);
     if (!startArea) throw new Error("MISSION GENERATION FAILED: START area could not be resolved.");
     const entranceId = `${missionBuildingId}_entrance_001`;
@@ -46,7 +55,7 @@ export class MissionGenerator {
       $ENTRANCE: [entranceId], $CONTROL_DOOR: [controlDoorId], $UPPER_FLOOR: [upperFloor], $INTERIOR_CARD: [`${missionBuildingId}_item_card_001`],
       $SWITCH_A: [switchA], $SWITCH_B: [switchB], $GOAL: [goal.id], $BUILDING_A: [buildingA], $BUILDING_B: [buildingB],
     };
-    const steps = instantiateTemplate(template, difficulty, targets);
+    const steps = this.templates.instantiate(type, difficulty, targets);
     const usedTargets = new Set(steps.flatMap((step) => step.targetIds));
     const usedItems = items.filter((item) => usedTargets.has(item.id) || item.id === optional.id && difficulty !== "EASY");
     const entranceCredential = type === "ACCESS_CONTROL" || type === "MULTI_BUILDING" && difficulty !== "EASY" ? "card_key" : type === "POWER_RESTORE" ? "battery" : "key";
