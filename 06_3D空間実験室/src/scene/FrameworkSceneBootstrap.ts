@@ -65,7 +65,7 @@ export function createFrameworkScene(options: FrameworkSceneBootstrapOptions): F
   if (worldMode === "city") {
     generatedCity = createCity({ scene, shadows: visuals.shadows, materials: visuals.materials }, citySettings, mobile, registry);
     visuals.setStreetLightMaterials(generatedCity.lampMaterials);
-    camera.position.copyFrom(generatedCity.spawn);
+    camera.position.set(generatedCity.spawn.x, generatedCity.spawn.y, generatedCity.spawn.z);
     camera.rotation.set(0, 0, 0);
   } else {
     createFieldWorld(objectContext, registry, camera.position);

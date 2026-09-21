@@ -11,9 +11,6 @@ import type { MissionGuideMode } from "../gameplay/MissionGuideManager";
 import { loadMovementSettings, saveMovementSettings, type MovementSettings } from "../player/movementSettings";
 import { GameSession, type GameSessionSnapshot } from "../game/GameSession";
 import { decodeChallengeCode, encodeChallengeCode, type GameConfig, type GameMode } from "../game/GameTypes";
-import { resolveGameMode } from "../game/GameModeManager";
-import { getGameMode } from "../game/GameModeRegistry";
-import { applyGameUiPolicy } from "../game/GameUiAdapter";
 import type { GameplayCallbacks } from "../contracts/ScenarioContracts";
 import { createDebugPanel } from "../debug/DebugPanel";
 import { installTestBridge, type TestStartOptions } from "../testing/TestBridge";
@@ -21,11 +18,12 @@ import { FRAMEWORK_VERSION, MAP_FORMAT_VERSION, logFrameworkVersion } from "../c
 import type { WorldMapData } from "../map/WorldMapData";
 import type { EnvironmentPreset, VisualQuality } from "../visual/VisualConfig";
 import { renderMapStatus, renderNavigationStatus } from "../ui/frameworkStatusUi";
-import { createDemoScenario } from "../game/sample/createDemoScenario";
+import { createSampleGameComposition } from "../game/sample/SampleGameComposition";
 
 export function startApplication(): void {
 
 const mobile = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+const gameComposition = createSampleGameComposition();
 logFrameworkVersion();
 document.body.classList.add(mobile ? "is-mobile" : "is-desktop");
 configureGuide(mobile);
@@ -56,7 +54,7 @@ let visualQuality: VisualQuality = mobile ? "AUTO" : "AUTO";
 
 const gameCallbacks: GameplayCallbacks = {
   ...gameplayUi.callbacks,
-  onMissionComplete: (result) => { gameplayUi.callbacks.onMissionComplete(result); if (getGameMode(gameConfig.mode).completeOnMission) gameSession?.complete(); },
+  onMissionComplete: (result) => { gameplayUi.callbacks.onMissionComplete(result); if (gameComposition.getMode(gameConfig).completeOnMission) gameSession?.complete(); },
   onPlayerCaught: (id) => {
     if (id.endsWith(":detected")) { const notice = document.querySelector<HTMLElement>("#discovery-notice"); if (notice) { notice.textContent = "DETECTED"; notice.classList.add("is-visible"); window.clearTimeout(discoveryNoticeTimer); discoveryNoticeTimer = window.setTimeout(() => notice.classList.remove("is-visible"), 1400); } }
     if (!id.endsWith(":detected")) gameSession?.caught();
@@ -76,7 +74,8 @@ try {
   // Mobile Safari/Chrome can report DPR 3–4. Rendering at that full backing resolution
   // multiplies fill cost without improving playability on a small screen.
   engine.setHardwareScalingLevel(mobile ? 1 : 1 / Math.min(window.devicePixelRatio || 1, 2));
-  laboratory = createLaboratoryScene(engine, canvas, mobile, { worldMode: currentWorld, citySettings, gameplayCallbacks: gameCallbacks, scenarioFactory: createDemoScenario, scenarioPolicy: getGameMode(gameConfig.mode).scenario(gameConfig, mobile), onMapStatus: renderMapStatus, onNavigationStatus: renderNavigationStatus });
+  const initialScenario = gameComposition.getScenario(gameConfig, mobile);
+  laboratory = createLaboratoryScene(engine, canvas, mobile, { worldMode: currentWorld, citySettings, gameplayCallbacks: gameComposition.createCallbacks(gameCallbacks), scenarioFactory: initialScenario.factory, scenarioPolicy: initialScenario.policy, onMapStatus: renderMapStatus, onNavigationStatus: renderNavigationStatus });
   laboratory.player.setMovementSpeeds(movementSettings);
   laboratory.setMissionGuideMode(currentGuideMode);
   gameplayUi.setInteractHandler(() => getLaboratory().interact());
@@ -138,7 +137,7 @@ try {
   const debugPanel = createDebugPanel({
     laboratory: getLaboratory,
     completeGame: () => {
-      if (getGameMode(gameConfig.mode).debugCompletion === "DISCOVERY") getLaboratory().debugDiscovery("all");
+      if (gameComposition.getMode(gameConfig).debugCompletion === "DISCOVERY") getLaboratory().debugDiscovery("all");
       else for (let index = 0; index < 20 && !getLaboratory().missionDebug().state.complete; index += 1) getLaboratory().debugCommand("complete-current");
     },
     failGame: () => gameSession?.fail("[DEBUG] Forced game failure"),
@@ -178,7 +177,8 @@ try {
     detachMobileControls();
     getLaboratory().disposeWorld();
     getLaboratory().scene.dispose();
-    laboratory = createLaboratoryScene(getEngine(), canvas!, mobile, { worldMode: mode, citySettings: settings, gameplayCallbacks: gameCallbacks, scenarioFactory: createDemoScenario, scenarioPolicy: getGameMode(gameConfig.mode).scenario(gameConfig, mobile), onMapStatus: renderMapStatus, onNavigationStatus: renderNavigationStatus });
+    const scenario = gameComposition.getScenario(gameConfig, mobile);
+    laboratory = createLaboratoryScene(getEngine(), canvas!, mobile, { worldMode: mode, citySettings: settings, gameplayCallbacks: gameComposition.createCallbacks(gameCallbacks), scenarioFactory: scenario.factory, scenarioPolicy: scenario.policy, onMapStatus: renderMapStatus, onNavigationStatus: renderNavigationStatus });
     laboratory.player.setMovementSpeeds(movementSettings);
     laboratory.setMissionGuideMode(currentGuideMode);
     laboratory.setEnemyAI(enemyAIEnabled && !missionTestMode);
@@ -251,7 +251,7 @@ try {
       };
     }
     selectedMode = gameConfig.mode; detectionLatched = false; currentWorld = "city";
-    const rules = resolveGameMode(gameConfig);
+    const rules = gameComposition.getRules(gameConfig);
     citySettings = { ...citySettings, seed: gameConfig.citySeed, missionSeed: gameConfig.missionSeed, missionDifficulty: gameConfig.difficulty, missionType: rules.missionType };
     saveCitySettings(citySettings); gameSession = new GameSession(gameConfig, renderGameSession); gameSession.setState("GENERATING");
     hideGameScreens(); gameLoading?.classList.add("is-visible"); setText("game-loading-title", "GENERATING WORLD..."); setText("game-loading-stage", "WORLD 1 / 4");
@@ -272,7 +272,7 @@ try {
   }
 
   function applyGameRules(): void {
-    const policy = getGameMode(gameConfig.mode); const rules = policy.configure(gameConfig); currentGuideMode = gameConfig.testMode ? "DEBUG_ALL" : rules.guide;
+    const policy = gameComposition.getMode(gameConfig); const rules = gameComposition.getRules(gameConfig); currentGuideMode = gameConfig.testMode ? "DEBUG_ALL" : rules.guide;
     autoExpansion = gameConfig.autoExpansion ?? autoExpansion;
     chunkUnload = gameConfig.chunkUnload ?? chunkUnload;
     getLaboratory().setAutoExpansion(autoExpansion);
@@ -292,15 +292,15 @@ try {
     hideGameScreens(); setText("generation-error-message", error instanceof Error ? error.message : String(error)); generationErrorScreen?.classList.add("is-visible");
   }
   function maybeShowTutorial(): void {
-    const policy = getGameMode(gameConfig.mode);
+    const policy = gameComposition.getMode(gameConfig);
     const key = `3d-space-lab-tutorial-${gameConfig.mode}`; if (localStorage.getItem(key)) return;
     localStorage.setItem(key, "1"); gameSession?.pause(); getLaboratory().setPaused(true);
-    applyGameUiPolicy(policy, { tutorialTitle: document.querySelector<HTMLElement>("#tutorial-title"), tutorialText: document.querySelector<HTMLElement>("#tutorial-text") }); tutorialScreen?.classList.add("is-visible");
+    gameComposition.applyUi(gameConfig, { tutorialTitle: document.querySelector<HTMLElement>("#tutorial-title"), tutorialText: document.querySelector<HTMLElement>("#tutorial-text") }); tutorialScreen?.classList.add("is-visible");
   }
   function renderGameSession(snapshot: GameSessionSnapshot): void {
     document.body.classList.forEach((name) => { if (name.startsWith("game-state-")) document.body.classList.remove(name); }); document.body.classList.add(`game-state-${snapshot.state.toLowerCase()}`);
     setText("game-timer", formatGameTime(snapshot.elapsedSeconds)); setText("discovery-value", `${snapshot.discovery.discovered} / ${snapshot.discovery.target} ・ BUILDINGS ${snapshot.discovery.buildingsVisited} / ${snapshot.discovery.buildingTarget}`); setText("discovery-landmark", snapshot.discovery.landmarkFound ? "LANDMARK 発見済み" : "LANDMARK 未発見");
-    const policy = getGameMode(gameConfig.mode); applyGameUiPolicy(policy, { detection: document.querySelector<HTMLElement>("#detection-meter"), discovery: document.querySelector<HTMLElement>("#discovery-progress") });
+    gameComposition.applyUi(gameConfig, { detection: document.querySelector<HTMLElement>("#detection-meter"), discovery: document.querySelector<HTMLElement>("#discovery-progress") });
     if (snapshot.result) renderResult(snapshot.result);
   }
   function renderResult(result: NonNullable<GameSessionSnapshot["result"]>): void {
@@ -389,7 +389,7 @@ try {
       const detectionValue = getLaboratory().characterDebug().detection;
       setText("detection-value", `${Math.round(detectionValue * 100)}%`);
       const detectionFill = document.querySelector<HTMLElement>("#detection-fill"); if (detectionFill) detectionFill.style.width = `${Math.round(detectionValue * 100)}%`;
-      if (detectionValue >= .99 && !detectionLatched) { detectionLatched = true; if (getGameMode(gameConfig.mode).countDetections) gameSession?.addDetection(); }
+      if (detectionValue >= .99 && !detectionLatched) { detectionLatched = true; if (gameComposition.getMode(gameConfig).countDetections) gameSession?.addDetection(); }
       if (detectionValue < .35) detectionLatched = false;
       if (debugPanel.isOpen()) debugPanel.update();
       const game = gameSession?.snapshot(); if (game) { setText("game-debug-mode", gameConfig.mode); setText("game-debug-state", game.state); setText("game-debug-difficulty", gameConfig.difficulty); setText("game-debug-timer", formatGameTime(game.elapsedSeconds)); setText("game-debug-score", String(game.result?.score ?? gameSession?.debugScore() ?? 0)); setText("game-debug-discovery", `${game.discovery.discovered}/${game.discovery.target} ・ BLD ${game.discovery.buildingsVisited}/${game.discovery.buildingTarget}`); }

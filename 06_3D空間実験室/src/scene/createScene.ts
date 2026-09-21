@@ -175,7 +175,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     objectCount: () => scene.meshes.filter((mesh) => mesh.name !== "sky").length,
     telemetry: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, mode: currentMode, worldMode, seed: generatedCity?.stats.seed, style: generatedCity?.stats.styleLabel }),
     cityStats: () => generatedCity?.stats,
-    disposeWorld: () => { demoScenario.dispose(); worldMap.dispose(); navigation.dispose(); frameworkEvents.clear(); generatedCity?.dispose(); visuals.dispose(); },
+    disposeWorld: () => { features.dispose(); base.dispose(); },
     interact: () => demoScenario.interact(),
     interactionDebug: () => demoScenario.focus(),
     inventory: () => demoScenario.inventory(),
@@ -220,30 +220,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     setVisualQuality: (quality) => visuals.setQuality(quality),
     setVisualDebug: (kind, enabled) => visuals.setDebugView(kind, enabled),
     restartMission: (settings) => {
-      demoScenario.dispose();
-      camera.position.copyFrom(missionSpawn); camera.cameraDirection.setAll(0); camera.cameraRotation.setAll(0);
-      demoScenario = createMission(settings); demoScenario.setGuideMode(currentGuideMode); demoScenario.setDayMode(currentMode === "day"); demoScenario.setEnemyAI(currentEnemyAI);
+      demoScenario = features.restartScenario(settings); demoScenario.setGuideMode(currentGuideMode); demoScenario.setDayMode(currentMode === "day"); demoScenario.setEnemyAI(currentEnemyAI);
     },
   };
-}
-
-function createInitialField(ctx: ObjectContext): void {
-  const buildingData = [
-    { position: new Vector3(-13, 0, 2), color: new Color3(.78, .42, .24), rotation: Math.PI / 2 },
-    { position: new Vector3(13, 0, 4), color: new Color3(.24, .53, .62), rotation: -Math.PI / 2 },
-    { position: new Vector3(-11, 0, 22), color: new Color3(.62, .55, .28), rotation: Math.PI / 2 },
-  ];
-  buildingData.forEach((data) => createBuilding(ctx, data));
-  createStairs(ctx, new Vector3(9, 0, 20), 7);
-  createPlatform(ctx, new Vector3(9, .32, 25), 7, 6);
-  [[6.2, 2.7, 22], [11.8, 2.7, 22], [6.2, 2.7, 27.5], [11.8, 2.7, 27.5]].forEach(([x,y,z]) => createPillar(ctx, new Vector3(x,y,z), 5.4));
-  createBox(ctx, new Vector3(3, .8, 9), 1.6);
-  createSphere(ctx, new Vector3(-3, .9, 10), 1.8);
-  createCylinder(ctx, new Vector3(4, 1.25, 16), 2.5, 1.35);
-  [-31, 31].forEach((x) => createBoundaryWall(ctx.scene, ctx.shadows, new Vector3(x, 1.4, 0), { width: .7, height: 2.8, depth: 63 }));
-  [-31, 31].forEach((z) => createBoundaryWall(ctx.scene, ctx.shadows, new Vector3(0, 1.4, z), { width: 63, height: 2.8, depth: .7 }));
-  for (let z = -22; z <= 26; z += 12) {
-    createLamp(ctx.scene, ctx.shadows, new Vector3(-4.5, 0, z));
-    createLamp(ctx.scene, ctx.shadows, new Vector3(4.5, 0, z));
-  }
 }
