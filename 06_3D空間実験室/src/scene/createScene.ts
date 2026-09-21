@@ -2,92 +2,19 @@ import "@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent";
 import type { Engine } from "@babylonjs/core/Engines/engine";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import type { Scene } from "@babylonjs/core/scene";
 import { createBuilding } from "../objects/building";
 import { createBox, createSphere } from "../objects/primitives";
-import type { PlayerController } from "../player/createPlayer";
 import { createRandomScene, randomOpenPosition } from "./generators";
-import { DEFAULT_CITY_SETTINGS, type CitySettings, type CityStats, type WorldMode } from "../world/types";
+import { DEFAULT_CITY_SETTINGS, type CitySettings, type WorldMode } from "../world/types";
 import type { GameplayCallbacks, LaboratoryScenario, ScenarioFactory, ScenarioPolicy } from "../contracts/ScenarioContracts";
-import type { InteractionFocus } from "../interaction/Interactable";
-import type { InventoryEntry } from "../gameplay/InventoryManager";
-import type { InteriorNavigation } from "../interior/Room";
-import type { MapArea2D, SemanticLocation, WorldStatistics } from "../world/SemanticTypes";
-import type { MissionPlan } from "../gameplay/MissionGenerator";
-import type { MissionRuntimeSnapshot } from "../gameplay/MissionTypes";
-import type { MissionValidation } from "../gameplay/MissionValidator";
-import type { MissionGuideDebugInfo, MissionGuideMode } from "../gameplay/MissionGuideManager";
-import type { CharacterManagerDebug } from "../characters/CharacterManager";
-import type { NavigationStats } from "../navigation/NavigationManager";
-import type { DiscoverySnapshot } from "../gameplay/DiscoveryManager";
-import type { DebugCommand, DebugTestSnapshot } from "../debug/DebugTestManager";
-import { WorldMapManager } from "../map/WorldMapManager";
-import type { MapStateSnapshot, WorldMapData } from "../map/WorldMapData";
-import type { EnvironmentPreset, VisualQuality, VisualState } from "../visual/VisualConfig";
+import type { MissionGuideMode } from "../gameplay/MissionGuideManager";
 import type { MapStatusEvent, NavigationStatusEvent } from "../contracts/FrameworkEvents";
-import type { FrameworkContext } from "../contracts/FrameworkContext";
 import { createFrameworkScene } from "./FrameworkSceneBootstrap";
 import { laboratoryFeatureInitializer } from "../features/LaboratoryFeatureInitializer";
+import { createEmbeddedFrameworkApi } from "../framework/internal/createEmbeddedFrameworkApi";
+import type { LaboratoryApi } from "../compatibility/LaboratoryApi";
 
-export interface LaboratoryApi {
-  framework: FrameworkContext;
-  scene: Scene;
-  player: PlayerController;
-  setDayMode: (isDay: boolean) => void;
-  addBox: () => void;
-  addSphere: () => void;
-  addBuilding: () => void;
-  randomize: () => void;
-  setDebugMode: (enabled: boolean) => void;
-  objectCount: () => number;
-  telemetry: () => { x: number; y: number; z: number; mode: "day" | "night"; worldMode: WorldMode; seed?: number; style?: string };
-  cityStats: () => CityStats | undefined;
-  disposeWorld: () => void;
-  interact: () => void;
-  interactionDebug: () => InteractionFocus | undefined;
-  inventory: () => InventoryEntry[];
-  objective: () => string;
-  interiorDebug: () => InteriorNavigation | undefined;
-  semanticDebug: () => SemanticLocation;
-  worldStatistics: () => WorldStatistics;
-  missionDebug: () => { plan: MissionPlan; validation: MissionValidation; state: MissionRuntimeSnapshot };
-  semanticMap: (floor?: number) => MapArea2D[];
-  setMissionGuideMode: (mode: MissionGuideMode) => void;
-  missionGuideDebug: () => MissionGuideDebugInfo;
-  restartMission: (settings: CitySettings) => void;
-  setEnemyAI: (enabled: boolean) => void;
-  characterDebug: () => CharacterManagerDebug;
-  navigationDebug: () => NavigationStats;
-  useNavigationFallback: (reason: string) => void;
-  retryNavigation: () => void;
-  debugTest: () => DebugTestSnapshot;
-  debugCommand: (command: DebugCommand, value?: string | number) => void;
-  debugJumpTo: (stepId: string) => void;
-  setDebugSelectMode: (enabled: boolean) => void;
-  setNoClip: (enabled: boolean) => void;
-  debugEnemy: (command: Parameters<LaboratoryScenario["debugEnemy"]>[0]) => void;
-  debugDiscovery: (command: Parameters<LaboratoryScenario["debugDiscovery"]>[0]) => void;
-  setSimulationPaused: (paused: boolean) => void;
-  setSimulationSpeed: (scale: number) => void;
-  setNavigationTest: (enabled: boolean) => void;
-  setPaused: (paused: boolean) => void;
-  discovery: () => DiscoverySnapshot;
-  mapState: () => MapStateSnapshot;
-  saveMap: () => WorldMapData;
-  createProceduralMap: (seed?: number, style?: string) => WorldMapData;
-  loadMap: (data: unknown) => Promise<WorldMapData>;
-  saveMapToBrowser: (name?: string) => WorldMapData;
-  listBrowserMaps: () => ReturnType<WorldMapManager["listBrowserMaps"]>;
-  loadMapFromBrowser: (id: string) => WorldMapData;
-  deleteMapFromBrowser: (id: string) => void;
-  setAutoExpansion: (enabled: boolean) => void;
-  setChunkUnload: (enabled: boolean) => void;
-  teleportNearChunkEdge: (direction: "north" | "south" | "east" | "west", cross?: boolean) => void;
-  visualState: () => VisualState;
-  setEnvironmentPreset: (preset: EnvironmentPreset) => void;
-  setVisualQuality: (quality: VisualQuality) => void;
-  setVisualDebug: (kind: "LIGHTS" | "LOD" | "CHUNK_LOD", enabled: boolean) => void;
-}
+export type { LaboratoryApi } from "../compatibility/LaboratoryApi";
 
 export interface SceneOptions {
   worldMode?: WorldMode;
@@ -107,31 +34,6 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   const { scene, player, visuals, objectContext: ctx, registry, dynamicRoots, groundMaterial, debugBox, generatedCity } = base;
   const camera = player.camera;
   let currentMode: "day" | "night" = "day";
-  /* World construction moved to createFrameworkScene.
-    // 街本体はSceneの寿命で管理し、追加オブジェクト用のdynamicRootsとは分離する。
-    // これにより既存の「ランダム配置」を使っても街全体が消えない。
-    generatedCity = createCity({ scene, shadows, materials: visuals.materials }, citySettings, mobile, registry);
-    visuals.setStreetLightMaterials(generatedCity.lampMaterials);
-    camera.position.set(generatedCity.spawn.x, generatedCity.spawn.y, generatedCity.spawn.z);
-    camera.rotation.set(0, 0, 0);
-  } else {
-    createRoad(scene, new Vector3(0, .035, 1), 7, 76);
-    createRoad(scene, new Vector3(0, .04, 8), 5, 52, Math.PI / 2);
-    registry.register({ id: "field_road_main", type: "ROAD", position: { x: 0, y: 0, z: 1 }, bounds: createBounds({ x: 0, y: 0, z: 1 }, 7, 76, 0, 3), connections: ["field_intersection"], tags: ["outdoor", "public", "wide"] });
-    registry.register({ id: "field_road_cross", type: "ROAD", position: { x: 0, y: 0, z: 8 }, bounds: createBounds({ x: 0, y: 0, z: 8 }, 52, 5, 0, 3), connections: ["field_intersection"], tags: ["outdoor", "public", "wide"] });
-    registry.register({ id: "field_intersection", type: "INTERSECTION", position: { x: 0, y: 0, z: 8 }, bounds: createBounds({ x: 0, y: 0, z: 8 }, 8, 8, 0, 3), connections: ["field_road_main", "field_road_cross"], tags: ["outdoor", "public", "safe", "wide"] });
-    registry.register({ id: "start_area", type: "START", position: camera.position, bounds: createBounds(camera.position, 3, 3, 0, 4), connections: ["field_road_main"], tags: ["outdoor", "public", "safe", "spawn"], importance: 10 });
-    createInitialField(ctx);
-  */
-
-  /* Debug marker construction moved to createFrameworkScene.
-  const debugBox = MeshBuilder.CreateBox("debug-red-box", { size: 3 }, scene);
-  debugBox.position = new Vector3(0, 1.5, -4);
-  debugBox.material = createMaterial(scene, "debug-red-material", new Color3(1, 0, 0));
-  debugBox.isVisible = false;
-  debugBox.isPickable = false;
-  const groundMaterial = ground.material as StandardMaterial;
-  */
   const callbacks = options.gameplayCallbacks ?? {
     onFocus: () => undefined, onMessage: () => undefined, onObjective: () => undefined,
     onInventory: () => undefined, onMissionState: () => undefined, onMissionComplete: () => undefined,
@@ -141,6 +43,16 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   const features = laboratoryFeatureInitializer.initialize({ base, mobile, citySettings, callbacks, scenarioFactory: options.scenarioFactory, scenarioPolicy: options.scenarioPolicy });
   const { navigation, worldMap, framework } = features;
   let demoScenario: LaboratoryScenario = features.scenario;
+  const publicApi = createEmbeddedFrameworkApi({
+    context: framework,
+    restart: (restartOptions) => {
+      const settings = { ...citySettings, ...restartOptions?.city };
+      demoScenario = features.restartScenario(settings);
+      demoScenario.setGuideMode(currentGuideMode);
+      demoScenario.setEnemyAI(currentEnemyAI);
+    },
+    dispose: () => { features.dispose(); base.dispose(); },
+  });
 
   const spawnAhead = (height: number): Vector3 => {
     const direction = camera.getForwardRay().direction.clone();
@@ -156,6 +68,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   };
 
   return {
+    api: publicApi,
     framework,
     scene,
     player,
@@ -175,7 +88,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     objectCount: () => scene.meshes.filter((mesh) => mesh.name !== "sky").length,
     telemetry: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, mode: currentMode, worldMode, seed: generatedCity?.stats.seed, style: generatedCity?.stats.styleLabel }),
     cityStats: () => generatedCity?.stats,
-    disposeWorld: () => { features.dispose(); base.dispose(); },
+    disposeWorld: () => publicApi.dispose(),
     interact: () => demoScenario.interact(),
     interactionDebug: () => demoScenario.focus(),
     inventory: () => demoScenario.inventory(),

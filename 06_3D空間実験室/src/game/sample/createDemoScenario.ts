@@ -14,7 +14,7 @@ import { createMaterial } from "../../utils/materials";
 import { createBuilding, INTERIOR_FLOOR_HEIGHT } from "../../world/buildingGenerator";
 import { createBounds } from "../../world/SemanticTypes";
 import type { WorldRegistry } from "../../world/WorldRegistry";
-import { EventManager } from "../../gameplay/EventManager";
+import { EventManager } from "../../core/events/EventManager";
 import { GamePlacementManager } from "../../gameplay/GamePlacementManager";
 import { InventoryManager } from "../../gameplay/InventoryManager";
 import { MissionGenerator, type MissionPlan, type MissionTemplateSource } from "../../gameplay/MissionGenerator";

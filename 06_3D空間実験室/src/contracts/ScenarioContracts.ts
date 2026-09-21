@@ -3,7 +3,7 @@ import type { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { CharacterManager, CharacterManagerDebug } from "../characters/CharacterManager";
 import type { DebugCommand, DebugTestSnapshot } from "../debug/DebugTestManager";
 import type { DiscoverySnapshot } from "../gameplay/DiscoveryManager";
-import type { EventManager } from "../gameplay/EventManager";
+import type { EventManager } from "../core/events/EventManager";
 import type { InventoryEntry } from "../gameplay/InventoryManager";
 import type { MissionPlan } from "../gameplay/MissionGenerator";
 import type { MissionGuideDebugInfo, MissionGuideMode } from "../gameplay/MissionGuideManager";

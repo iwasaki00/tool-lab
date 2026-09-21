@@ -13,6 +13,8 @@
     "test:chunks": "playwright test tests/e2e/map-chunks.spec.ts",
     "test:visual": "playwright test tests/e2e/visual.spec.ts",
     "test:performance": "playwright test tests/e2e/performance.spec.ts",
+    "test:framework-api": "playwright test tests/e2e/framework-api.spec.ts",
+    "test:architecture": "node tools/check-module-cycles.mjs",
     "demo": "playwright test tests/e2e/demo.spec.ts --headed --workers=1",
     "demo:e2e": "playwright test tests/e2e/demo.spec.ts --headed --workers=1",
     "demo:chunks": "playwright test tests/e2e/chunk-demo.spec.ts --headed --workers=1",

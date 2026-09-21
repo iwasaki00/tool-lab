@@ -445,6 +445,292 @@ Main production bundle: approximately **2,124.11 kB** minified / **607.98 kB gzi
 4. StoragePort + browser adapter で Map/Score/Movement persistence を分離する。
 5. Recast と development-only tools を dynamic import / bundle entry へ分離する。
 
-## 12. Git
+## 12. Phase 3: Scene / Bootstrap / UI Composition Separation
+
+### 12.1 Result and compatibility
+
+Framework Version は **1.2.1**、Map Format Version は **1** のまま維持した。新しいゲーム機能や保存形式変更は行わず、既存の ESCAPE / STEALTH / EXPLORATION を Sample Game composition として外側から組み立てる構造へ移行した。
+
+| Metric | Before Phase 3 | After Phase 3 | Change |
+|---|---:|---:|---:|
+| Problematic Dependencies | 4 | **2** | -2 |
+| Game-specific Leaks | 4 | **2** | -2 |
+| Circular Dependencies | 0 | **0** | unchanged |
+
+残る Problematic Dependency は、Application Host の責務集中と `LaboratoryApi` の巨大 compatibility facade。残る Game-specific Leak は、固定 Mission/Inventory façade と game/debug/test methods を含む `LaboratoryApi` である。Framework bootstrap / scene / feature initializer から ESCAPE、STEALTH、EXPLORATION、`GameMode`、concrete DemoScenario への参照は 0 件である。
+
+### 12.2 Main and bootstrap responsibilities
+
+Before:
+
+- `main.ts` が CSS、副作用 import、DOM取得、Engine生成、Scene生成、Sample Game選択、UI、render loop、TestBridge、dispose を集中所有していた。
+- Engine/resize failure と feature/game failure の境界が不明瞭だった。
+
+After:
+
+- `main.ts` は side-effect import、CSS、`startApplication()` 呼び出しだけの **5 lines entry point**。
+- `FrameworkBootstrap` が Engine capability check、WebGL Engine生成、hardware scaling、resize、Engine dispose を所有する。
+- `FrameworkConfig` が renderer / visual / map / performance / debug 設定を分離する。
+- `ApplicationLifecycle` が FRAMEWORK / FEATURE / GAME の初期化stage、error分類、逆順disposeを管理する。
+- `startApplication.ts` は Application Host として composition とセッション制御を行うが、Framework scene内部を直接構築しない。
+
+### 12.3 Scene responsibilities
+
+Before:
+
+- `createScene.ts` が Babylon Scene、ground、player、visual、registry、field/city、navigation、scenario、map、debug API を同時に構築していた。
+- Sample Game factoryの既定生成がScene層へ漏れていた。
+
+After:
+
+- `FrameworkSceneBootstrap` が Scene、gravity/collision、Player、VisualManager、WorldRegistry、ground、field/city、debug markerを構築する。
+- `LaboratoryFeatureInitializer` が Navigation、ScenarioFactory、WorldMap、FrameworkContext を初期化し、feature単位の再起動とdisposeを提供する。
+- `createScene.ts` は両者をcomposeして既存 `LaboratoryApi` 互換面を返す。
+- ScenarioFactory は必須注入であり、Scene層は concrete Sample DemoScenario を知らない。
+- 同一cityでの Mission restart は core Scene/Player/Visual/Registryを再構築せず、feature scenarioのみ再生成する。
+
+### 12.4 Game composition
+
+- `GameComposition` contract が mode、rules、scenario factory、callbacks のcomposition境界を定義する。
+- `SampleGameComposition` が ESCAPE / STEALTH / EXPLORATION、DemoScenario factory、game UI policyを集約する。
+- Application Host は `getGameMode`、`resolveGameMode`、`createDemoScenario` を直接importせず、composition経由で利用する。
+- World / Navigation / Visual / Scene / Bootstrap に Sample Game mode条件分岐は追加していない。
+
+### 12.5 UI and development composition
+
+- `UiRegistry` が `FRAMEWORK | FEATURE | GAME | DEV` layer別に既存DOMを登録し、selector探索とdisposeを一元化する。
+- framework loading/error/pause/settings、feature inventory/mission guide、game title/detection/discovery/result、dev debugを明示登録した。
+- `DevComposition` が DebugPanel と TestBridge をApplication Hostから分離する。
+- `installTestBridge()` は cleanup functionを返し、dispose時に `window.__SPACE_LAB_TEST__` とtest用dataset/statusを除去する。
+- UIの見た目と既存selectorは維持し、mobile/desktop E2E互換を保った。
+
+### 12.6 Dispose policy
+
+Dispose orderは外側から内側へ、かつ登録の逆順で実行する。
+
+1. TestBridge / Debug UI / mobile controls
+2. Sample scenario / WorldMap / Navigation feature runtime
+3. Framework scene runtime (Visual / Player / Registry / Scene)
+4. Engine resize listeners / Babylon Engine
+5. UI registry / remaining lifecycle disposers
+
+Scene再生成時にも旧 `disposeWorld()` を先に実行する。beforeunloadでは同じcleanup pathを使用し、TestBridgeやresize listenerを残さない。
+
+### 12.7 Files moved and added
+
+Moved/extracted:
+
+- `src/main.ts` application body -> `src/application/startApplication.ts`
+- Scene/world construction -> `src/scene/FrameworkSceneBootstrap.ts`
+- navigation/scenario/map feature construction -> `src/features/LaboratoryFeatureInitializer.ts`
+
+Added:
+
+- `src/application/ApplicationLifecycle.ts`
+- `src/bootstrap/FrameworkConfig.ts`
+- `src/bootstrap/FrameworkBootstrap.ts`
+- `src/contracts/FeatureModule.ts`
+- `src/contracts/GameComposition.ts`
+- `src/dev/DevComposition.ts`
+- `src/game/sample/SampleGameComposition.ts`
+- `src/ui/UiRegistry.ts`
+
+Updated:
+
+- `src/main.ts`
+- `src/scene/createScene.ts`
+- `src/testing/TestBridge.ts`
+- `src/application/startApplication.ts`
+
+### 12.8 Regression
+
+| Check | Result |
+|---|---|
+| BUILD | PASS, TypeScript + Vite, 582 modules |
+| Full E2E | PASS 11/11 |
+| SMOKE | PASS 1/1 |
+| STABILITY | PASS 3 seed pairs |
+| CHUNK | PASS export/import/expansion/boundary/hybrid/unload |
+| VISUAL | PASS desktop + mobile |
+| PERFORMANCE | PASS desktop normal/stress + mobile low, all budgets `OK` |
+| DEMO | PASS headed 1/1 |
+| ESCAPE | PASS item/door/switch/completion |
+| STEALTH | PASS start and mode flow |
+| EXPLORATION | PASS start and discovery flow |
+
+Production main bundle: approximately **2,129.06 kB** minified / **609.77 kB gzip**。Viteの500 kB chunk warningは残るが、Phase 3の既存挙動・性能budget regressionは検出されなかった。
+
+### 12.9 Remaining issues
+
+1. `startApplication.ts` は約518 linesで、session state、DOM event wiring、game result UI、render loopをまだ集中所有する。
+2. `LaboratoryApi` は Framework / Gameplay / Diagnostics / TestControl の多数methodを含む巨大な互換façadeである。
+3. Map / Score / Movement persistence はbrowser `localStorage`へ直接依存する。
+4. Main production chunkは2 MBを超え、Recast、Sample Game、development toolsの遅延load余地がある。
+5. feature profile / toggleは未導入で、minimal framework consumerも全featureをbundleする。
+
+### 12.10 Phase 4 top 5
+
+1. Application Hostを `GameSessionController`、`ApplicationUiController`、render-loop coordinatorへ分割する。
+2. `LaboratoryApi` を Framework / Gameplay / Diagnostics / TestControl のnamespaced portsへ段階移行する。
+3. `minimal/world/simulation/game/development` profileとfeature registration/toggleを導入する。
+4. StoragePort + browser adapterでMap/Score/Movement persistenceを分離する。
+5. Recast、Sample Game、development-only toolsをdynamic importし、production bundle entryを分割する。
+
+## 13. Phase 4: Folder / Public API / Compatibility Façade Cleanup
+
+### 13.1 Result and metrics
+
+Framework Version は **1.2.1**、Map Format Version は **1** のまま維持した。新ゲーム機能とMap schema変更は行っていない。
+
+| Metric | Before Phase 4 | After Phase 4 | Change |
+|---|---:|---:|---:|
+| Problematic Dependencies | 2 | **1** | -1 |
+| Game-specific Leaks | 2 | **1** | -1 |
+| Circular Dependencies | 0 | **0** | unchanged |
+
+残る1件は、Sample ApplicationのUI/session wiringを保持する約521 linesのinternal `ApplicationHost`。残るGame-specific Leak 1件は、既存UI/TestBridge互換のためdeprecated `LaboratoryApi`にMission/Inventory/Debug操作が存在する点である。どちらもFramework Public Entryから到達する必須依存ではない。
+
+### 13.2 Framework Public API
+
+`src/framework/index.ts`を唯一のFramework Public Entryとして追加した。公開一覧:
+
+- `createFramework(options)`
+- `FrameworkApi`
+- `FrameworkConfig` / `DEFAULT_FRAMEWORK_CONFIG`
+- `CreateFrameworkOptions`
+- `WorldCreateOptions`
+- `MapLoadOptions`
+- `FeatureId` / `FrameworkFeatureOptions` / `FrameworkFeatureAccess`
+- `FrameworkLifecycleState` / `FrameworkState`
+- `FrameworkPlayerApi`
+- `FrameworkVisualApi`
+- `FrameworkEventApi` / `FrameworkEventMap` / `FrameworkEventName`
+- `FRAMEWORK_EVENT`
+- `WorldMapData`
+- `FRAMEWORK_VERSION` / `MAP_FORMAT_VERSION`
+
+`FrameworkApi`は`initialize/start/dispose/restartSession/loadMap/createProceduralMap/getWorld/getPlayer/getNavigation/getInteraction/getEvents/getVisual/getMap/getFeatures/getState`を提供する。WorldRegistry、NavigationManager、WorldMapManager、InteractionManager、VisualManagerを公開せず、既存service contractまたはnarrow adapterを返す。
+
+Public EntryはSample Game、Mission、Enemy、Score、Debug、TestBridge、WebMCPをimportしない。Feature設定はnavigation/map/interactionを個別に無効化可能で、Phase 1.4以降のprofile/dynamic importに備える。
+
+### 13.3 LaboratoryApi compatibility adapter
+
+Before responsibility:
+
+- Framework context、Player、Map、Navigation、Visual、Mission、Inventory、Enemy、Debug、Test controlを単一interfaceとして公開。
+- createScene内に巨大interface定義と転送実装が混在。
+- 新規Application codeもconcrete compatibility methodを利用。
+
+After responsibility:
+
+- contractを`src/compatibility/LaboratoryApi.ts`へ移し、`@deprecated`を明記。
+- `api: FrameworkApi`を持つLegacy Adapterとして位置付け。
+- `createEmbeddedFrameworkApi`が既存scene/feature runtimeをPublic APIへ変換。
+- Application HostのPlayer、Map、Navigation、Visualの新規アクセスは`laboratory.api`経由へ移行。
+- Mission/Inventory/Debug/TestBridge/WebMCP固有操作のみLegacy compatibility面に残した。
+- 削除はFramework major versionまで行わず、既存TestBridgeとUIを維持する。
+
+### 13.4 startApplication and application composition
+
+Before responsibility:
+
+- `startApplication.ts`が約518 linesのConfig load、Bootstrap、Game Session、UI wiring、Dev/Test、Error、render loop、disposeを所有。
+
+After responsibility:
+
+- `startApplication.ts`: **6 lines**。Application Factoryを生成してstartするだけ。
+- `ApplicationFactory.ts`: **10 lines**。bundled Sample Application composition root。
+- `ApplicationHost.ts`: 既存UI/session wiringをinternal implementationとして隔離。
+- Frameworkの新規consumerはApplication Hostをimportせず、`framework/index.ts`を利用する。
+
+Host本体の分割は挙動リスクを避けてPhase 5へ残したが、Public APIおよびTool consumerへの依存経路からは除外した。
+
+### 13.5 Folder and boundary changes
+
+Added:
+
+- `src/framework/index.ts`
+- `src/framework/public/FrameworkApi.ts`
+- `src/framework/public/FrameworkTypes.ts`
+- `src/framework/public/FrameworkEvents.ts`
+- `src/framework/internal/DefaultFrameworkFacade.ts`
+- `src/framework/internal/createEmbeddedFrameworkApi.ts`
+- `src/compatibility/LaboratoryApi.ts`
+- `src/application/ApplicationFactory.ts`
+- `src/game/sample/index.ts`
+- `framework-api-test.html`
+- `tests/e2e/framework-api.spec.ts`
+- `tools/check-module-cycles.mjs`
+
+Moved:
+
+- large application flow: `startApplication.ts` -> `ApplicationHost.ts`
+- WebMCP: `ui/registerWebMcp.ts` -> `dev/integration/registerWebMcp.ts`
+- generic EventManager: `gameplay/EventManager.ts` -> `core/events/EventManager.ts`
+- LaboratoryApi contract: `scene/createScene.ts` -> `compatibility/LaboratoryApi.ts`
+- DebugPanel: `debug/DebugPanel.ts` -> `dev/debug/DebugPanel.ts`
+- TestBridge: `testing/TestBridge.ts` -> `dev/testing/TestBridge.ts`
+
+Compatibility re-exportを旧`gameplay/EventManager.ts`に残し、一括renameによる破壊を避けた。全旧Feature folderの物理移動は行わず、Public Entryにexportされないものをinternalとして文書化した。
+
+### 13.6 Core, feature, game and dev boundaries
+
+- Core: Engine/Scene/typed events/Player/Visual/World bootstrap。
+- Feature: Map/Navigation/Interactionをservice contract越しにcompose。
+- Sample Game: ESCAPE/STEALTH/EXPLORATIONとscenario factoryを`game/sample`に隔離し、独立entryを追加。
+- Dev: Debug composition、TestBridge integration、WebMCP integration。Framework Public Entryから依存しない。
+- Compatibility: current Laboratory UI/TestBridge向けdeprecated adapter。
+
+公開event mapはMap/Navigation lifecycleに限定し、Mission event vocabularyはPublic Framework Entryへexportしない。
+
+### 13.7 Lifecycle and multiple-instance preparation
+
+`DefaultFrameworkFacade`はinstance-localなEngine、Scene、World、Events、Navigation、Map、Interactionを所有する。通常利用で`window.xxx`を要求せず、canvasごとのinstance作成が可能な構造。Dev/Testの`window.__SPACE_LAB_TEST__`だけはLegacy pathに限定した。
+
+Public `dispose()`はinteraction、map、navigation、visual/events、Scene、Engine、resize/orientation/VisualViewport listenerをcleanupし、冪等に`DISPOSED`へ遷移する。
+
+### 13.8 Regression
+
+| Check | Result |
+|---|---|
+| BUILD | PASS, TypeScript + Vite, 586 modules |
+| FRAMEWORK API TEST | PASS 1/1: start/world/map/events/player/navigation/interaction/visual/dispose |
+| Full E2E | PASS 12/12 |
+| SMOKE | PASS 1/1 |
+| STABILITY | PASS 3 seed pairs |
+| VISUAL | PASS desktop + mobile |
+| CHUNK | PASS export/import/expansion/boundary/hybrid/unload |
+| PERFORMANCE | PASS desktop normal/stress + mobile low; all budgets `OK` |
+| DEMO | PASS headed 1/1 |
+| MOBILE | PASS virtual controls and mobile UI |
+| ARCHITECTURE | PASS, 116 TypeScript modules, circular dependencies 0 |
+| ESCAPE | PASS |
+| STEALTH | PASS |
+| EXPLORATION | PASS |
+
+Production main bundle: approximately **2,130.89 kB** minified / **610.30 kB gzip**。Phase 3比は約+1.83 kB minified / +0.53 kB gzip。Public API追加による小幅増加で、Performance budget regressionはない。Public indexはSample Game/Dev/Compatibilityを再exportせず、将来のtree shakingとentry分割を阻害しない。
+
+### 13.9 Public documentation
+
+- `FRAMEWORK_API.md`: Quick Start、Lifecycle、Configuration、World、Map、Player、Navigation、Interaction、Visual、Events、Feature Access、Game Composition、Restart、Dispose、Compatibility、SemVer。
+- `FOLDER_STRUCTURE.md`: Public/Internal/Compatibility/Sample Game/Dev構成とdependency direction。
+
+### 13.10 Remaining high risk
+
+1. Internal `ApplicationHost.ts`は依然約521 linesで、UI/session/game result/event wiringの分割余地がある。
+2. Deprecated `LaboratoryApi`のMission/Inventory/Debug/Test surfaceは巨大で、Legacy consumerが残る。
+3. Map/Score/Movement browser persistenceはStoragePort未導入。
+4. Public feature toggleはcomposition制御のみで、dynamic importによるbundle分割は未実装。
+5. Main bundleは約2.13 MBで、RecastとSample/Dev entryの遅延load余地がある。
+
+### 13.11 Phase 5 top 5
+
+1. `ApplicationHost`をGameSession controller、UI controller、Game generation flow、render telemetryへ分割する。
+2. TestBridge/DebugPanelを`LaboratoryApi`からDiagnostics/TestControl portsへ移行し、Legacy surfaceを縮小する。
+3. StoragePort + BrowserStorageAdapterを導入し、Map/Score/Movement persistenceを分離する。
+4. Feature profile (`minimal/world/simulation/game/development`)とregistration registryを導入する。
+5. Recast、Sample Game、Dev/Test toolingをdynamic importし、Public Core bundleを計測・分割する。
+
+## 14. Git
 
 この Phase では commit と tag を作成していない。
