@@ -1,21 +1,17 @@
 import type { GuideTargetType } from "./ObjectiveManager";
 import type { GamePlacement } from "./GamePlacementManager";
+import type { MissionPrerequisites, MissionStepContract, MissionStepStatus } from "../contracts/MissionContracts";
+
+export type { MissionPrerequisites, MissionStepStatus } from "../contracts/MissionContracts";
 
 export type MissionType = "ESCAPE" | "ACCESS_CONTROL" | "POWER_RESTORE" | "MULTI_BUILDING" | "TOWER";
 export type MissionDifficulty = "EASY" | "NORMAL" | "HARD";
-export type MissionStepStatus = "LOCKED" | "ACTIVE" | "COMPLETED" | "FAILED";
 export type MissionStepType = "START" | "FIND_ITEM" | "VISIT" | "OPEN_DOOR" | "ACTIVATE_SWITCH" | "REACH_GOAL";
 
-export interface MissionPrerequisites { mode: "AND" | "OR"; stepIds: string[] }
-export interface MissionStep {
-  id: string;
+export interface MissionStep extends MissionStepContract<GuideTargetType> {
   type: MissionStepType;
-  targetIds: string[];
-  targetType: GuideTargetType;
-  description: string;
   status: MissionStepStatus;
   prerequisites: MissionPrerequisites;
-  optional?: boolean;
 }
 
 export interface MissionItemSpec {

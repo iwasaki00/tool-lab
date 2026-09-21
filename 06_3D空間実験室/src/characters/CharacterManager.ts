@@ -14,7 +14,7 @@ import { createHumanoid } from "./CharacterFactory";
 import { NPCCharacter } from "./NPCCharacter";
 import { EnemyCharacter } from "./EnemyCharacter";
 import type { CharacterController, CharacterDebugInfo } from "./Character";
-import type { NavigationManager } from "../navigation/NavigationManager";
+import type { INavigationService } from "../contracts/ServiceContracts";
 import type { EnemyDebugState } from "./EnemyCharacter";
 
 export interface CharacterManagerDebug {
@@ -55,7 +55,7 @@ export class CharacterManager {
     private readonly objectives: ObjectiveManager,
     private readonly onMessage: (message: string) => void,
     setPlayerInputEnabled: (enabled: boolean) => void,
-    private readonly navigation?: NavigationManager,
+    private readonly navigation?: INavigationService,
     private readonly onCaught: (id: string) => void = () => undefined,
     private readonly maxEnemies = Number.POSITIVE_INFINITY,
   ) {

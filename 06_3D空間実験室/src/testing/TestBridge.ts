@@ -35,6 +35,7 @@ export interface SpaceLabTestBridge {
   getVisualState: () => ReturnType<LaboratoryApi["visualState"]> & { fps: number };
   setEnvironmentPreset: (preset: EnvironmentPreset) => void;
   setVisualQuality: (quality: VisualQuality) => void;
+  getPerformanceState: () => ReturnType<LaboratoryApi["visualState"]> & { fps: number; loadedChunks: number };
   teleportToObjective: () => void;
   teleportToStart: () => void;
   teleportToGoal: () => void;
@@ -86,6 +87,7 @@ export function installTestBridge(options: {
     getVisualState: () => ({ ...lab().visualState(), fps: lab().scene.getEngine().getFps() }),
     setEnvironmentPreset: (preset) => lab().setEnvironmentPreset(preset),
     setVisualQuality: (quality) => lab().setVisualQuality(quality),
+    getPerformanceState: () => ({ ...lab().visualState(), fps: lab().scene.getEngine().getFps(), loadedChunks: lab().mapState().loadedChunks.length }),
     teleportToObjective: () => lab().debugCommand("teleport-current"),
     teleportToStart: () => lab().debugCommand("teleport-start"),
     teleportToGoal: () => lab().debugCommand("teleport-goal"),

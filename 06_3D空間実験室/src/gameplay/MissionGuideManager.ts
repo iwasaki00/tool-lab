@@ -13,7 +13,7 @@ import type { WorldArea } from "../world/SemanticTypes";
 import type { WorldRegistry } from "../world/WorldRegistry";
 import type { GuideTargetType, MissionObjective, ObjectiveManager } from "./ObjectiveManager";
 import type { MissionStep } from "./MissionTypes";
-import type { NavigationManager } from "../navigation/NavigationManager";
+import type { INavigationService } from "../contracts/ServiceContracts";
 
 export type MissionGuideMode = "OFF" | "NORMAL" | "DEBUG" | "DEBUG_ALL";
 
@@ -52,7 +52,7 @@ export class MissionGuideManager {
   private navigationDistance = 0;
   private debug: MissionGuideDebugInfo = { objectiveId: "none", targetId: "—", targetType: "—", distance: 0, heightDiff: 0, visible: false, onScreen: false, status: "GUIDE TARGET NOT FOUND" };
 
-  constructor(private readonly scene: Scene, private readonly camera: Camera, private readonly registry: WorldRegistry, objectives: ObjectiveManager, private readonly getSteps: () => MissionStep[] = () => [], private readonly navigation?: NavigationManager) {
+  constructor(private readonly scene: Scene, private readonly camera: Camera, private readonly registry: WorldRegistry, objectives: ObjectiveManager, private readonly getSteps: () => MissionStep[] = () => [], private readonly navigation?: INavigationService) {
     this.edge = document.querySelector("#mission-guide-edge");
     this.edgeArrow = document.querySelector("#mission-guide-arrow");
     this.edgeLabel = document.querySelector("#mission-guide-label");

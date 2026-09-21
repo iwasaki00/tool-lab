@@ -2,8 +2,9 @@ import type { Camera } from "@babylonjs/core/Cameras/camera";
 import type { Observer } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Interactable, InteractionFocus } from "./Interactable";
+import type { IInteractionService } from "../contracts/ServiceContracts";
 
-export class InteractionManager {
+export class InteractionManager implements IInteractionService {
   private readonly targets = new Map<number, Interactable>();
   private focused?: Interactable;
   private focusInfo?: InteractionFocus;

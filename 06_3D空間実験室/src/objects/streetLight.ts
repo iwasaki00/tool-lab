@@ -17,10 +17,13 @@ export function createStreetLight(ctx: ObjectContext, position: Vector3, lampMat
   const pole = MeshBuilder.CreateCylinder("street-light-pole", { height: 4.2, diameter: .14, tessellation: 8 }, ctx.scene);
   pole.position.y = 2.1; pole.parent = root; pole.material = metal; pole.checkCollisions = true;
   const arm = MeshBuilder.CreateBox("street-light-arm", { width: .9, height: .12, depth: .12 }, ctx.scene);
-  arm.position.set(.38, 4.1, 0); arm.parent = root; arm.material = metal;
+  arm.position.set(.38, 4.1, 0); arm.material = metal;
+  pole.parent = null;
+  const frame = Mesh.MergeMeshes([pole, arm], true, true, undefined, false, false);
+  if (frame) { frame.name = "street-light-frame"; frame.parent = root; frame.material = metal; frame.checkCollisions = true; frame.metadata = { visualLod: 1 }; }
   const head = MeshBuilder.CreateBox("street-light-glow", { width: .48, height: .2, depth: .42 }, ctx.scene);
-  head.position.set(.78, 3.98, 0); head.parent = root; head.material = lamp;
-  ctx.shadows.addShadowCaster(pole);
+  head.position.set(.78, 3.98, 0); head.parent = root; head.material = lamp; head.metadata = { visualLod: 0 };
+  if (frame) ctx.shadows.addShadowCaster(frame);
   ctx.registerDynamic?.(root);
   return root;
 }

@@ -32,8 +32,12 @@ import { WorldMapManager } from "../map/WorldMapManager";
 import type { MapStateSnapshot, WorldMapData } from "../map/WorldMapData";
 import { VisualManager } from "../visual/VisualManager";
 import type { EnvironmentPreset, VisualQuality, VisualState } from "../visual/VisualConfig";
+import { EventManager } from "../gameplay/EventManager";
+import { FRAMEWORK_EVENT, type FrameworkEventMap, type MapStatusEvent, type NavigationStatusEvent } from "../contracts/FrameworkEvents";
+import type { FrameworkContext } from "../contracts/FrameworkContext";
 
 export interface LaboratoryApi {
+  framework: FrameworkContext;
   scene: Scene;
   player: PlayerController;
   setDayMode: (isDay: boolean) => void;
@@ -97,6 +101,8 @@ export interface SceneOptions {
   citySettings?: CitySettings;
   gameplayCallbacks?: GameplayCallbacks;
   gameMode?: GameMode;
+  onMapStatus?: (event: MapStatusEvent) => void;
+  onNavigationStatus?: (event: NavigationStatusEvent) => void;
 }
 
 export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement, mobile: boolean, options: SceneOptions = {}): LaboratoryApi {
@@ -117,6 +123,9 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   const registerDynamic = (mesh: Mesh) => dynamicRoots.push(mesh);
   const ctx: ObjectContext = { scene, shadows, registerDynamic, materials: visuals.materials };
   const registry = new WorldRegistry();
+  const frameworkEvents = new EventManager<FrameworkEventMap>();
+  if (options.onMapStatus) frameworkEvents.on(FRAMEWORK_EVENT.MAP_STATUS_CHANGED, options.onMapStatus);
+  if (options.onNavigationStatus) frameworkEvents.on(FRAMEWORK_EVENT.NAVIGATION_STATUS_CHANGED, options.onNavigationStatus);
 
   const ground = createGround(scene); ground.material = visuals.materials.getGroundMaterial();
   let generatedCity: ReturnType<typeof createCity> | undefined;
@@ -150,10 +159,22 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   const missionSpawn = camera.position.clone();
   let currentGuideMode: MissionGuideMode = "DEBUG";
   let currentEnemyAI = true;
-  const navigation = new NavigationManager(scene, registry);
-  const createMission = (settings: CitySettings) => createDemoScenario(ctx, camera, missionSpawn.clone(), callbacks, registry, generatedCity?.interiorSites, settings.seed, settings.missionSeed, settings.missionType, settings.missionDifficulty, mobile, (enabled) => player.setInputEnabled(enabled), navigation, options.gameMode ?? "ESCAPE");
+  const navigation = new NavigationManager(scene, registry, (event) => frameworkEvents.emit(FRAMEWORK_EVENT.NAVIGATION_STATUS_CHANGED, event));
+  const createMission = (settings: CitySettings) => createDemoScenario(ctx, camera, missionSpawn.clone(), callbacks, registry, generatedCity?.interiorSites, settings.seed, settings.missionSeed, settings.missionType, settings.missionDifficulty, mobile, (enabled) => player.setInputEnabled(enabled), navigation, options.gameMode ?? "ESCAPE", frameworkEvents);
   let demoScenario = createMission(citySettings);
-  const worldMap = new WorldMapManager(ctx, registry, camera, citySettings.seed, citySettings.style, () => navigation.requestRebuild());
+  const worldMap = new WorldMapManager(ctx, registry, camera, citySettings.seed, citySettings.style, () => navigation.requestRebuild(), mobile, (event) => frameworkEvents.emit(FRAMEWORK_EVENT.MAP_STATUS_CHANGED, event));
+  const framework: FrameworkContext = {
+    scene,
+    player,
+    services: {
+      world: registry,
+      navigation,
+      map: worldMap,
+      get interaction() { return demoScenario.interactionService; },
+      events: frameworkEvents,
+      visual: visuals,
+    },
+  };
 
   const spawnAhead = (height: number): Vector3 => {
     const direction = camera.getForwardRay().direction.clone();
@@ -169,6 +190,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
   };
 
   return {
+    framework,
     scene,
     player,
     setDayMode,
@@ -187,7 +209,7 @@ export function createLaboratoryScene(engine: Engine, canvas: HTMLCanvasElement,
     objectCount: () => scene.meshes.filter((mesh) => mesh.name !== "sky").length,
     telemetry: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, mode: currentMode, worldMode, seed: generatedCity?.stats.seed, style: generatedCity?.stats.styleLabel }),
     cityStats: () => generatedCity?.stats,
-    disposeWorld: () => { demoScenario.dispose(); worldMap.dispose(); navigation.dispose(); generatedCity?.dispose(); visuals.dispose(); },
+    disposeWorld: () => { demoScenario.dispose(); worldMap.dispose(); navigation.dispose(); frameworkEvents.clear(); generatedCity?.dispose(); visuals.dispose(); },
     interact: () => demoScenario.interact(),
     interactionDebug: () => demoScenario.focus(),
     inventory: () => demoScenario.inventory(),

@@ -7,7 +7,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { InventoryEntry, InventoryManager } from "../gameplay/InventoryManager";
 import type { MissionPlan, MissionRuntimeSnapshot, MissionStep } from "../gameplay/MissionTypes";
 import type { MissionRuntime } from "../gameplay/MissionRuntime";
-import type { NavigationManager } from "../navigation/NavigationManager";
+import type { INavigationService } from "../contracts/ServiceContracts";
 import type { DoorController } from "../objects/interactiveDoor";
 import type { SwitchController } from "../objects/interactiveSwitch";
 import type { WorldRegistry } from "../world/WorldRegistry";
@@ -46,7 +46,7 @@ export class DebugTestManager {
     private readonly plan: MissionPlan,
     private readonly runtime: MissionRuntime,
     private readonly inventory: InventoryManager,
-    private readonly navigation?: NavigationManager,
+    private readonly navigation?: INavigationService,
   ) {
     this.pointerObserver = scene.onPointerObservable.add((info) => {
       if (!this.selectMode || info.type !== PointerEventTypes.POINTERPICK || !info.pickInfo?.pickedMesh) return;

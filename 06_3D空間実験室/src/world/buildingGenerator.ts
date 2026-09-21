@@ -42,7 +42,7 @@ export function createBuilding(ctx: ObjectContext, options: CityBuildingOptions)
   if (options.hasInterior) createExteriorShell(ctx, root, options.width, options.depth, height, bodyMat);
   else {
     const body = MeshBuilder.CreateBox("building-body", { width: options.width, height, depth: options.depth }, ctx.scene);
-    body.position.y = height / 2; body.parent = root; body.material = bodyMat; body.checkCollisions = true; body.receiveShadows = true;
+    body.position.y = height / 2; body.parent = root; body.material = bodyMat; body.checkCollisions = true; body.receiveShadows = true; body.metadata = { visualLod: 2 };
     ctx.shadows.addShadowCaster(body);
   }
   createRoof(ctx, root, options.width, options.depth, height, options.roofShape, trimMat);
@@ -63,15 +63,15 @@ function createFacade(ctx: ObjectContext, root: Mesh, options: CityBuildingOptio
       window.material = glass; window.isPickable = false; windows.push(window);
     }
   }
-  const merged = windows.length ? Mesh.MergeMeshes(windows, true, true, undefined, false, true) : null;
+  const merged = windows.length ? Mesh.MergeMeshes(windows, true, true, undefined, false, false) : null;
   if (merged) { merged.name = "building-windows"; merged.parent = root; merged.metadata = { visualRole: "window", visualLod: 0 }; }
 
   if (options.hasInterior) return;
   const doorX = options.doorPosition === "left" ? -options.width * .28 : options.doorPosition === "right" ? options.width * .28 : 0;
   const door = MeshBuilder.CreateBox("building-door", { width: 1.25, height: 2.2, depth: .13 }, ctx.scene);
-  door.position.set(doorX, 1.1, -options.depth / 2 - .08); door.parent = root; door.material = trim; door.isPickable = false;
+  door.position.set(doorX, 1.1, -options.depth / 2 - .08); door.parent = root; door.material = trim; door.isPickable = false; door.metadata = { visualLod: 0 };
   const entrance = MeshBuilder.CreateBox("building-entrance", { width: 2.1, height: .18, depth: 1.05 }, ctx.scene);
-  entrance.position.set(doorX, .09, -options.depth / 2 - .55); entrance.parent = root; entrance.material = trim; entrance.checkCollisions = true;
+  entrance.position.set(doorX, .09, -options.depth / 2 - .55); entrance.parent = root; entrance.material = trim; entrance.checkCollisions = true; entrance.metadata = { visualLod: 0 };
   const awning = MeshBuilder.CreateBox("building-awning", { width: 2.2, height: .16, depth: .9 }, ctx.scene);
   awning.position.set(doorX, 2.45, -options.depth / 2 - .42); awning.parent = root; awning.material = trim;
   awning.metadata = { visualLod: 0 };
@@ -90,23 +90,25 @@ function createExteriorShell(ctx: ObjectContext, root: Mesh, width: number, dept
     { name: "exterior-front-right", w: frontPart, h: height, d: thickness, x: doorway / 2 + frontPart / 2, y: height / 2, z: -depth / 2 },
     { name: "exterior-door-header", w: doorway, h: Math.max(.2, height - doorwayHeight), d: thickness, x: 0, y: doorwayHeight + Math.max(.2, height - doorwayHeight) / 2, z: -depth / 2 },
   ];
-  parts.forEach((part) => {
+  const walls = parts.map((part) => {
     const wall = MeshBuilder.CreateBox(part.name, { width: part.w, height: part.h, depth: part.d }, ctx.scene);
-    wall.position.set(part.x, part.y, part.z); wall.parent = root; wall.material = material; wall.checkCollisions = true; wall.receiveShadows = true; ctx.shadows.addShadowCaster(wall);
+    wall.position.set(part.x, part.y, part.z); wall.material = material; return wall;
   });
+  const shell = Mesh.MergeMeshes(walls, true, true, undefined, false, false);
+  if (shell) { shell.name = "building-exterior-shell"; shell.parent = root; shell.material = material; shell.checkCollisions = true; shell.receiveShadows = true; shell.metadata = { visualLod: 2 }; ctx.shadows.addShadowCaster(shell); }
 }
 
 function createRoof(ctx: ObjectContext, root: Mesh, width: number, depth: number, height: number, shape: RoofShape, material: StandardMaterial): void {
   if (shape === "gable") {
     const roof = MeshBuilder.CreateCylinder("building-gable-roof", { height: depth + .5, diameter: width * .74, tessellation: 3 }, ctx.scene);
-    roof.rotation.x = Math.PI / 2; roof.rotation.y = Math.PI / 2; roof.position.y = height + width * .21; roof.parent = root; roof.material = material;
+    roof.rotation.x = Math.PI / 2; roof.rotation.y = Math.PI / 2; roof.position.y = height + width * .21; roof.parent = root; roof.material = material; roof.metadata = { visualLod: 1 };
     ctx.shadows.addShadowCaster(roof);
     return;
   }
   const roof = MeshBuilder.CreateBox("building-roof", { width: width + .45, height: shape === "stepped" ? .8 : .28, depth: depth + .45 }, ctx.scene);
-  roof.position.y = height + (shape === "stepped" ? .4 : .14); roof.parent = root; roof.material = material; ctx.shadows.addShadowCaster(roof);
+  roof.position.y = height + (shape === "stepped" ? .4 : .14); roof.parent = root; roof.material = material; roof.metadata = { visualLod: 1 }; ctx.shadows.addShadowCaster(roof);
   if (shape === "stepped") {
     const cap = MeshBuilder.CreateBox("building-roof-cap", { width: width * .58, height: .6, depth: depth * .58 }, ctx.scene);
-    cap.position.y = height + 1.1; cap.parent = root; cap.material = material;
+    cap.position.y = height + 1.1; cap.parent = root; cap.material = material; cap.metadata = { visualLod: 1 };
   }
 }

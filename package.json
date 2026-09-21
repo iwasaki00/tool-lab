@@ -1,7 +1,7 @@
 {
   "name": "tool-lab-3d-space-laboratory",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite 06_3D空間実験室",
@@ -12,6 +12,7 @@
     "test:stability": "playwright test tests/e2e/stability.spec.ts",
     "test:chunks": "playwright test tests/e2e/map-chunks.spec.ts",
     "test:visual": "playwright test tests/e2e/visual.spec.ts",
+    "test:performance": "playwright test tests/e2e/performance.spec.ts",
     "demo": "playwright test tests/e2e/demo.spec.ts --headed --workers=1",
     "demo:e2e": "playwright test tests/e2e/demo.spec.ts --headed --workers=1",
     "demo:chunks": "playwright test tests/e2e/chunk-demo.spec.ts --headed --workers=1",

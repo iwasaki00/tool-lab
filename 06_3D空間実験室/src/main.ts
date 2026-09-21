@@ -20,6 +20,7 @@ import { installTestBridge, type TestStartOptions } from "./testing/TestBridge";
 import { FRAMEWORK_VERSION, MAP_FORMAT_VERSION, logFrameworkVersion } from "./core/version";
 import type { WorldMapData } from "./map/WorldMapData";
 import type { EnvironmentPreset, VisualQuality } from "./visual/VisualConfig";
+import { renderMapStatus, renderNavigationStatus } from "./ui/frameworkStatusUi";
 
 const mobile = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
 logFrameworkVersion();
@@ -72,7 +73,7 @@ try {
   // Mobile Safari/Chrome can report DPR 3–4. Rendering at that full backing resolution
   // multiplies fill cost without improving playability on a small screen.
   engine.setHardwareScalingLevel(mobile ? 1 : 1 / Math.min(window.devicePixelRatio || 1, 2));
-  laboratory = createLaboratoryScene(engine, canvas, mobile, { worldMode: currentWorld, citySettings, gameplayCallbacks: gameCallbacks, gameMode: gameConfig.mode });
+  laboratory = createLaboratoryScene(engine, canvas, mobile, { worldMode: currentWorld, citySettings, gameplayCallbacks: gameCallbacks, gameMode: gameConfig.mode, onMapStatus: renderMapStatus, onNavigationStatus: renderNavigationStatus });
   laboratory.player.setMovementSpeeds(movementSettings);
   laboratory.setMissionGuideMode(currentGuideMode);
   gameplayUi.setInteractHandler(() => getLaboratory().interact());
@@ -174,7 +175,7 @@ try {
     detachMobileControls();
     getLaboratory().disposeWorld();
     getLaboratory().scene.dispose();
-    laboratory = createLaboratoryScene(getEngine(), canvas!, mobile, { worldMode: mode, citySettings: settings, gameplayCallbacks: gameCallbacks, gameMode: gameConfig.mode });
+    laboratory = createLaboratoryScene(getEngine(), canvas!, mobile, { worldMode: mode, citySettings: settings, gameplayCallbacks: gameCallbacks, gameMode: gameConfig.mode, onMapStatus: renderMapStatus, onNavigationStatus: renderNavigationStatus });
     laboratory.player.setMovementSpeeds(movementSettings);
     laboratory.setMissionGuideMode(currentGuideMode);
     laboratory.setEnemyAI(enemyAIEnabled && !missionTestMode);
@@ -379,7 +380,7 @@ try {
     if (now - lastTelemetryUpdate > 250) {
       const telemetry = getLaboratory().telemetry();
       controls.updateTelemetry(getEngine().getFps(), telemetry.worldMode, telemetry.seed, telemetry.style);
-      updateDebugReadout(getEngine(), getLaboratory(), mobile);
+      if (debugPanel.isOpen()) updateDebugReadout(getEngine(), getLaboratory(), mobile);
       gameSession?.tick();
       const detectionValue = getLaboratory().characterDebug().detection;
       setText("detection-value", `${Math.round(detectionValue * 100)}%`);

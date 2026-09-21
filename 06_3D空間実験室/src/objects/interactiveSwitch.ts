@@ -1,14 +1,13 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
-import type { EventManager } from "../gameplay/EventManager";
-import type { InteractionManager } from "../interaction/InteractionManager";
+import type { IEventService, IInteractionService } from "../contracts/ServiceContracts";
 import { createMaterial } from "../utils/materials";
 import type { ObjectContext } from "./primitives";
 
 export interface SwitchController { id: string; on: () => void; off: () => void; toggle: () => void; reset: () => void; isActive: () => boolean }
 
-export function createSwitch(ctx: ObjectContext, interactions: InteractionManager, events: EventManager, options: { id: string; position: Vector3; eventId: string; emitEvent?: boolean; onMessage: (message: string) => void; onActivate?: () => void }): SwitchController {
+export function createSwitch(ctx: ObjectContext, interactions: IInteractionService, events: IEventService, options: { id: string; position: Vector3; eventId: string; emitEvent?: boolean; onMessage: (message: string) => void; onActivate?: () => void }): SwitchController {
   const base = MeshBuilder.CreateBox(`${options.id}-base`, { width: 1, height: 2.2, depth: .35 }, ctx.scene);
   base.position.copyFrom(options.position).addInPlaceFromFloats(0, 1.1, 0);
   base.material = createMaterial(ctx.scene, `${options.id}-base-material`, new Color3(.17, .2, .22)); base.checkCollisions = true;

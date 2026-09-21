@@ -3,32 +3,27 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Matrix, Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Observer } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import type { EventManager } from "../gameplay/EventManager";
-import type { InventoryManager } from "../gameplay/InventoryManager";
-import type { ObjectiveManager } from "../gameplay/ObjectiveManager";
-import type { InteractionManager } from "../interaction/InteractionManager";
 import { createDoor } from "../objects/interactiveDoor";
 import type { ObjectContext } from "../objects/primitives";
 import { createBuildingInterior } from "../world/buildingInteriorGenerator";
 import type { InteriorBuildingSite, InteriorNavigation } from "./Room";
-import type { GamePlacementManager } from "../gameplay/GamePlacementManager";
 import { createBounds } from "../world/SemanticTypes";
-import type { WorldRegistry } from "../world/WorldRegistry";
-import type { MissionPlan } from "../gameplay/MissionTypes";
-import type { MissionRuntime } from "../gameplay/MissionRuntime";
+import type { InteriorServices } from "./InteriorContracts";
 
 export class InteriorManager {
   private readonly observer: Observer<Scene>;
   private readonly lights: Array<{ intensity: number; light: { intensity: number } }> = [];
   private readonly lightMaterials: StandardMaterial[] = [];
+  private readonly interiorMeshes = new Map<string, AbstractMesh[]>();
   private lastCheck = 0;
 
   constructor(
     private readonly ctx: ObjectContext,
     private readonly camera: Camera,
     private readonly sites: InteriorBuildingSite[],
-    private readonly deps: { interactions: InteractionManager; inventory: InventoryManager; events: EventManager; objectives: ObjectiveManager; onMessage: (message: string) => void; gateEventId: string; registry: WorldRegistry; placement: GamePlacementManager; missionPlan: MissionPlan; missionRuntime: MissionRuntime; onNavigationChanged?: () => void },
+    private readonly deps: InteriorServices,
   ) {
     sites.forEach((site) => this.createEntrance(site));
     this.observer = ctx.scene.onBeforeRenderObservable.add(() => this.update())!;
@@ -66,8 +61,9 @@ export class InteriorManager {
     const entrance = createDoor(this.ctx, this.deps.interactions, this.deps.inventory, {
       id: `${site.id}_entrance_001`, displayName: site.mission ? "INTERIOR LAB 入口" : `${site.id} 入口`, parent: site.root,
       position: new Vector3(-.8, 0, -site.depth / 2 - .13), width: 1.6, height: 2.9,
-      locked: site.mission, keyId: site.mission ? this.deps.missionPlan.entranceCredential : undefined, color: site.mission ? new Color3(.2, .42, .5) : new Color3(.34, .24, .16), onMessage: this.deps.onMessage,
-      onOpened: site.mission ? () => { if (entrance.isOpen()) this.deps.missionRuntime.completeByTarget(`${site.id}_entrance_001`, "Mission entrance opened"); } : undefined,
+      locked: site.mission, keyId: site.mission ? this.deps.missionContent.entranceCredential : undefined, color: site.mission ? new Color3(.2, .42, .5) : new Color3(.34, .24, .16), onMessage: this.deps.onMessage,
+      onStateChanged: this.deps.onDoorStateChanged,
+      onOpened: site.mission ? () => { if (entrance.isOpen()) this.deps.missionProgress.completeByTarget(`${site.id}_entrance_001`, "Mission entrance opened"); } : undefined,
     });
   }
 
@@ -76,11 +72,17 @@ export class InteriorManager {
     if (!force && now - this.lastCheck < 400) return;
     this.lastCheck = now;
     for (const site of this.sites) {
-      if (site.state === "GENERATED") continue;
       const center = site.root.getAbsolutePosition();
       const dx = center.x - this.camera.position.x; const dz = center.z - this.camera.position.z;
+      if (site.state === "GENERATED") {
+        const visible = dx * dx + dz * dz <= 16 * 16;
+        this.interiorMeshes.get(site.id)?.forEach((mesh) => { if (!mesh.isDisposed()) mesh.setEnabled(visible); });
+        continue;
+      }
       if (dx * dx + dz * dz > 25 * 25) continue;
+      const meshStart = this.ctx.scene.meshes.length;
       const resources = createBuildingInterior(this.ctx, site, this.deps);
+      this.interiorMeshes.set(site.id, this.ctx.scene.meshes.slice(meshStart));
       resources.lights.forEach((light) => this.lights.push({ light, intensity: light.intensity }));
       this.lightMaterials.push(...resources.lightMaterials);
       this.deps.onNavigationChanged?.();

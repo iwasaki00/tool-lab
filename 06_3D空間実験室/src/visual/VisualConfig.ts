@@ -31,8 +31,24 @@ export interface VisualState {
   meshes: number;
   activeMeshes: number;
   shadowCasters: number;
+  textures: number;
+  drawCalls: number;
+  frameTimeMs: number;
+  visibleBuildings: number;
+  windowObjects: number;
+  vegetation: number;
+  streetLights: number;
+  budgetStatus: "OK" | "WARNING";
+  budgetWarnings: string[];
+  materialDuplicateGroups: string[];
   features: VisualFeatureConfig;
 }
+
+export const PERFORMANCE_BUDGETS: Record<ResolvedVisualQuality, { activeMeshes: number; materials: number; lights: number; shadowCasters: number }> = {
+  LOW: { activeMeshes: 420, materials: 130, lights: 6, shadowCasters: 0 },
+  MEDIUM: { activeMeshes: 650, materials: 230, lights: 12, shadowCasters: 180 },
+  HIGH: { activeMeshes: 900, materials: 300, lights: 16, shadowCasters: 280 },
+};
 
 export const DEFAULT_VISUAL_FEATURES: VisualFeatureConfig = { sky: true, clouds: true, fog: true, shadows: true, vegetation: true, streetProps: true };
 

@@ -39,6 +39,14 @@ export function updateDebugReadout(engine: Engine, laboratory: LaboratoryApi, mo
   setText("active-lights-value", String(visual.activeLights));
   setText("material-count-value", String(visual.materials));
   setText("shadow-caster-value", String(visual.shadowCasters));
+  setText("frame-time-value", `${visual.frameTimeMs.toFixed(1)} ms`);
+  setText("texture-count-value", String(visual.textures));
+  setText("draw-call-value", String(visual.drawCalls));
+  setText("visible-building-value", String(visual.visibleBuildings));
+  setText("window-object-value", String(visual.windowObjects));
+  setText("vegetation-count-value", String(visual.vegetation));
+  setText("street-light-count-value", String(visual.streetLights));
+  setText("performance-budget-value", visual.budgetStatus === "OK" ? "OK" : `WARNING: ${visual.budgetWarnings.join(", ")}`);
   setText("camera-value", `${telemetry.x.toFixed(1)} / ${telemetry.y.toFixed(1)} / ${telemetry.z.toFixed(1)}`);
   setText("map-mode-value", map.mode);
   setText("map-seed-value", String(map.worldSeed));

@@ -5,7 +5,7 @@ import type { WorldRegistry } from "../world/WorldRegistry";
 import { CharacterController } from "./Character";
 import type { HumanoidRig } from "./CharacterFactory";
 import { CharacterStateMachine } from "./CharacterStateMachine";
-import type { NavigationManager } from "../navigation/NavigationManager";
+import type { INavigationService } from "../contracts/ServiceContracts";
 
 type NPCState = "IDLE" | "WANDER" | "TALK";
 
@@ -17,7 +17,7 @@ export class NPCCharacter extends CharacterController {
   private forcedTarget?: Vector3;
   private handledStuckCount = 0;
 
-  constructor(id: string, rig: HumanoidRig, areaId: string, private readonly scene: Scene, registry: WorldRegistry, seed: number, private readonly dialogueOpen: () => boolean, private readonly navMesh?: NavigationManager) {
+  constructor(id: string, rig: HumanoidRig, areaId: string, private readonly scene: Scene, registry: WorldRegistry, seed: number, private readonly dialogueOpen: () => boolean, private readonly navMesh?: INavigationService) {
     super(id, "NPC", rig, areaId, 1.2, "IDLE");
     this.navigation = new CharacterNavigation(registry, seed, "NPC", navMesh);
     this.machine = new CharacterStateMachine<NPCState, NPCCharacter>("IDLE", this, {

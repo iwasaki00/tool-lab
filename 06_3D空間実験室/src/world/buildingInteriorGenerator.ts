@@ -4,11 +4,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import type { EventManager } from "../gameplay/EventManager";
-import type { InventoryManager } from "../gameplay/InventoryManager";
-import type { ObjectiveManager } from "../gameplay/ObjectiveManager";
 import { createRoomFurniture } from "../furniture/createFurniture";
-import type { InteractionManager } from "../interaction/InteractionManager";
 import { createDoor } from "../objects/interactiveDoor";
 import { createItem } from "../objects/interactiveItem";
 import { createSwitch } from "../objects/interactiveSwitch";
@@ -16,24 +12,11 @@ import type { ObjectContext } from "../objects/primitives";
 import { SeededRandom } from "../random/seededRandom";
 import { createMaterial } from "../utils/materials";
 import type { FloorData, InteriorBuildingSite, LocalBounds, RoomData, RoomType } from "../interior/Room";
-import type { GamePlacementManager } from "../gameplay/GamePlacementManager";
 import type { WorldRegistry } from "./WorldRegistry";
 import { createBounds, type AreaTag, type AreaType, type WorldBounds } from "./SemanticTypes";
-import type { MissionPlan } from "../gameplay/MissionTypes";
-import type { MissionRuntime } from "../gameplay/MissionRuntime";
+import type { InteriorServices } from "../interior/InteriorContracts";
 
-export interface InteriorGenerationDeps {
-  interactions: InteractionManager;
-  inventory: InventoryManager;
-  events: EventManager;
-  objectives: ObjectiveManager;
-  onMessage: (message: string) => void;
-  gateEventId: string;
-  registry: WorldRegistry;
-  placement: GamePlacementManager;
-  missionPlan: MissionPlan;
-  missionRuntime: MissionRuntime;
-}
+export type InteriorGenerationDeps = InteriorServices;
 
 export interface GeneratedInteriorResources {
   floorData: FloorData[];
@@ -46,13 +29,13 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
   const random = new SeededRandom(site.seed);
   const floors = Math.max(1, Math.min(site.floors, 3));
   const corridorWidth = 2.2;
-  const wallMaterial = createMaterial(ctx.scene, `${site.id}-interior-wall`, new Color3(.58, .57, .53));
-  const floorMaterial = createMaterial(ctx.scene, `${site.id}-interior-floor`, new Color3(.32, .31, .29));
-  const ceilingMaterial = createMaterial(ctx.scene, `${site.id}-interior-ceiling`, new Color3(.72, .72, .68));
+  const wallMaterial = ctx.materials?.getConcreteMaterial(new Color3(.58, .57, .53)) ?? createMaterial(ctx.scene, `${site.id}-interior-wall`, new Color3(.58, .57, .53));
+  const floorMaterial = ctx.materials?.getConcreteMaterial(new Color3(.32, .31, .29)) ?? createMaterial(ctx.scene, `${site.id}-interior-floor`, new Color3(.32, .31, .29));
+  const ceilingMaterial = ctx.materials?.getConcreteMaterial(new Color3(.72, .72, .68)) ?? createMaterial(ctx.scene, `${site.id}-interior-ceiling`, new Color3(.72, .72, .68));
   const floorData: FloorData[] = [];
   const lights: PointLight[] = [];
   const lightMaterials: StandardMaterial[] = [];
-  const windowMaterial = createMaterial(ctx.scene, `${site.id}-interior-window`, new Color3(.38, .62, .72), .55);
+  const windowMaterial = ctx.materials?.getInteriorWindowMaterial() ?? createMaterial(ctx.scene, `${site.id}-interior-window`, new Color3(.38, .62, .72), .55);
   windowMaterial.emissiveColor = new Color3(.12, .18, .2); lightMaterials.push(windowMaterial);
   const rowCount = site.depth >= 13 ? 2 : 1;
   const usableDepth = site.depth - .6;
@@ -85,14 +68,15 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
         };
         const doorId = `${site.id}_door_${floor + 1}_${roomIndex}`;
         room.doors.push(doorId);
-        const lockedControlDoor = site.mission && type === "CONTROL_ROOM" && Boolean(deps.missionPlan.interior.controlDoorCredential);
+        const lockedControlDoor = site.mission && type === "CONTROL_ROOM" && Boolean(deps.missionContent.interior.controlDoorCredential);
         const hingeX = side * corridorWidth / 2;
         createDoor(ctx, deps.interactions, deps.inventory, {
           id: doorId, displayName: `${type} ドア`, parent: site.root,
           position: new Vector3(hingeX, floorY, doorZ - .65), width: 1.3, height: 2.8,
-          rotation: Math.PI / 2, locked: lockedControlDoor, keyId: lockedControlDoor ? deps.missionPlan.interior.controlDoorCredential : undefined,
+          rotation: Math.PI / 2, locked: lockedControlDoor, keyId: lockedControlDoor ? deps.missionContent.interior.controlDoorCredential : undefined,
           color: new Color3(.36, .29, .21), onMessage: deps.onMessage,
-          onOpened: site.mission && type === "CONTROL_ROOM" ? () => deps.missionRuntime.completeByTarget(doorId, "Control Room reached") : undefined,
+          onStateChanged: deps.onDoorStateChanged,
+          onOpened: site.mission && type === "CONTROL_ROOM" ? () => deps.missionProgress.completeByTarget(doorId, "Control Room reached") : undefined,
         });
         const doorWorld = Vector3.TransformCoordinates(new Vector3(hingeX, floorY + 1.4, doorZ), site.root.getWorldMatrix());
         deps.registry.register({ id: doorId, type: "DOOR", position: doorWorld, bounds: createBounds(doorWorld, 1.8, 1.2, floorY, floorY + 3), floor: floor + 1, buildingId: site.id, roomId: room.id, connections: [room.id, `${site.id}_corridor_${floor + 1}`], tags: ["indoor", "private", ...(lockedControlDoor ? ["mission" as const] : [])], importance: lockedControlDoor ? 9 : 3, metadata: { locked: Boolean(lockedControlDoor) } });
@@ -107,7 +91,7 @@ export function createBuildingInterior(ctx: ObjectContext, site: InteriorBuildin
     const corridor: LocalBounds = { minX: -corridorWidth / 2, maxX: corridorWidth / 2, minZ: -site.depth / 2 + .3, maxZ: site.depth / 2 - .3 };
     const stairLayout = getStairLayout(site, corridorWidth);
     floorData.push({ floor: floor + 1, corridor, rooms, staircase: floor < floors - 1 ? { minX: stairLayout.openingMinX, maxX: stairLayout.openingMaxX, minZ: stairLayout.startZ, maxZ: stairLayout.endZ } : undefined });
-    const lampMaterial = createMaterial(ctx.scene, `${site.id}-ceiling-light-${floor + 1}`, new Color3(.82, .78, .58), .6);
+    const lampMaterial = ctx.materials?.getInteriorLightMaterial() ?? createMaterial(ctx.scene, `${site.id}-ceiling-light-${floor + 1}`, new Color3(.82, .78, .58), .6);
     lampMaterial.emissiveColor = new Color3(.25, .22, .12); lightMaterials.push(lampMaterial);
     const panel = MeshBuilder.CreateBox("interior-light-panel", { width: 1.5, height: .06, depth: .55 }, ctx.scene);
     panel.position.set(0, floorY + site.floorHeight - .16, 0); panel.parent = site.root; panel.material = lampMaterial;
@@ -195,34 +179,35 @@ export function createStaircase(ctx: ObjectContext, site: InteriorBuildingSite, 
     const step = MeshBuilder.CreateBox("stair-step-part", { width: 1.8, height: .16, depth: run / stepCount + .03 }, ctx.scene);
     step.position.set(layout.centerX, floorY + (i + 1) * rise / stepCount, stairStartZ + (i + .5) * run / stepCount); step.material = material; steps.push(step);
   }
-  const merged = Mesh.MergeMeshes(steps, true, true, undefined, false, true);
+  const merged = Mesh.MergeMeshes(steps, true, true, undefined, false, false);
   if (merged) { merged.name = `${site.id}-stairs`; merged.parent = site.root; merged.checkCollisions = false; }
   const slope = MeshBuilder.CreateBox(`${site.id}-stair-collider`, { width: 1.75, height: .12, depth: Math.hypot(run, rise) }, ctx.scene);
   slope.position.set(layout.centerX, floorY + rise / 2, stairStartZ + run / 2); slope.rotation.x = -Math.atan2(rise, run); slope.parent = site.root; slope.checkCollisions = true;
-  const invisible = createMaterial(ctx.scene, `${site.id}-stair-collider-material`, Color3.Black()); invisible.alpha = 0; slope.material = invisible; slope.visibility = .01;
+  const invisible = ctx.materials?.getInvisibleMaterial() ?? createMaterial(ctx.scene, `${site.id}-stair-collider-material`, Color3.Black()); invisible.alpha = 0; slope.material = invisible; slope.visibility = .01;
 }
 
 function createMissionContents(ctx: ObjectContext, site: InteriorBuildingSite, deps: InteriorGenerationDeps): void {
   const controlArea = deps.placement.chooseArea(["CONTROL_ROOM"], ["high_floor", "private"], undefined, 0, site.id);
   const controlDoorId = controlArea?.metadata?.doorId;
   if (!controlArea) return;
-  if (deps.missionPlan.interior.itemIds.includes(`${site.id}_item_card_001`)) {
+  if (deps.missionContent.interior.itemIds.includes(`${site.id}_item_card_001`)) {
     const upperRooms = deps.registry.getAreasOnFloor(2, site.id).filter((area) => ["STORAGE", "OFFICE", "ROOM"].includes(area.type));
     const cardArea = upperRooms[0] ?? deps.placement.chooseArea(["STORAGE", "OFFICE", "ROOM"], ["high_floor", "private"], undefined, 0, site.id);
     if (cardArea) {
       const card = deps.placement.place(`${site.id}_item_card_001`, "CARD_KEY", cardArea, .48); deps.placement.registerSpawn(card);
-      createItem(ctx, deps.interactions, deps.inventory, { id: card.id, itemId: "card_key", displayName: "カードキー", position: new Vector3(card.position.x, card.position.y, card.position.z), color: new Color3(.2, .72, .9), onMessage: deps.onMessage, onPickup: () => deps.missionRuntime.completeByTarget(card.id, "Card key acquired") });
+      createItem(ctx, deps.interactions, deps.inventory, { id: card.id, itemId: "card_key", displayName: "カードキー", position: new Vector3(card.position.x, card.position.y, card.position.z), color: new Color3(.2, .72, .9), onMessage: deps.onMessage, onPickup: () => deps.missionProgress.completeByTarget(card.id, "Card key acquired") });
     }
   }
-  deps.missionPlan.interior.switchIds.forEach((id, index) => {
+  deps.missionContent.interior.switchIds.forEach((id, index) => {
     const switchPosition = new Vector3(controlArea.position.x + (index === 0 ? -1 : 1), controlArea.bounds.minY + .9, controlArea.position.z);
     deps.registry.register({ id, type: "SWITCH", position: switchPosition, bounds: createBounds(switchPosition, 1.2, 1.2, switchPosition.y - .5, switchPosition.y + 1.5), floor: controlArea.floor, buildingId: site.id, roomId: controlArea.roomId, connections: [controlArea.id], tags: ["indoor", "private", "mission"], importance: 10 });
     createSwitch(ctx, deps.interactions, deps.events, { id, position: switchPosition, eventId: deps.gateEventId, emitEvent: false, onMessage: deps.onMessage, onActivate: () => {
-      deps.missionRuntime.completeByTarget(id, `Switch ${index + 1} activated`);
-      if (deps.missionPlan.interior.switchIds.every((switchId) => !deps.missionRuntime.isTargetActive(switchId))) deps.events.emit(deps.gateEventId);
+      deps.onSwitchStateChanged?.({ switchId: id, active: true });
+      deps.missionProgress.completeByTarget(id, `Switch ${index + 1} activated`);
+      if (deps.missionContent.interior.switchIds.every((switchId) => !deps.missionProgress.isTargetActive(switchId))) deps.events.emit(deps.gateEventId);
     } });
   });
-  if (typeof controlDoorId === "string") deps.registry.get(controlDoorId)!.metadata = { ...deps.registry.get(controlDoorId)!.metadata, credential: deps.missionPlan.interior.controlDoorCredential ?? "none" };
+  if (typeof controlDoorId === "string") deps.registry.get(controlDoorId)!.metadata = { ...deps.registry.get(controlDoorId)!.metadata, credential: deps.missionContent.interior.controlDoorCredential ?? "none" };
   deps.placement.createDebugMarkers(ctx);
 }
 

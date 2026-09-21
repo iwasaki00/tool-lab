@@ -5,8 +5,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import type { TransformNode } from "@babylonjs/core/Meshes/transformNode";
-import type { InventoryManager } from "../gameplay/InventoryManager";
-import type { InteractionManager } from "../interaction/InteractionManager";
+import type { IInteractionService, IInventoryService } from "../contracts/ServiceContracts";
 import type { ObjectContext } from "./primitives";
 import { createMaterial } from "../utils/materials";
 
@@ -36,9 +35,10 @@ export interface DoorOptions {
   parent?: TransformNode;
   onMessage: (message: string) => void;
   onOpened?: () => void;
+  onStateChanged?: (state: { doorId: string; open: boolean; locked: boolean }) => void;
 }
 
-export function createDoor(ctx: ObjectContext, interactions: InteractionManager, inventory: InventoryManager, options: DoorOptions): DoorController {
+export function createDoor(ctx: ObjectContext, interactions: IInteractionService, inventory: IInventoryService, options: DoorOptions): DoorController {
   const width = options.width ?? 2.8;
   const height = options.height ?? 3.2;
   const hinge = new Mesh(`${options.id}-hinge`, ctx.scene);
@@ -58,7 +58,7 @@ export function createDoor(ctx: ObjectContext, interactions: InteractionManager,
     if (animating || open === nextOpen) return;
     animating = true;
     Animation.CreateAndStartAnimation(`${options.id}-animation`, hinge, "rotation.y", 30, 21, hinge.rotation.y, nextOpen ? openAngle : closedAngle, Animation.ANIMATIONLOOPMODE_CONSTANT, undefined, () => {
-      open = nextOpen; animating = false; panel.metadata = { ...panel.metadata, navigationDoorOpen: open, navigationDoorLocked: locked }; options.onOpened?.();
+      open = nextOpen; animating = false; panel.metadata = { ...panel.metadata, navigationDoorOpen: open, navigationDoorLocked: locked }; options.onOpened?.(); options.onStateChanged?.({ doorId: options.id, open, locked });
     }, ctx.scene);
   };
 
@@ -67,9 +67,9 @@ export function createDoor(ctx: ObjectContext, interactions: InteractionManager,
     open: () => animateTo(true),
     close: () => animateTo(false),
     toggle: () => animateTo(!open),
-    unlock: () => { locked = false; panel.metadata = { ...panel.metadata, navigationDoorLocked: false }; },
-    lock: () => { if (open) animateTo(false); locked = true; panel.metadata = { ...panel.metadata, navigationDoorLocked: true }; },
-    reset: () => { if (open) animateTo(false); locked = options.locked ?? false; panel.metadata = { ...panel.metadata, navigationDoorOpen: false, navigationDoorLocked: locked }; },
+    unlock: () => { locked = false; panel.metadata = { ...panel.metadata, navigationDoorLocked: false }; options.onStateChanged?.({ doorId: options.id, open, locked }); },
+    lock: () => { if (open) animateTo(false); locked = true; panel.metadata = { ...panel.metadata, navigationDoorLocked: true }; options.onStateChanged?.({ doorId: options.id, open, locked }); },
+    reset: () => { if (open) animateTo(false); locked = options.locked ?? false; panel.metadata = { ...panel.metadata, navigationDoorOpen: false, navigationDoorLocked: locked }; options.onStateChanged?.({ doorId: options.id, open: false, locked }); },
     isOpen: () => open,
     isLocked: () => locked,
   };
@@ -86,7 +86,7 @@ export function createDoor(ctx: ObjectContext, interactions: InteractionManager,
       if (animating) return;
       if (locked) {
         if (!options.keyId || !inventory.has(options.keyId)) { options.onMessage("鍵がかかっている"); return; }
-        locked = false; panel.metadata = { ...panel.metadata, navigationDoorLocked: false }; options.onMessage("鍵を使ってロックを解除した");
+        locked = false; panel.metadata = { ...panel.metadata, navigationDoorLocked: false }; options.onMessage("鍵を使ってロックを解除した"); options.onStateChanged?.({ doorId: options.id, open, locked });
       }
       animateTo(!open);
     },

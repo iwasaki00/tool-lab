@@ -9,9 +9,9 @@ import type { LocalBounds, RoomType } from "../interior/Room";
 export function createRoomFurniture(ctx: ObjectContext, root: Mesh, roomId: string, type: RoomType, bounds: LocalBounds, floorY: number, random: SeededRandom): void {
   const centerX = (bounds.minX + bounds.maxX) / 2;
   const centerZ = (bounds.minZ + bounds.maxZ) / 2;
-  const dark = createMaterial(ctx.scene, `${roomId}-furniture`, new Color3(.25, .2, .16));
-  const metal = createMaterial(ctx.scene, `${roomId}-metal`, new Color3(.28, .32, .34), .35);
-  const fabric = createMaterial(ctx.scene, `${roomId}-fabric`, new Color3(.2, .34, .39));
+  const dark = ctx.materials?.getWoodMaterial() ?? createMaterial(ctx.scene, `${roomId}-furniture`, new Color3(.25, .2, .16));
+  const metal = ctx.materials?.getMetalMaterial() ?? createMaterial(ctx.scene, `${roomId}-metal`, new Color3(.28, .32, .34), .35);
+  const fabric = ctx.materials?.getFabricMaterial() ?? createMaterial(ctx.scene, `${roomId}-fabric`, new Color3(.2, .34, .39));
 
   if (type === "OFFICE") {
     box("office-desk", 2, .75, .85, centerX, floorY + .375, centerZ, dark, true);
@@ -26,8 +26,7 @@ export function createRoomFurniture(ctx: ObjectContext, root: Mesh, roomId: stri
     box("living-sofa-back", 2.3, .85, .22, centerX, floorY + .85, centerZ + 1.72, fabric, false);
   } else if (type === "CONTROL_ROOM") {
     box("control-console", 2.4, 1.15, .65, centerX, floorY + .575, centerZ + .8, metal, true);
-    const screen = box("control-monitor", 1.75, .7, .08, centerX, floorY + 1.35, centerZ + .48, fabric, false);
-    (screen.material as ReturnType<typeof createMaterial>).emissiveColor = new Color3(.04, .32, .42);
+    box("control-monitor", 1.75, .7, .08, centerX, floorY + 1.35, centerZ + .48, ctx.materials?.getScreenMaterial() ?? fabric, false);
   }
 
   function shelf(x: number, z: number, y: number, material: ReturnType<typeof createMaterial>): void {

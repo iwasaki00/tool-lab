@@ -1,14 +1,19 @@
-export class EventManager {
-  private readonly listeners = new Map<string, Set<() => void>>();
+export class EventManager<TEvents extends object = Record<string, never>> {
+  private readonly listeners = new Map<string, Set<(payload: unknown) => void>>();
 
-  on(eventId: string, listener: () => void): () => void {
-    const group = this.listeners.get(eventId) ?? new Set<() => void>();
-    group.add(listener); this.listeners.set(eventId, group);
-    return () => group.delete(listener);
+  on<TKey extends Extract<keyof TEvents, string>>(eventId: TKey, listener: (payload: TEvents[TKey]) => void): () => void;
+  on(eventId: string, listener: (payload?: unknown) => void): () => void;
+  on(eventId: string, listener: (payload?: unknown) => void): () => void {
+    const group = this.listeners.get(eventId) ?? new Set<(payload: unknown) => void>();
+    const compatibleListener = listener as (payload: unknown) => void;
+    group.add(compatibleListener); this.listeners.set(eventId, group);
+    return () => group.delete(compatibleListener);
   }
 
-  emit(eventId: string): void {
-    this.listeners.get(eventId)?.forEach((listener) => listener());
+  emit<TKey extends Extract<keyof TEvents, string>>(eventId: TKey, payload: TEvents[TKey]): void;
+  emit(eventId: string, payload?: unknown): void;
+  emit(eventId: string, payload?: unknown): void {
+    this.listeners.get(eventId)?.forEach((listener) => listener(payload));
   }
 
   clear(): void { this.listeners.clear(); }

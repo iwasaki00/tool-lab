@@ -13,11 +13,13 @@ import type { WorldRegistry } from "../world/WorldRegistry";
 import { generateChunkData } from "./ChunkGenerator";
 import { migrateMapData } from "./MapMigration";
 import { chunkId, chunkSeed, type MapObjectData, type MapStateSnapshot, type WorldChunkData, type WorldMapData, type WorldMapMode } from "./WorldMapData";
+import type { IMapService } from "../contracts/ServiceContracts";
+import type { MapStatusEvent } from "../contracts/FrameworkEvents";
 
 interface ChunkRuntime { data: WorldChunkData; meshes: Mesh[]; materials: StandardMaterial[]; debug: Mesh[]; loaded: boolean }
 const STORAGE_INDEX = "3d-space-lab-maps";
 
-export class WorldMapManager {
+export class WorldMapManager implements IMapService {
   private readonly chunks = new Map<string, ChunkRuntime>();
   private readonly observer: Observer<Scene>;
   private mode: WorldMapMode = "PROCEDURAL";
@@ -32,10 +34,11 @@ export class WorldMapManager {
   private lastError = "";
   readonly chunkSize = 96;
   readonly triggerDistance = 16;
-  readonly loadRadius = 2;
-  readonly unloadRadius = 3;
+  readonly loadRadius: number;
+  readonly unloadRadius: number;
 
-  constructor(private readonly ctx: ObjectContext, private readonly registry: WorldRegistry, private readonly camera: Camera, private worldSeed: number, private worldStyle: string, private readonly navigationChanged: () => void) {
+  constructor(private readonly ctx: ObjectContext, private readonly registry: WorldRegistry, private readonly camera: Camera, private worldSeed: number, private worldStyle: string, private readonly navigationChanged: () => void, mobile = false, private readonly onStatus: (event: MapStatusEvent) => void = () => undefined) {
+    this.loadRadius = mobile ? 1 : 2; this.unloadRadius = mobile ? 2 : 3;
     this.mapId = `map_${worldSeed}`; this.lastSafePosition = camera.position.clone();
     const origin: WorldChunkData = { id: chunkId(0, 0), x: 0, z: 0, seed: chunkSeed(worldSeed, 0, 0), state: "READY", source: "PREBUILT", objects: [], semantics: [], edges: { northConnections: [0], southConnections: [0], eastConnections: [0], westConnections: [0] }, metadata: { baseWorld: true, style: worldStyle } };
     this.chunks.set(origin.id, { data: origin, meshes: [], materials: [], debug: [], loaded: true });
@@ -120,8 +123,8 @@ export class WorldMapManager {
   private async loadNearby(): Promise<void> { const current = this.coordinates(this.camera.position); const known = [...this.chunks.values()].filter((chunk) => Math.max(Math.abs(chunk.data.x - current.x), Math.abs(chunk.data.z - current.z)) <= this.loadRadius); for (const chunk of known) await this.loadChunk(chunk); }
   private async loadAllKnown(): Promise<void> { for (const chunk of this.chunks.values()) await this.loadChunk(chunk); }
   private coordinates(position: { x: number; z: number }): { x: number; z: number } { return { x: Math.floor((position.x + this.chunkSize / 2) / this.chunkSize), z: Math.floor((position.z + this.chunkSize / 2) / this.chunkSize) }; }
-  private showBoundary(): void { const status = document.querySelector<HTMLElement>("#chunk-status"); if (status) { status.textContent = "MAP BOUNDARY"; status.classList.add("is-visible", "is-boundary"); window.setTimeout(() => status.classList.remove("is-visible", "is-boundary"), 900); } }
-  private updateStatus(): void { const status = document.querySelector<HTMLElement>("#chunk-status"); if (!status) return; if (this.generating) { status.textContent = "GENERATING AREA..."; status.classList.add("is-visible"); } else status.classList.remove("is-visible"); }
+  private showBoundary(): void { this.onStatus({ state: "BOUNDARY", message: "MAP BOUNDARY" }); }
+  private updateStatus(): void { this.onStatus(this.lastError ? { state: "ERROR", message: this.lastError } : this.generating ? { state: "LOADING", message: "GENERATING AREA..." } : { state: "IDLE", message: "" }); }
   private refreshDebug(runtime: ChunkRuntime): void { runtime.debug.splice(0).forEach((mesh) => mesh.dispose(false, true)); if (!this.debugVisible) return; const half = this.chunkSize / 2; const cx = runtime.data.x * this.chunkSize; const cz = runtime.data.z * this.chunkSize; const points = [new Vector3(cx - half, .15, cz - half), new Vector3(cx + half, .15, cz - half), new Vector3(cx + half, .15, cz + half), new Vector3(cx - half, .15, cz + half), new Vector3(cx - half, .15, cz - half)]; const line = MeshBuilder.CreateLines(`${runtime.data.id}-boundary`, { points }, this.ctx.scene); line.color = new Color3(.1, 1, .75); line.isPickable = false; runtime.debug.push(line); const texture = new DynamicTexture(`${runtime.data.id}-label-texture`, { width: 256, height: 96 }, this.ctx.scene, false); texture.hasAlpha = true; texture.drawText(`${runtime.data.x},${runtime.data.z}`, null, 66, "bold 42px monospace", "#baffef", "rgba(3,18,24,.82)", true); const label = MeshBuilder.CreatePlane(`${runtime.data.id}-label`, { width: 7, height: 2.6 }, this.ctx.scene); label.position.set(cx, 5, cz); label.billboardMode = Mesh.BILLBOARDMODE_ALL; label.isPickable = false; const material = new StandardMaterial(`${runtime.data.id}-label-material`, this.ctx.scene); material.diffuseTexture = texture; material.opacityTexture = texture; material.emissiveColor = Color3.White(); material.disableLighting = true; label.material = material; runtime.debug.push(label); }
 }
 
@@ -131,7 +134,7 @@ function createBuildingDetails(ctx: ObjectContext, data: MapObjectData, body: Me
   roof.parent = body; roof.position.y = data.scale.y / 2 + (roofStyle === "STEP" ? .32 : .12); if (roofStyle === "SLOPE") { roof.rotation.x = Math.PI / 2; roof.rotation.y = Math.PI / 2; roof.position.y = data.scale.y / 2 + data.scale.x * .2; } roof.material = ctx.materials?.getRoofMaterial(roofStyle, Color3.FromHexString(data.color).scale(.48)) ?? body.material; roof.metadata = { mapChunkId: body.metadata.mapChunkId, visualLod: 1 }; result.push(roof);
   const glass = ctx.materials?.getGlassMaterial() ?? body.material; const rows = Math.max(1, Math.min(4, Math.floor(data.scale.y / 3))); const columns = Math.max(2, Math.min(4, Math.floor(data.scale.x / 2.5))); const parts: Mesh[] = [];
   for (let row = 0; row < rows; row += 1) for (let column = 0; column < columns; column += 1) { const pane = MeshBuilder.CreateBox(`${data.id}-window-part`, { width: .75, height: .85, depth: .06 }, ctx.scene); pane.position.set(-data.scale.x / 2 + (column + 1) * data.scale.x / (columns + 1), -data.scale.y / 2 + 1.5 + row * Math.min(2.7, data.scale.y / rows), -data.scale.z / 2 - .04); pane.material = glass; parts.push(pane); }
-  const windows = parts.length ? Mesh.MergeMeshes(parts, true, true, undefined, false, true) : null; if (windows) { windows.name = `${data.id}-windows`; windows.parent = body; windows.metadata = { mapChunkId: body.metadata.mapChunkId, visualRole: "window", visualLod: 0, windowPattern: data.parameters?.windowPattern }; result.push(windows); }
+  const windows = parts.length ? Mesh.MergeMeshes(parts, true, true, undefined, false, false) : null; if (windows) { windows.name = `${data.id}-windows`; windows.parent = body; windows.metadata = { mapChunkId: body.metadata.mapChunkId, visualRole: "window", visualLod: 0, windowPattern: data.parameters?.windowPattern }; result.push(windows); }
   const door = MeshBuilder.CreateBox(`${data.id}-entrance`, { width: 1.15, height: 2.15, depth: .12 }, ctx.scene); door.parent = body; door.position.set(0, -data.scale.y / 2 + 1.075, -data.scale.z / 2 - .07); door.material = ctx.materials?.getWoodMaterial() ?? body.material; door.metadata = { mapChunkId: body.metadata.mapChunkId, visualLod: 0 }; result.push(door); return result;
 }
 function summary(map: WorldMapData): { mapId: string; mapName: string; mapFormatVersion: number; seed: number; chunkCount: number } { return { mapId: map.mapId, mapName: map.mapName, mapFormatVersion: map.mapFormatVersion, seed: map.seed, chunkCount: map.chunks.length }; }

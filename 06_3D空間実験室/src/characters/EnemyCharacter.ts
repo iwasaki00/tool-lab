@@ -9,7 +9,7 @@ import type { WorldRegistry } from "../world/WorldRegistry";
 import { CharacterController } from "./Character";
 import type { HumanoidRig } from "./CharacterFactory";
 import { CharacterStateMachine } from "./CharacterStateMachine";
-import type { NavigationManager } from "../navigation/NavigationManager";
+import type { INavigationService } from "../contracts/ServiceContracts";
 
 type EnemyState = "IDLE" | "PATROL" | "ALERT" | "CHASE" | "RETURN";
 export type EnemyDebugState = EnemyState;
@@ -32,8 +32,9 @@ export class EnemyCharacter extends CharacterController {
   private wasFullyDetected = false;
   private detectionInfoValue = { lineOfSight: false, inFov: false, distance: 0 };
   private visionDebugVisible = false;
+  private detectionSuppressedUntil = 0;
 
-  constructor(id: string, rig: HumanoidRig, areaId: string, private readonly scene: Scene, registry: WorldRegistry, seed: number, private readonly playerPosition: () => Vector3, private readonly onCaught: (id: string) => void, private readonly navMesh?: NavigationManager) {
+  constructor(id: string, rig: HumanoidRig, areaId: string, private readonly scene: Scene, registry: WorldRegistry, seed: number, private readonly playerPosition: () => Vector3, private readonly onCaught: (id: string) => void, private readonly navMesh?: INavigationService) {
     super(id, "ENEMY", rig, areaId, 1.5, "PATROL", 15);
     this.navigation = new CharacterNavigation(registry, seed, "ENEMY", navMesh); this.detection = new DetectionSystem(scene, 180);
     this.detectionDebug = createDetectionDebug(scene, id, this.detectionRange, 105); this.detectionDebug.parent = rig.root; this.detectionDebug.isVisible = false;
@@ -50,7 +51,7 @@ export class EnemyCharacter extends CharacterController {
   detectionLevel(): number { return this.detectionLevelValue; }
   detectionInfo(): { level: number; lineOfSight: boolean; inFov: boolean; distance: number } { return { level: this.detectionLevelValue, ...this.detectionInfoValue }; }
   debugForceState(state: EnemyDebugState): void { this.aiEnabled = state !== "IDLE"; this.machine.transition(state); }
-  debugClearDetection(): void { this.detectionLevelValue = 0; this.wasFullyDetected = false; this.lostSeconds = 5; if (this.machine.state === "CHASE" || this.machine.state === "ALERT") this.machine.transition("RETURN"); }
+  debugClearDetection(): void { this.detectionLevelValue = 0; this.wasFullyDetected = false; this.lostSeconds = 5; this.detectionSuppressedUntil = performance.now() + 1200; if (this.machine.state === "CHASE" || this.machine.state === "ALERT") this.machine.transition("RETURN"); }
   debugForceDetected(): void { this.detectionLevelValue = 1; this.lastKnownPlayerPosition = this.playerPosition(); this.machine.transition("CHASE"); }
   setVisionDebugVisible(visible: boolean): void { this.visionDebugVisible = visible; this.detectionDebug.isVisible = visible; }
   override setDebugVisible(visible: boolean): void { super.setDebugVisible(visible); this.detectionDebug.isVisible = visible || this.visionDebugVisible; }
@@ -60,12 +61,13 @@ export class EnemyCharacter extends CharacterController {
     if (this.aiEnabled) {
       const result = this.detection.detect(this.rig.root.position, this.rig.root.rotation.y, player, this.detectionRange);
       this.detectionInfoValue = { lineOfSight: result.lineOfSight, inFov: result.inFov, distance: result.distance };
-      const exposed = result.inFov && result.lineOfSight && result.distance <= this.detectionRange;
+      const detectionSuppressed = performance.now() < this.detectionSuppressedUntil;
+      const exposed = !detectionSuppressed && result.inFov && result.lineOfSight && result.distance <= this.detectionRange;
       const proximity = exposed ? Math.max(.15, 1 - result.distance / this.detectionRange) : 0;
       this.detectionLevelValue = Math.max(0, Math.min(1, this.detectionLevelValue + (exposed ? (.35 + proximity) * deltaSeconds : -1.15 * deltaSeconds)));
       if (this.detectionLevelValue >= 1 && !this.wasFullyDetected) { this.wasFullyDetected = true; this.onCaught(`${this.id}:detected`); }
       if (this.detectionLevelValue < .35) this.wasFullyDetected = false;
-      if (result.detected) {
+      if (result.detected && !detectionSuppressed) {
         this.lastKnownPlayerPosition = player.clone(); this.lostSeconds = 0;
         if (this.machine.state === "PATROL" || this.machine.state === "RETURN") this.machine.transition("ALERT");
       } else if (this.machine.state === "CHASE") this.lostSeconds += deltaSeconds;

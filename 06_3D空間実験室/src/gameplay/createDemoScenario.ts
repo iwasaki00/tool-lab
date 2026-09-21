@@ -26,10 +26,11 @@ import { MissionRuntime } from "./MissionRuntime";
 import type { MissionResult, MissionRuntimeSnapshot } from "./MissionTypes";
 import type { MissionDifficulty, MissionType } from "./MissionTypes";
 import { CharacterManager, type CharacterManagerDebug } from "../characters/CharacterManager";
-import type { NavigationManager } from "../navigation/NavigationManager";
+import type { INavigationService } from "../contracts/ServiceContracts";
 import type { DiscoverySnapshot, GameMode } from "../game/GameTypes";
 import { DiscoveryManager } from "../game/DiscoveryManager";
 import { DebugTestManager, type DebugCommand, type DebugTestSnapshot } from "../debug/DebugTestManager";
+import { FRAMEWORK_EVENT, type FrameworkEventMap } from "../contracts/FrameworkEvents";
 
 export interface GameplayCallbacks {
   onFocus: (focus?: InteractionFocus) => void;
@@ -43,6 +44,7 @@ export interface GameplayCallbacks {
 }
 
 export interface DemoScenario {
+  interactionService: InteractionManager;
   interact: () => void;
   focus: () => InteractionFocus | undefined;
   inventory: () => InventoryEntry[];
@@ -83,8 +85,9 @@ export function createDemoScenario(
   missionDifficulty: MissionDifficulty = "NORMAL",
   mobile = false,
   setPlayerInputEnabled: (enabled: boolean) => void = () => undefined,
-  navigation?: NavigationManager,
+  navigation?: INavigationService,
   gameMode: GameMode = "ESCAPE",
+  frameworkEvents?: EventManager<FrameworkEventMap>,
 ): DemoScenario {
   const baseMeshes = new Set(ctx.scene.meshes);
   const baseMaterials = new Set(ctx.scene.materials);
@@ -93,7 +96,7 @@ export function createDemoScenario(
   const missionSitePlaceholder = registry.get("mission_site");
   const originalSiteStates = new Map(cityInteriorSites.map((site) => [site.id, { state: site.state, floorData: site.floorData }]));
   const interactions = new InteractionManager(ctx.scene, camera, callbacks.onFocus, 3);
-  const inventory = new InventoryManager(callbacks.onInventory);
+  const inventory = new InventoryManager(callbacks.onInventory, (item, amount) => frameworkEvents?.emit(FRAMEWORK_EVENT.ITEM_ACQUIRED, { itemId: item.id, displayName: item.name, amount }));
   const objectives = new ObjectiveManager(callbacks.onObjective, () => undefined);
   const events = new EventManager();
   const placement = new GamePlacementManager(registry, missionSeed);
@@ -122,10 +125,14 @@ export function createDemoScenario(
   let completionDelivered = false;
   const runtime = new MissionRuntime(plan, objectives, (state) => {
     callbacks.onMissionState(state);
+    if (state.current) frameworkEvents?.emit(FRAMEWORK_EVENT.MISSION_STEP_CHANGED, { stepId: state.current.id, status: state.current.status });
     if (state.result && !completionDelivered) { completionDelivered = true; callbacks.onMissionComplete(state.result); }
   });
   const interiorManager = new InteriorManager(ctx, camera, [missionSite, ...cityInteriorSites], {
-    interactions, inventory, events, objectives, onMessage: callbacks.onMessage, gateEventId: "OPEN_GATE_A", registry, placement, missionPlan: plan, missionRuntime: runtime, onNavigationChanged: () => navigation?.requestRebuild(),
+    interactions, inventory, events, onMessage: callbacks.onMessage, gateEventId: "OPEN_GATE_A", registry, placement, missionContent: plan, missionProgress: runtime,
+    onDoorStateChanged: (state) => frameworkEvents?.emit(FRAMEWORK_EVENT.DOOR_STATE_CHANGED, state),
+    onSwitchStateChanged: (state) => frameworkEvents?.emit(FRAMEWORK_EVENT.SWITCH_STATE_CHANGED, state),
+    onNavigationChanged: () => navigation?.requestRebuild(),
   });
 
   const itemColors = { KEY: new Color3(.95, .68, .12), CARD_KEY: new Color3(.2, .72, .9), ITEM: new Color3(.72, .9, .3) };
@@ -143,7 +150,7 @@ export function createDemoScenario(
   createMissionFrame(ctx, gatePosition, gateRotation, new Color3(.18, .28, .33));
   const perpendicular = new Vector3(route.z, 0, -route.x);
   const gateHinge = gatePosition.add(perpendicular.scale(1.4));
-  const gate = createDoor(ctx, interactions, inventory, { id: "door_gate_001", displayName: "屋外ゲート", position: gateHinge, width: 2.8, rotation: gateRotation, color: new Color3(.16, .34, .42), interactable: false, onMessage: callbacks.onMessage });
+  const gate = createDoor(ctx, interactions, inventory, { id: "door_gate_001", displayName: "屋外ゲート", position: gateHinge, width: 2.8, rotation: gateRotation, color: new Color3(.16, .34, .42), interactable: false, onMessage: callbacks.onMessage, onStateChanged: (state) => frameworkEvents?.emit(FRAMEWORK_EVENT.DOOR_STATE_CHANGED, state) });
   events.on("OPEN_GATE_A", () => { gateActivated = true; gate.open(); });
   if (gateActivated) gate.open();
 
@@ -159,6 +166,7 @@ export function createDemoScenario(
   callbacks.onMissionState(runtime.snapshot());
 
   return {
+    interactionService: interactions,
     interact: () => interactions.interact(),
     focus: () => interactions.getDebugInfo(),
     inventory: () => inventory.entries(),

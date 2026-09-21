@@ -3,7 +3,7 @@ import { WorldGraph } from "../navigation/WorldGraph";
 import { SeededRandom } from "../random/seededRandom";
 import type { AreaTag, AreaType, WorldArea } from "../world/SemanticTypes";
 import type { WorldRegistry } from "../world/WorldRegistry";
-import type { NavigationManager } from "../navigation/NavigationManager";
+import type { INavigationService } from "../contracts/ServiceContracts";
 
 const OUTDOOR_TYPES: AreaType[] = ["ROAD", "SIDEWALK", "ALLEY", "INTERSECTION", "PLAZA", "PARK", "DEAD_END", "BUILDING_ENTRANCE"];
 const ENEMY_TYPES: AreaType[] = [...OUTDOOR_TYPES, "CORRIDOR", "STORAGE", "OFFICE", "ROOM", "CONTROL_ROOM", "STAIR"];
@@ -16,7 +16,7 @@ export class CharacterNavigation {
   private index = 0;
   private lastPathLength = 0;
 
-  constructor(private readonly registry: WorldRegistry, seed: number, private readonly type: "NPC" | "ENEMY", private readonly navigation?: NavigationManager) {
+  constructor(private readonly registry: WorldRegistry, seed: number, private readonly type: "NPC" | "ENEMY", private readonly navigation?: INavigationService) {
     this.graph = new WorldGraph(registry); this.random = new SeededRandom(seed);
   }
 

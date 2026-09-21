@@ -6,12 +6,13 @@ import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import type { Observer } from "@babylonjs/core/Misc/observable";
 import { Scene } from "@babylonjs/core/scene";
 import { setStreetLightsEnabled } from "../objects/streetLight";
 import { MaterialLibrary } from "./MaterialLibrary";
-import { DEFAULT_VISUAL_FEATURES, VISUAL_PALETTE, type EnvironmentPreset, type FogPreset, type ResolvedVisualQuality, type VisualConfig, type VisualFeatureConfig, type VisualQuality, type VisualState } from "./VisualConfig";
+import { DEFAULT_VISUAL_FEATURES, PERFORMANCE_BUDGETS, VISUAL_PALETTE, type EnvironmentPreset, type FogPreset, type ResolvedVisualQuality, type VisualConfig, type VisualFeatureConfig, type VisualQuality, type VisualState } from "./VisualConfig";
 
 interface EnvironmentValues { sky: Color3; horizon: Color3; sun: Color3; ambient: Color3; sunIntensity: number; ambientIntensity: number; fog: FogPreset; cloudCount: number }
 
@@ -34,6 +35,7 @@ export class VisualManager {
   private lastLodUpdate = 0;
   private lod: 0 | 1 | 2 = 0;
   private readonly lightDebugMeshes: Mesh[] = [];
+  private readonly shadowCandidates = new Set<AbstractMesh>();
 
   constructor(private readonly scene: Scene, private readonly camera: Camera, private readonly mobile: boolean, config: Partial<VisualConfig> = {}) {
     this.environment = config.environmentPreset ?? "CLEAR_DAY"; this.quality = config.quality ?? "AUTO"; this.resolvedQuality = resolveQuality(this.quality, mobile); this.features = { ...DEFAULT_VISUAL_FEATURES, ...config.features }; this.fogOverride = config.fog;
@@ -57,7 +59,19 @@ export class VisualManager {
     this.scene.meshes.forEach((mesh) => { if (kind === "LOD" && mesh.metadata?.visualLod !== undefined) mesh.showBoundingBox = enabled; if (kind === "CHUNK_LOD" && mesh.metadata?.mapChunkId) mesh.showBoundingBox = enabled; });
   }
   async transitionTo(preset: EnvironmentPreset, durationMs = 1500): Promise<void> { if (durationMs <= 0) { this.setEnvironmentPreset(preset); return; } const start = this.scene.imageProcessingConfiguration.exposure; this.scene.imageProcessingConfiguration.exposure = start * .82; await delay(Math.min(durationMs / 2, 500)); this.setEnvironmentPreset(preset); this.scene.imageProcessingConfiguration.exposure = start; }
-  state(): VisualState { const active = this.scene.getActiveMeshes(); return { environment: this.environment, quality: this.quality, resolvedQuality: this.resolvedQuality, fog: this.activeFog(), shadow: this.scene.shadowsEnabled && this.features.shadows, lod: this.lod, activeLights: this.scene.lights.filter((light) => light.isEnabled()).length, materials: this.scene.materials.length, meshes: this.scene.meshes.length, activeMeshes: active.length, shadowCasters: this.shadows.getShadowMap()?.renderList?.length ?? 0, features: { ...this.features } }; }
+  state(): VisualState {
+    const active = this.scene.getActiveMeshes();
+    const activeLights = this.scene.lights.filter((light) => light.isEnabled()).length;
+    const shadowCasters = this.scene.shadowsEnabled ? this.shadows.getShadowMap()?.renderList?.length ?? 0 : 0;
+    const budget = PERFORMANCE_BUDGETS[this.resolvedQuality]; const warnings: string[] = [];
+    if (active.length > budget.activeMeshes) warnings.push("ACTIVE_MESH"); if (this.scene.materials.length > budget.materials) warnings.push("MATERIAL"); if (activeLights > budget.lights) warnings.push("LIGHT"); if (shadowCasters > budget.shadowCasters) warnings.push("SHADOW_CASTER");
+    const engine = this.scene.getEngine() as typeof this.scene.getEngine extends () => infer T ? T & { _drawCalls?: { current?: number; average?: number } } : never;
+    const groups = new Map<string, number>(); this.scene.materials.forEach((material) => groups.set(material.name, (groups.get(material.name) ?? 0) + 1));
+    const materialDuplicateGroups = [...groups.entries()].filter(([, count]) => count > 1).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, count]) => `${name}:${count}`);
+    const activeSubMeshes = active.data.slice(0, active.length).reduce((sum, mesh) => sum + Math.max(1, mesh.subMeshes?.length ?? 0), 0);
+    const engineDrawCalls = Math.round(engine._drawCalls?.average ?? engine._drawCalls?.current ?? 0);
+    return { environment: this.environment, quality: this.quality, resolvedQuality: this.resolvedQuality, fog: this.activeFog(), shadow: this.scene.shadowsEnabled && this.features.shadows, lod: this.lod, activeLights, materials: this.scene.materials.length, meshes: this.scene.meshes.length, activeMeshes: active.length, shadowCasters, textures: this.scene.textures.length, drawCalls: Math.max(engineDrawCalls, activeSubMeshes), frameTimeMs: 1000 / Math.max(1, engine.getFps()), visibleBuildings: this.scene.meshes.filter((mesh) => mesh.isEnabled() && (mesh.name.startsWith("city-building") || mesh.metadata?.mapObjectId && String(mesh.metadata.mapObjectId).includes("building"))).length, windowObjects: this.scene.meshes.filter((mesh) => mesh.isEnabled() && (mesh.metadata?.visualRole === "window" || mesh.name.includes("window"))).length, vegetation: this.scene.meshes.filter((mesh) => mesh.isEnabled() && (mesh.name.includes("tree") || mesh.name.includes("bush"))).length, streetLights: this.scene.meshes.filter((mesh) => mesh.isEnabled() && mesh.name === "city-street-light").length, budgetStatus: warnings.length ? "WARNING" : "OK", budgetWarnings: warnings, materialDuplicateGroups, features: { ...this.features } };
+  }
   dispose(): void { this.scene.onBeforeRenderObservable.remove(this.observer); this.lightDebugMeshes.forEach((mesh) => mesh.dispose()); this.clouds.forEach((cloud) => cloud.dispose()); this.sky.dispose(); this.cloudMaterial.dispose(); this.skyMaterial.dispose(); this.shadows.dispose(); this.ambient.dispose(); this.sun.dispose(); this.materials.dispose(); }
 
   private applyEnvironment(): void {
@@ -67,16 +81,42 @@ export class VisualManager {
     this.updateEmissiveState();
   }
   private applyQuality(): void {
-    this.scene.shadowsEnabled = this.features.shadows && this.resolvedQuality !== "LOW"; this.shadows.usePoissonSampling = this.resolvedQuality === "MEDIUM"; this.shadows.useBlurExponentialShadowMap = this.resolvedQuality === "HIGH"; this.shadows.blurKernel = this.resolvedQuality === "HIGH" ? 24 : 8;
+    const renderScale = this.resolvedQuality === "HIGH" ? 1 : this.resolvedQuality === "MEDIUM" ? 1.75 : this.mobile ? 1.35 : 2;
+    if (Math.abs(this.scene.getEngine().getHardwareScalingLevel() - renderScale) > .01) this.scene.getEngine().setHardwareScalingLevel(renderScale);
+    this.scene.shadowsEnabled = this.features.shadows && this.resolvedQuality === "HIGH"; this.shadows.usePoissonSampling = false; this.shadows.useBlurExponentialShadowMap = this.resolvedQuality === "HIGH"; this.shadows.blurKernel = this.resolvedQuality === "HIGH" ? 24 : 8;
     this.scene.imageProcessingConfiguration.contrast = this.resolvedQuality === "HIGH" ? 1.12 : 1.06; this.scene.imageProcessingConfiguration.exposure = this.environment === "NIGHT" ? .92 : 1.04;
   }
   private applyFog(fog: FogPreset): void { if (!this.features.fog || fog === "OFF") { this.scene.fogMode = Scene.FOGMODE_NONE; return; } const value = environmentValues(this.environment); this.scene.fogMode = Scene.FOGMODE_LINEAR; this.scene.fogColor = value.horizon; const ranges = this.resolvedQuality === "LOW" ? [35, 105] : this.resolvedQuality === "MEDIUM" ? [48, 145] : [65, 210]; const factor = fog === "HEAVY" ? .45 : fog === "MEDIUM" ? .68 : 1; this.scene.fogStart = ranges[0] * factor; this.scene.fogEnd = ranges[1] * factor; }
   private activeFog(): FogPreset { return this.fogOverride ?? environmentValues(this.environment).fog; }
   private updateEmissiveState(): void { const night = this.environment === "NIGHT"; setStreetLightsEnabled(this.streetLights, night); this.scene.materials.forEach((material) => { if (!(material instanceof StandardMaterial) || material.metadata?.visualRole !== "window") return; material.emissiveColor = night ? new Color3(.34, .26, .12) : new Color3(.01, .025, .035); }); }
   private createClouds(): void { for (let index = 0; index < 16; index += 1) { const cloud = MeshBuilder.CreatePlane(`visual-cloud-${index}`, { width: 20 + index % 4 * 5, height: 7 + index % 3 * 2 }, this.scene); const angle = index * 2.399; const radius = 45 + index % 5 * 15; cloud.position.set(Math.cos(angle) * radius, 35 + index % 4 * 4, Math.sin(angle) * radius); cloud.rotation.x = Math.PI / 2; cloud.rotation.z = angle; cloud.material = this.cloudMaterial; cloud.isPickable = false; cloud.metadata = { visualRole: "cloud", visualLod: 2 }; this.clouds.push(cloud); } }
-  private update(): void { const now = performance.now(); if (now - this.lastLodUpdate < 350) return; this.lastLodUpdate = now; const distance = Math.hypot(this.camera.position.x, this.camera.position.z); this.lod = distance > 150 ? 2 : distance > 70 ? 1 : 0; const decorationDistance = this.resolvedQuality === "LOW" ? 50 : this.resolvedQuality === "MEDIUM" ? 90 : 150; this.scene.meshes.forEach((mesh) => { const visualLod = mesh.metadata?.visualLod as number | undefined; if (visualLod === undefined || mesh.metadata?.visualRole === "cloud") return; mesh.setEnabled(Vector3.DistanceSquared(mesh.getAbsolutePosition(), this.camera.position) <= decorationDistance * decorationDistance || visualLod >= 2); }); const anchorX = Math.round(this.camera.position.x / 80) * 80; const anchorZ = Math.round(this.camera.position.z / 80) * 80; this.clouds.forEach((cloud) => { cloud.position.x = anchorX + (cloud.metadata?.cloudOffsetX ?? cloud.position.x); cloud.position.z = anchorZ + (cloud.metadata?.cloudOffsetZ ?? cloud.position.z); cloud.metadata = { ...cloud.metadata, cloudOffsetX: cloud.metadata?.cloudOffsetX ?? cloud.position.x - anchorX, cloudOffsetZ: cloud.metadata?.cloudOffsetZ ?? cloud.position.z - anchorZ }; }); }
+  private update(): void {
+    const now = performance.now(); if (now - this.lastLodUpdate < 400) return; this.lastLodUpdate = now;
+    const distance = Math.hypot(this.camera.position.x, this.camera.position.z); this.lod = distance > 150 ? 2 : distance > 70 ? 1 : 0;
+    const decorationDistance = this.resolvedQuality === "LOW" ? 32 : this.resolvedQuality === "MEDIUM" ? 70 : 135;
+    this.scene.meshes.forEach((mesh) => { const visualLod = mesh.metadata?.visualLod as number | undefined; if (visualLod === undefined || mesh.metadata?.visualRole === "cloud") return; mesh.setEnabled(Vector3.DistanceSquared(mesh.getAbsolutePosition(), this.camera.position) <= decorationDistance * decorationDistance || visualLod >= 2); });
+    this.updateShadowCasters(); this.updateLocalLights();
+    const anchorX = Math.round(this.camera.position.x / 80) * 80; const anchorZ = Math.round(this.camera.position.z / 80) * 80;
+    this.clouds.forEach((cloud) => { cloud.position.x = anchorX + (cloud.metadata?.cloudOffsetX ?? cloud.position.x); cloud.position.z = anchorZ + (cloud.metadata?.cloudOffsetZ ?? cloud.position.z); cloud.metadata = { ...cloud.metadata, cloudOffsetX: cloud.metadata?.cloudOffsetX ?? cloud.position.x - anchorX, cloudOffsetZ: cloud.metadata?.cloudOffsetZ ?? cloud.position.z - anchorZ }; });
+  }
+
+  private updateShadowCasters(): void {
+    const shadowMap = this.shadows.getShadowMap(); if (!shadowMap) return;
+    shadowMap.renderList?.forEach((mesh) => this.shadowCandidates.add(mesh));
+    if (!this.scene.shadowsEnabled) { shadowMap.renderList = []; return; }
+    const range = this.resolvedQuality === "MEDIUM" ? 44 : 90; const limit = this.resolvedQuality === "MEDIUM" ? 28 : 150;
+    const candidates = [...this.shadowCandidates].filter((mesh) => !mesh.isDisposed() && mesh.isEnabled()).map((mesh) => ({ mesh, distance: Vector3.DistanceSquared(mesh.getAbsolutePosition(), this.camera.position) })).filter((item) => item.distance <= range * range).sort((a, b) => a.distance - b.distance).slice(0, limit);
+    shadowMap.renderList = candidates.map((item) => item.mesh);
+  }
+
+  private updateLocalLights(): void {
+    const range = this.resolvedQuality === "LOW" ? 18 : this.resolvedQuality === "MEDIUM" ? 34 : 60;
+    const limit = this.environment !== "NIGHT" ? 0 : this.resolvedQuality === "LOW" ? 0 : this.resolvedQuality === "MEDIUM" ? 4 : 10;
+    const localLights = this.scene.lights.filter((light) => light !== this.ambient && light !== this.sun).map((light) => ({ light, distance: Vector3.DistanceSquared(light.getAbsolutePosition(), this.camera.position) })).sort((a, b) => a.distance - b.distance);
+    localLights.forEach((item, index) => item.light.setEnabled(index < limit && item.distance <= range * range));
+  }
 }
 
-function resolveQuality(quality: VisualQuality, mobile: boolean): ResolvedVisualQuality { return quality === "AUTO" ? mobile ? "LOW" : "HIGH" : quality; }
+function resolveQuality(quality: VisualQuality, mobile: boolean): ResolvedVisualQuality { return quality === "AUTO" ? mobile ? "LOW" : "MEDIUM" : quality; }
 function environmentValues(preset: EnvironmentPreset): EnvironmentValues { const p = preset === "CLEAR_DAY" ? VISUAL_PALETTE.clearDay : preset === "CLOUDY" ? VISUAL_PALETTE.cloudy : preset === "SUNSET" ? VISUAL_PALETTE.sunset : preset === "NIGHT" ? VISUAL_PALETTE.night : VISUAL_PALETTE.foggy; return { sky: Color3.FromHexString(p.sky), horizon: Color3.FromHexString(p.horizon), sun: Color3.FromHexString(p.sun), ambient: Color3.FromHexString(p.ambient), sunIntensity: preset === "NIGHT" ? .16 : preset === "SUNSET" ? .82 : preset === "CLOUDY" || preset === "FOGGY" ? .62 : 1.15, ambientIntensity: preset === "NIGHT" ? .25 : preset === "SUNSET" ? .5 : preset === "CLOUDY" || preset === "FOGGY" ? .58 : .7, fog: preset === "FOGGY" ? "HEAVY" : preset === "CLOUDY" ? "LIGHT" : "OFF", cloudCount: preset === "CLOUDY" || preset === "FOGGY" ? 16 : preset === "SUNSET" ? 9 : preset === "NIGHT" ? 5 : 7 }; }
 function delay(ms: number): Promise<void> { return new Promise((resolve) => window.setTimeout(resolve, ms)); }

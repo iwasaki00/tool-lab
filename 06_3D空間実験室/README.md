@@ -1,4 +1,4 @@
-# 3D空間実験室 — Common 3D Framework 1.2.0
+# 3D空間実験室 — Common 3D Framework 1.2.1
 
 Babylon.jsのプリミティブ形状とTypeScriptだけで構築した、一人称視点の3D実験フィールド／プロシージャル街です。Ver.6では道路、広場、公園、建物入口、部屋、廊下、階段へ意味情報と接続関係を付与し、Seedから鍵、カードキー、Goal、Enemy/NPC Spawnとミッションを配置します。外部3Dモデルや外部AI APIは使用していません。
 
@@ -52,7 +52,7 @@ MENUの`WORLD MAP SYSTEM`からAuto Expansion、Chunk Unload、JSON Import／Exp
 - Framework API互換性を壊す変更ではSemVerのMAJORを上げます。
 - 機能追加ではMINOR、不具合修正ではPATCHを上げます。
 - 保存Map互換性を壊す変更では`MAP_FORMAT_VERSION`を上げ、`migrateMapData()`へ順次Migrationを追加します。
-- Framework Version更新時は動作確認とCHANGELOG更新後、`v1.2.0`のようなGit Tagを付けます。
+- Framework Version更新時は動作確認とCHANGELOG更新後、`v1.2.1`のようなGit Tagを付けます。
 
 Git Tagは作業ツリーと対象コミットを確認してから作成し、未コミット変更がある状態では自動作成しません。
 

@@ -1,9 +1,10 @@
 import { SeededRandom } from "../random/seededRandom";
 import type { AreaTag, AreaType, MapArea2D, SemanticLocation, WorldArea, WorldPosition, WorldStatistics } from "./SemanticTypes";
+import type { IWorldService } from "../contracts/ServiceContracts";
 
 const CELL_SIZE = 12;
 
-export class WorldRegistry {
+export class WorldRegistry implements IWorldService {
   private readonly areas = new Map<string, WorldArea>();
   private readonly byType = new Map<AreaType, Set<string>>();
   private readonly byTag = new Map<AreaTag, Set<string>>();

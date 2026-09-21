@@ -1,8 +1,7 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
-import type { InventoryManager } from "../gameplay/InventoryManager";
-import type { InteractionManager } from "../interaction/InteractionManager";
+import type { IInteractionService, IInventoryService } from "../contracts/ServiceContracts";
 import { createMaterial } from "../utils/materials";
 import type { ObjectContext } from "./primitives";
 
@@ -17,7 +16,7 @@ export interface ItemOptions {
   onPickup?: () => void;
 }
 
-export function createItem(ctx: ObjectContext, interactions: InteractionManager, inventory: InventoryManager, options: ItemOptions): void {
+export function createItem(ctx: ObjectContext, interactions: IInteractionService, inventory: IInventoryService, options: ItemOptions): void {
   const mesh = options.shape === "sphere"
     ? MeshBuilder.CreateSphere(options.id, { diameter: .55, segments: 12 }, ctx.scene)
     : options.shape === "cylinder"

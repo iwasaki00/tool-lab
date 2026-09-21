@@ -53,9 +53,11 @@ function createFence(ctx: ObjectContext, center: Vector3, size: number): void {
     { x: -size / 2, z: 0, width: .14, depth: size },
     { x: size / 2, z: 0, width: .14, depth: size },
   ];
-  rails.forEach((rail) => {
+  const parts = rails.map((rail) => {
     const mesh = MeshBuilder.CreateBox("park-fence-rail", { width: rail.width, depth: rail.depth, height: .75 }, ctx.scene);
-    mesh.position.set(rail.x, .48, rail.z); mesh.parent = root; mesh.material = material; mesh.checkCollisions = true;
+    mesh.position.set(rail.x, .48, rail.z); mesh.material = material; return mesh;
   });
+  const fence = Mesh.MergeMeshes(parts, true, true, undefined, false, false);
+  if (fence) { fence.name = "park-fence-rails"; fence.parent = root; fence.material = material; fence.checkCollisions = true; fence.metadata = { visualLod: 0 }; }
   ctx.registerDynamic?.(root);
 }

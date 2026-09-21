@@ -33,10 +33,13 @@ export function createRoad(ctx: ObjectContext, options: RoadOptions): Mesh {
   }
   if (markings) {
     const dashCount = Math.max(2, Math.floor(length / 5));
+    const dashParts: Mesh[] = [];
     for (let i = 0; i < dashCount; i += 1) {
       const dash = MeshBuilder.CreateBox("road-center-line", { width: .12, depth: 2.2, height: .025 }, ctx.scene);
-      dash.position.set(0, .095, -length / 2 + 2.5 + i * 5); dash.parent = root; dash.material = paint;
+      dash.position.set(0, .095, -length / 2 + 2.5 + i * 5); dash.material = paint; dashParts.push(dash);
     }
+    const centerLine = Mesh.MergeMeshes(dashParts, true, true, undefined, false, false);
+    if (centerLine) { centerLine.name = "road-center-lines"; centerLine.parent = root; centerLine.metadata = { visualLod: 0 }; }
   }
   ctx.registerDynamic?.(root);
   return root;
@@ -53,14 +56,17 @@ export function createIntersection(ctx: ObjectContext, position: Vector3, roadWi
   const root = new Mesh("city-intersection", ctx.scene);
   root.position.copyFrom(position);
   const paint = ctx.materials?.getPaintMaterial() ?? createMaterial(ctx.scene, "crosswalk-paint", new Color3(.92, .92, .88), .08);
+  const stripeParts: Mesh[] = [];
   for (let direction = 0; direction < 2; direction += 1) {
     for (let i = -3; i <= 3; i += 1) {
       const stripe = MeshBuilder.CreateBox("crosswalk", { width: .55, depth: 2.6, height: .03 }, ctx.scene);
       stripe.position.set(i * .85, .105, direction === 0 ? -roadWidth / 2 - 1.5 : roadWidth / 2 + 1.5);
       if (direction === 1) stripe.rotation.y = Math.PI / 2;
-      stripe.parent = root; stripe.material = paint;
+      stripe.material = paint; stripeParts.push(stripe);
     }
   }
+  const crosswalk = Mesh.MergeMeshes(stripeParts, true, true, undefined, false, false);
+  if (crosswalk) { crosswalk.name = "crosswalk-lines"; crosswalk.parent = root; crosswalk.metadata = { visualLod: 0 }; }
   ctx.registerDynamic?.(root);
   return root;
 }
