@@ -119,7 +119,13 @@ export class WorldMapManager implements IMapService {
   private connectEdges(data: WorldChunkData): void { data.semantics.forEach((area) => area.connections.forEach((target) => { if (this.registry.get(target)) this.registry.connect(area.id, target); })); }
   private unloadFar(x: number, z: number): void { let changed = false; this.chunks.forEach((chunk) => { if (!chunk.loaded || chunk.data.metadata.baseWorld) return; if (Math.max(Math.abs(chunk.data.x - x), Math.abs(chunk.data.z - z)) > this.unloadRadius) { this.unloadChunk(chunk); changed = true; } }); if (changed) this.navigationChanged(); }
   private unloadChunk(runtime: ChunkRuntime, force = false): void { if (!runtime.loaded && !force) return; runtime.meshes.splice(0).forEach((mesh) => mesh.dispose()); runtime.materials.splice(0).forEach((material) => material.dispose()); runtime.debug.splice(0).forEach((mesh) => mesh.dispose(false, true)); runtime.data.semantics.forEach((area) => this.registry.remove(area.id)); runtime.loaded = false; runtime.data.state = "UNLOADED"; }
-  private disposeStreamedChunks(): void { this.chunks.forEach((chunk) => { if (!chunk.data.metadata.baseWorld) this.unloadChunk(chunk, true); }); this.chunks.clear(); }
+  private disposeStreamedChunks(): void {
+    // Imported baseWorld chunks can own debug/label meshes even though the
+    // original city meshes are scene-owned. Dispose every runtime collection
+    // before replacing the map so repeated imports cannot orphan resources.
+    this.chunks.forEach((chunk) => this.unloadChunk(chunk, true));
+    this.chunks.clear();
+  }
   private async loadNearby(): Promise<void> { const current = this.coordinates(this.camera.position); const known = [...this.chunks.values()].filter((chunk) => Math.max(Math.abs(chunk.data.x - current.x), Math.abs(chunk.data.z - current.z)) <= this.loadRadius); for (const chunk of known) await this.loadChunk(chunk); }
   private async loadAllKnown(): Promise<void> { for (const chunk of this.chunks.values()) await this.loadChunk(chunk); }
   private coordinates(position: { x: number; z: number }): { x: number; z: number } { return { x: Math.floor((position.x + this.chunkSize / 2) / this.chunkSize), z: Math.floor((position.z + this.chunkSize / 2) / this.chunkSize) }; }

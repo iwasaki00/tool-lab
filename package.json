@@ -1,7 +1,7 @@
 {
   "name": "tool-lab-3d-space-laboratory",
   "private": true,
-  "version": "1.2.1",
+  "version": "1.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite 06_3D空間実験室",
@@ -14,6 +14,9 @@
     "test:visual": "playwright test tests/e2e/visual.spec.ts",
     "test:performance": "playwright test tests/e2e/performance.spec.ts",
     "test:framework-api": "playwright test tests/e2e/framework-api.spec.ts",
+    "test:release-candidate": "playwright test tests/e2e/release-candidate.spec.ts",
+    "test:features": "playwright test tests/e2e/feature-toggle.spec.ts",
+    "test:starter": "playwright test tests/e2e/starter-walk.spec.ts",
     "test:architecture": "node tools/check-module-cycles.mjs",
     "demo": "playwright test tests/e2e/demo.spec.ts --headed --workers=1",
     "demo:e2e": "playwright test tests/e2e/demo.spec.ts --headed --workers=1",

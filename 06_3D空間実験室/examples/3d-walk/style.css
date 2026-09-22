@@ -1,0 +1,26 @@
+:root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; background: #071014; }
+* { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; touch-action: none; }
+#walk-canvas { position: fixed; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; outline: none; }
+#look-zone { position: fixed; inset: 0 0 0 42%; z-index: 2; }
+.walk-hud, .walk-controls, .desktop-help, .mobile-controls { position: fixed; z-index: 10; }
+.walk-hud { top: max(14px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); right: max(14px, env(safe-area-inset-right)); display: flex; justify-content: space-between; pointer-events: none; }
+.walk-hud > div, .desktop-help { padding: 9px 12px; border: 1px solid #53d9c4; border-radius: 7px; background: rgba(3, 15, 20, .82); box-shadow: 0 8px 28px rgba(0,0,0,.3); }
+.walk-hud strong, .walk-hud small, .status span { display: block; }
+.walk-hud strong { letter-spacing: .12em; color: #dcfff8; }
+.walk-hud small, .status { margin-top: 4px; color: #78cfc2; font-size: 11px; }
+.status { text-align: right; }
+.walk-controls { top: 88px; right: max(14px, env(safe-area-inset-right)); display: grid; gap: 6px; pointer-events: auto; }
+button { border: 1px solid #47747b; border-radius: 6px; padding: 8px 10px; color: #d9fdf7; background: rgba(4, 20, 27, .88); font: inherit; font-size: 11px; }
+button.is-active { border-color: #62efd5; background: rgba(18, 91, 82, .9); }
+.desktop-help { bottom: 14px; left: 50%; transform: translateX(-50%); color: #a9d5cf; font-size: 11px; pointer-events: none; white-space: nowrap; }
+.mobile-controls { display: none; inset: 0; pointer-events: none; }
+#joystick { position: absolute; left: max(20px, env(safe-area-inset-left)); bottom: max(24px, env(safe-area-inset-bottom)); width: 116px; height: 116px; border: 2px solid rgba(109,238,216,.7); border-radius: 50%; background: rgba(3,20,25,.35); pointer-events: auto; }
+#joystick-knob { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; transform: translate(-50%,-50%); border-radius: 50%; background: rgba(109,238,216,.75); }
+#jump-button, #mobile-interact-button { position: absolute; right: max(20px, env(safe-area-inset-right)); width: 68px; height: 68px; border-radius: 50%; pointer-events: auto; }
+#jump-button { bottom: max(24px, env(safe-area-inset-bottom)); }
+#mobile-interact-button { bottom: calc(max(24px, env(safe-area-inset-bottom)) + 78px); }
+.is-mobile .mobile-controls { display: block; }
+.is-mobile .desktop-help, .is-mobile #interact-button { display: none; }
+.is-mobile .walk-controls { top: auto; bottom: calc(max(24px, env(safe-area-inset-bottom)) + 154px); grid-template-columns: repeat(2, auto); }
+@media (max-width: 560px) { .walk-hud { font-size: 12px; } .walk-controls button { padding: 7px; font-size: 9px; } }

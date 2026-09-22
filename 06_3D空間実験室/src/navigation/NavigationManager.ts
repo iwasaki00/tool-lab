@@ -84,15 +84,15 @@ export class NavigationManager implements INavigationService {
   pathLength(path: Vector3[]): number { let total = 0; for (let i = 1; i < path.length; i += 1) total += Vector3.Distance(path[i - 1], path[i]); return total; }
 
   showPath(id: string, path: Vector3[], color = new Color3(.2, 1, .72)): void {
-    this.debugPaths.get(id)?.dispose(); this.debugPaths.delete(id);
+    this.debugPaths.get(id)?.dispose(false, true); this.debugPaths.delete(id);
     if (path.length < 2) return;
     const points = path.map((point) => point.add(new Vector3(0, .14, 0)));
     const line = MeshBuilder.CreateLines(`navigation-path-${id}`, { points, updatable: false }, this.scene); line.color = color; line.isPickable = false; line.isVisible = this.debugVisible;
     this.debugPaths.set(id, line);
   }
 
-  clearPath(id: string): void { this.debugPaths.get(id)?.dispose(); this.debugPaths.delete(id); }
-  clearAllPaths(): void { this.debugPaths.forEach((path) => path.dispose()); this.debugPaths.clear(); }
+  clearPath(id: string): void { this.debugPaths.get(id)?.dispose(false, true); this.debugPaths.delete(id); }
+  clearAllPaths(): void { this.debugPaths.forEach((path) => path.dispose(false, true)); this.debugPaths.clear(); }
   setDebugVisible(visible: boolean): void { this.debugVisible = visible; if (this.debugMesh) this.debugMesh.isVisible = visible; this.debugPaths.forEach((path) => { path.isVisible = visible; }); }
 
   validate(points: Array<{ id: string; position: Vector3 }>): void {
@@ -103,7 +103,7 @@ export class NavigationManager implements INavigationService {
   }
 
   dispose(): void {
-    this.scene.onBeforeRenderObservable.remove(this.observer); this.debugMesh?.dispose(); this.debugPaths.forEach((path) => path.dispose()); this.debugPaths.clear(); this.plugin?.dispose();
+    this.scene.onBeforeRenderObservable.remove(this.observer); this.debugMesh?.dispose(false, true); this.debugPaths.forEach((path) => path.dispose(false, true)); this.debugPaths.clear(); this.plugin?.dispose();
   }
 
   private async initialize(): Promise<void> {
@@ -131,7 +131,8 @@ export class NavigationManager implements INavigationService {
       if (!meshes.length || !this.walkableMeshCount) throw new Error(`NavMesh source is invalid: targets=${meshes.length}, walkable=${this.walkableMeshCount}`);
       this.plugin.createNavMesh(meshes, NAVMESH_PARAMETERS);
       this.debugMesh?.dispose(false, true); this.debugMesh = this.plugin.createDebugNavMesh(this.scene); this.debugMesh.name = "navigation-debug-mesh"; this.debugMesh.isPickable = false;
-      const material = new StandardMaterial("navigation-debug-material", this.scene); material.diffuseColor = new Color3(.05, .72, .54); material.emissiveColor = new Color3(.03, .28, .2); material.alpha = .34; material.wireframe = true; this.debugMesh.material = material; this.debugMesh.isVisible = this.debugVisible;
+      const generatedMaterial = this.debugMesh.material;
+      const material = new StandardMaterial("navigation-debug-material", this.scene); material.diffuseColor = new Color3(.05, .72, .54); material.emissiveColor = new Color3(.03, .28, .2); material.alpha = .34; material.wireframe = true; this.debugMesh.material = material; generatedMaterial?.dispose(); this.debugMesh.isVisible = this.debugVisible;
       this.triangles = Math.floor(this.debugMesh.getTotalIndices() / 3); this.buildTime = performance.now() - started;
       if (!this.triangles) throw new Error("Recast returned an empty NavMesh.");
       this.status = "READY"; this.mode = "NAVMESH"; this.error = ""; this.stack = ""; this.lastSignature = this.geometrySignature();

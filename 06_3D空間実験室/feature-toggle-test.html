@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><meta charset="UTF-8" /><style>html,body,canvas{margin:0;width:100%;height:100%;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="feature-canvas"></canvas><script type="module">
+  import { createFeatureRegistry, createFramework } from "./src/framework/index.ts";
+  window.runFeatureToggleTest = async () => {
+    const warnings = [];
+    const full = createFeatureRegistry("FULL", {}, (message) => warnings.push(message));
+    const minimal = createFeatureRegistry("MINIMAL", {}, (message) => warnings.push(message));
+    const exploration = createFeatureRegistry("EXPLORATION", {}, (message) => warnings.push(message));
+    const custom = createFeatureRegistry("EXPLORATION", { navigation: false, interiors: false, missions: false, enemies: false, npc: false, inventory: false, chunkStreaming: false }, (message) => warnings.push(message));
+    const dependency = createFeatureRegistry("MINIMAL", { worldMap: false, chunkStreaming: true }, (message) => warnings.push(message));
+    const canvas = document.querySelector("#feature-canvas");
+    const framework = await createFramework({ canvas, profile: "EXPLORATION", features: { navigation: false, chunkStreaming: false, missions: false, enemies: false, npc: false, inventory: false }, world: { mode: "field" } });
+    await framework.start();
+    const runtime = { lifecycle: framework.getState().lifecycle, navigation: Boolean(framework.getNavigation()), map: Boolean(framework.getMap()), interaction: Boolean(framework.getInteraction()), mapState: framework.getMap()?.snapshot(), enabled: framework.getFeatures().enabled(), disabled: framework.getFeatures().disabled() };
+    framework.dispose();
+    return { full: full.enabled(), minimal: minimal.enabled(), exploration: exploration.enabled(), custom: custom.enabled(), customDisabled: custom.disabled(), dependencyChunk: dependency.isEnabled("chunkStreaming"), dependencyReason: dependency.reason("chunkStreaming"), warnings, runtime };
+  };
+</script></body></html>

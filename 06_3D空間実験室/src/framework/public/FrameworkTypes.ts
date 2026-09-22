@@ -7,7 +7,10 @@ import type { MovementSettings } from "../../player/movementSettings";
 import type { EnvironmentPreset, VisualQuality, VisualState } from "../../visual/VisualConfig";
 import type { CitySettings, WorldMode } from "../../world/types";
 
-export type FeatureId = "navigation" | "map" | "interaction";
+export type CanonicalFeatureId = "worldMap" | "chunkStreaming" | "interiors" | "navigation" | "interaction" | "missions" | "inventory" | "npc" | "enemies" | "dialogue" | "missionGuide" | "dayNight" | "vegetation" | "debugTools";
+/** `map` is retained as a compatibility alias for `worldMap`. */
+export type FeatureId = CanonicalFeatureId | "map";
+export type FeatureProfile = "MINIMAL" | "EXPLORATION" | "FULL";
 export type FrameworkLifecycleState = "CREATED" | "INITIALIZING" | "RUNNING" | "DISPOSED" | "ERROR";
 
 export interface WorldCreateOptions {
@@ -20,17 +23,14 @@ export interface MapLoadOptions {
   chunkUnload?: boolean;
 }
 
-export interface FrameworkFeatureOptions {
-  navigation?: boolean;
-  map?: boolean;
-  interaction?: boolean;
-}
+export type FrameworkFeatureOptions = Partial<Record<FeatureId, boolean>>;
 
 export interface CreateFrameworkOptions {
   canvas: HTMLCanvasElement | string;
   mobile?: boolean;
   config?: Partial<FrameworkConfig>;
   world?: WorldCreateOptions;
+  profile?: FeatureProfile;
   features?: FrameworkFeatureOptions;
 }
 
@@ -44,6 +44,9 @@ export interface FrameworkPlayerApi {
   setPosition(position: Vector3): void;
   setMovementSpeeds(settings: MovementSettings): void;
   setInputEnabled(enabled: boolean): void;
+  setMoveInput(x: number, y: number): void;
+  setSprinting(active: boolean): void;
+  rotate(deltaX: number, deltaY: number): void;
   jump(): void;
 }
 
@@ -54,8 +57,12 @@ export interface FrameworkVisualApi {
 }
 
 export interface FrameworkFeatureAccess {
+  readonly profile: FeatureProfile;
   has(id: FeatureId): boolean;
+  isEnabled(id: FeatureId): boolean;
   enabled(): FeatureId[];
+  disabled(): FeatureId[];
+  reason(id: FeatureId): string | undefined;
 }
 
 export interface FrameworkState {

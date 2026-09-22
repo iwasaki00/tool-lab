@@ -1,0 +1,13 @@
+* { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; touch-action: none; background: #071014; font: 12px monospace; color: #e7fffa; }
+#app-canvas { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+#look-zone { position: fixed; z-index: 2; inset: 0 0 0 42%; }
+header { position: fixed; z-index: 10; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); display: flex; gap: 8px; align-items: center; padding: 8px; border: 1px solid #5bdcc6; background: rgba(3,18,23,.82); }
+button { color: inherit; border: 1px solid #4b8279; background: #0a2729; padding: 7px; }
+#error { position: fixed; z-index: 20; inset: 30% 10%; padding: 20px; background: #310f0f; border: 1px solid #ff776e; }
+.mobile { display: none; position: fixed; z-index: 10; inset: 0; pointer-events: none; }
+.is-mobile .mobile { display: block; }
+#joystick { position: absolute; left: 22px; bottom: 24px; width: 112px; height: 112px; border: 2px solid #64dbc7; border-radius: 50%; pointer-events: auto; }
+#joystick-knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; border-radius: 50%; transform: translate(-50%,-50%); background: #55b7aa; }
+#jump, #use { position: absolute; right: 22px; width: 64px; height: 64px; border-radius: 50%; pointer-events: auto; }
+#jump { bottom: 24px; } #use { bottom: 98px; }

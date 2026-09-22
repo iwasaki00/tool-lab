@@ -1,6 +1,6 @@
 # Framework Public API
 
-Framework Version: **1.2.1**  
+Framework Version: **1.4.0**
 Map Format Version: **1**
 
 `src/framework/index.ts` is the supported public entry point for new games and 3D tools. Files below `framework/internal`, concrete Managers, `scene/createScene.ts`, and `compatibility` are not public API.
@@ -42,9 +42,22 @@ Do not use an instance after disposal. Create another instance instead. No frame
 - `mobile`: optional explicit mobile mode; otherwise pointer/touch capability is detected.
 - `config`: renderer, visual, map, performance, and debug defaults.
 - `world`: `field` or `city`, plus partial `CitySettings`.
-- `features`: optional `navigation`, `map`, and `interaction` switches. All are enabled by default.
+- `profile`: `MINIMAL`, `EXPLORATION`, or `FULL`.
+- `features`: optional per-feature overrides applied after the selected Profile.
 
-Feature switches prepare the API for the future profile system. They do not dynamically split bundles in 1.2.1.
+`chunkStreaming` requires `worldMap`, `interiors` requires `worldMap`, and `missionGuide` requires `missions`. When a required Feature is disabled, the dependent Feature is disabled with a warning instead of unexpectedly enabling dependencies. Feature switches do not dynamically split bundles in 1.4.0.
+
+```ts
+const framework = await createFramework({
+  canvas,
+  profile: "EXPLORATION",
+  features: {
+    navigation: false,
+    missions: false,
+    enemies: false,
+  },
+});
+```
 
 ## World
 
@@ -81,9 +94,12 @@ Map Format Version is independent from Framework Version. Loading continues to u
 - `setPosition()`
 - `setMovementSpeeds()`
 - `setInputEnabled()`
+- `setMoveInput()`
+- `setSprinting()`
+- `rotate()`
 - `jump()`
 
-Camera implementation, collision internals, and input observers remain internal.
+`bindStandardMobileControls()` connects app-owned joystick/look/jump elements to this API. Camera implementation, collision internals, and input observers remain internal.
 
 ## Navigation
 
@@ -134,7 +150,13 @@ Event listener storage is instance-local and is cleared during disposal.
 
 ## Feature Access
 
-`getFeatures().has(id)` and `getFeatures().enabled()` report the services composed into the instance. Disabled optional services return `undefined` from their getter. This avoids a mandatory Mission/Enemy/Score dependency for non-game tools.
+`getFeatures()` exposes `profile`, `has()` / `isEnabled()`, `enabled()`, `disabled()`, and dependency-disable `reason()`. The compatibility id `map` aliases `worldMap`. Disabled optional services return `undefined` from their getter. This avoids a mandatory Mission/Enemy/Score dependency for non-game tools.
+
+Profile intent:
+
+- `MINIMAL`: World Map, Chunk Streaming, Interaction, and core Visual/Player functionality.
+- `EXPLORATION`: MINIMAL plus Interiors and Navigation; no Mission, Inventory, NPC, or Enemy.
+- `FULL`: existing 3D Space Laboratory composition.
 
 ## Game Composition
 

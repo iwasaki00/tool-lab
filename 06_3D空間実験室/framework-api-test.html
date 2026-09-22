@@ -18,13 +18,24 @@
           world: { mode: "field" },
           config: { map: { autoExpansion: false, chunkUnload: false } },
         });
+        await framework.initialize();
+        const initializedLifecycle = framework.getState().lifecycle;
+        await framework.start();
         await framework.start();
         let eventReceived = false;
         const unsubscribe = framework.getEvents().on(FRAMEWORK_EVENT.MAP_STATUS_CHANGED, ({ message }) => { eventReceived = message === "api-smoke"; });
         framework.getEvents().emit(FRAMEWORK_EVENT.MAP_STATUS_CHANGED, { state: "IDLE", message: "api-smoke" });
         unsubscribe();
         const generated = framework.createProceduralMap(13579, "SUBURBAN");
-        await framework.loadMap(generated, { autoExpansion: false, chunkUnload: false });
+        const compatibleVersionMap = { ...generated, frameworkVersion: "0.9.0" };
+        await framework.loadMap(compatibleVersionMap, { autoExpansion: false, chunkUnload: false });
+        const beforeRestart = framework.getVisual().getState();
+        for (let index = 0; index < 4; index += 1) await framework.restartSession({ city: { seed: 13579 } });
+        const afterRestart = framework.getVisual().getState();
+        let invalidMapError = "";
+        let futureMapError = "";
+        try { await framework.loadMap({ broken: true }); } catch (error) { invalidMapError = error instanceof Error ? error.message : String(error); }
+        try { await framework.loadMap({ ...generated, mapFormatVersion: 999 }); } catch (error) { futureMapError = error instanceof Error ? error.message : String(error); }
         const running = framework.getState();
         const result = {
           exportedFrameworkVersion: FRAMEWORK_VERSION,
@@ -32,6 +43,7 @@
           stateFrameworkVersion: running.frameworkVersion,
           stateMapFormatVersion: running.mapFormatVersion,
           lifecycle: running.lifecycle,
+          initializedLifecycle,
           worldAreaCount: framework.getWorld().getAll().length,
           mapAvailable: Boolean(framework.getMap()),
           navigationAvailable: Boolean(framework.getNavigation()),
@@ -40,8 +52,14 @@
           visualAvailable: Boolean(framework.getVisual().getState()),
           eventReceived,
           mapSeed: framework.getMap()?.snapshot().worldSeed,
+          featureProfile: framework.getFeatures().profile,
           features: framework.getFeatures().enabled(),
+          beforeRestart: { meshes: beforeRestart.meshes, materials: beforeRestart.materials, lights: beforeRestart.activeLights },
+          afterRestart: { meshes: afterRestart.meshes, materials: afterRestart.materials, lights: afterRestart.activeLights },
+          invalidMapError,
+          futureMapError,
         };
+        framework.dispose();
         framework.dispose();
         return { ...result, disposedLifecycle: framework.getState().lifecycle };
       };

@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.4.0
+
+- Added `MINIMAL`, `EXPLORATION`, and `FULL` Feature Profiles with per-feature overrides.
+- Added dependency-aware Feature Toggle state and safe optional service access through the Public API.
+- Added the reusable `starter-3d` template with configuration, composition, mobile controls, and setup documentation.
+- Added the standalone 3D Walk Sample using only the Framework Public API, with map streaming, visual presets, interaction, and desktop/mobile input.
+- Kept the Sample Game and Map Format Version 1 fully compatible.
+
+## 1.3.0
+
+- Added a stable framework Public API for lifecycle, world, map, player, navigation, interaction, events and visual access.
+- Separated framework, feature, sample-game and development-tool responsibilities while retaining the existing games.
+- Introduced Framework Context and service contracts so consumers no longer need internal manager imports.
+- Moved ESCAPE, STEALTH and EXPLORATION behind the Sample Game composition and game-mode strategy boundary.
+- Simplified bootstrap and application composition and added centralized UI registration and cleanup.
+- Preserved existing integrations through the deprecated compatibility layer.
+- Hardened restart and dispose behavior, including double-start protection and repeated map/session resource cleanup.
+- Kept Map Format Version 1 compatible across the framework upgrade.
+
 ## 1.2.1
 
 - Added NORMAL / STRESS / MOBILE LOW performance profiling and budget diagnostics.

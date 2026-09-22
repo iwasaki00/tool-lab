@@ -731,6 +731,57 @@ Production main bundle: approximately **2,130.89 kB** minified / **610.30 kB gzi
 4. Feature profile (`minimal/world/simulation/game/development`)とregistration registryを導入する。
 5. Recast、Sample Game、Dev/Test toolingをdynamic importし、Public Core bundleを計測・分割する。
 
-## 14. Git
+## 14. Phase 5: Release Candidate
+
+Phase 5では新機能・新Layer・大規模Refactorを行わず、Framework 1.3.0のRelease Candidateとして起動、Public API、Lifecycle、Restart、Map再読込、Dispose、Sample Game、Mobile、Performanceを検証した。全Release Blockerが解消したためFramework Versionを **1.3.0** に更新し、Map Format Versionは互換性を保って **1** を維持した。
+
+### 14.1 Release blocker fixes
+
+- `DefaultFrameworkFacade.start()`へ二重起動Guardを追加し、Render Loopの重複を防止した。
+- Framework dispose時にRender Loopの停止状態を明示的に戻した。
+- `WorldMapManager`のMap再読込時にbase world由来のruntime chunkも破棄し、chunk debug mesh/materialの残留を解消した。
+- Navigation path LinesMeshを所有マテリアル込みで破棄し、経路再生成時の`colorShader`残留を防止した。
+
+### 14.2 Release Candidate tests
+
+- Fresh browser contextと破損した既存LocalStorageの双方から起動できることを確認。
+- Public Entryのみからinitialize/start/restart/load/dispose、World/Player/Navigation/Interaction/Events/Visual/Map/Features/Stateを確認。
+- startの二重呼出し、restart loop 5回、Map import 2回、disposeの二重呼出しを確認。
+- Mesh、Material、Light、Observable、UI数が再生成ごとに一方的に増加しないことを確認。
+- 32回のchunk境界移動、生成、unload、reload、Mission進行を行うbounded soak testを追加。
+- Map Format 1とFramework Version差の読込、未来Map Versionと不正Mapの安全な拒否を確認。
+- Mobile portrait/landscapeとtouch safety、全Visual preset/quality、PREBUILT/HYBRID map modeを回帰確認。
+
+### 14.3 Final verification
+
+Final verification:
+
+| Check | Result |
+|---|---|
+| BUILD | PASS, TypeScript + Vite, 586 modules |
+| Full E2E | PASS 15/15 |
+| SMOKE | PASS 1/1 |
+| STABILITY | PASS, 3 seed pairs |
+| VISUAL | PASS, desktop presets/qualities + mobile AUTO |
+| CHUNK | PASS, PROCEDURAL/PREBUILT/HYBRID/export/import/expansion/unload |
+| PERFORMANCE | PASS, desktop NORMAL/STRESS + mobile LOW, budgets OK |
+| FRAMEWORK API | PASS 1/1 |
+| RELEASE CANDIDATE | PASS 3/3 |
+| DEMO | PASS 1/1 headed |
+| ARCHITECTURE | PASS, 116 TypeScript modules, circular dependencies 0 |
+
+Production main bundleは約 **2,130.92 kB minified / 610.31 kB gzip**。Phase 5ではbundle最適化を行わず、Release BlockerではないためBacklogへ移した。
+
+### 14.4 Final architecture metrics
+
+| Metric | Phase 4 | Phase 5 | Result |
+|---|---:|---:|---|
+| Problematic Dependencies | 1 | 1 | No increase |
+| Game-specific Leaks | 1 | 1 | No increase |
+| Circular Dependencies | 0 | 0 | PASS |
+
+残る構造課題はRelease Blockerではないため、`BACKLOG.md`へ優先度付きで移した。Phase 5ではcommitおよびtagを作成していない。
+
+## 15. Git
 
 この Phase では commit と tag を作成していない。

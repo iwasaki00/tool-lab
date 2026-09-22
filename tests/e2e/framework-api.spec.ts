@@ -8,11 +8,12 @@ test("Framework Public API", async ({ page }) => {
     return apiWindow.runFrameworkApiSmoke();
   });
 
-  expect(result.exportedFrameworkVersion).toBe("1.2.1");
-  expect(result.stateFrameworkVersion).toBe("1.2.1");
+  expect(result.exportedFrameworkVersion).toBe("1.4.0");
+  expect(result.stateFrameworkVersion).toBe("1.4.0");
   expect(result.exportedMapFormatVersion).toBe(1);
   expect(result.stateMapFormatVersion).toBe(1);
   expect(result.lifecycle).toBe("RUNNING");
+  expect(result.initializedLifecycle).toBe("RUNNING");
   expect(result.disposedLifecycle).toBe("DISPOSED");
   expect(result.worldAreaCount).toBeGreaterThan(0);
   expect(result.mapAvailable).toBe(true);
@@ -22,5 +23,9 @@ test("Framework Public API", async ({ page }) => {
   expect(result.visualAvailable).toBe(true);
   expect(result.eventReceived).toBe(true);
   expect(result.mapSeed).toBe(13579);
-  expect(result.features).toEqual(["navigation", "map", "interaction"]);
+  expect(result.featureProfile).toBe("FULL");
+  expect(result.features).toEqual(expect.arrayContaining(["worldMap", "map", "chunkStreaming", "navigation", "interaction"]));
+  expect(result.beforeRestart).toEqual(result.afterRestart);
+  expect(result.invalidMapError).toMatch(/INVALID MAP (DATA|FORMAT VERSION)/);
+  expect(result.futureMapError).toContain("UNSUPPORTED MAP VERSION");
 });

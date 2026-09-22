@@ -11,6 +11,7 @@ import type {
   MapLoadOptions,
   WorldCreateOptions,
 } from "../public/FrameworkTypes";
+import { FeatureRegistry } from "../public/FeatureRegistry";
 
 export interface EmbeddedFrameworkApiOptions {
   context: FrameworkContext;
@@ -24,7 +25,7 @@ export function createEmbeddedFrameworkApi(options: EmbeddedFrameworkApiOptions)
   let lifecycle: FrameworkLifecycleState = "RUNNING";
   let disposed = false;
   const map = context.services.map;
-  const features = ["navigation", "map", "interaction"] as const;
+  const features = new FeatureRegistry("FULL");
 
   const api: FrameworkApi = {
     initialize: async () => undefined,
@@ -49,6 +50,9 @@ export function createEmbeddedFrameworkApi(options: EmbeddedFrameworkApiOptions)
       setPosition: (position: Vector3) => context.player.camera.position.copyFrom(position),
       setMovementSpeeds: (settings: MovementSettings) => context.player.setMovementSpeeds(settings),
       setInputEnabled: (enabled: boolean) => context.player.setInputEnabled(enabled),
+      setMoveInput: (x, y) => context.player.setMoveInput(x, y),
+      setSprinting: (active) => context.player.setSprinting(active),
+      rotate: (deltaX, deltaY) => context.player.rotate(deltaX, deltaY),
       jump: () => context.player.jump(),
     }),
     getNavigation: () => context.services.navigation,
@@ -63,12 +67,12 @@ export function createEmbeddedFrameworkApi(options: EmbeddedFrameworkApiOptions)
       setQuality: (quality: VisualQuality) => context.services.visual.setQuality(quality),
     }),
     getMap: () => map,
-    getFeatures: () => ({ has: (id) => features.includes(id), enabled: () => [...features] }),
+    getFeatures: () => features,
     getState: (): FrameworkState => ({
       frameworkVersion: FRAMEWORK_VERSION,
       mapFormatVersion: MAP_FORMAT_VERSION,
       lifecycle,
-      features: [...features],
+      features: features.enabled(),
       worldAreaCount: context.services.world.getAll().length,
       map: map.snapshot(),
     }),

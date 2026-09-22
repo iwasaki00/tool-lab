@@ -14,7 +14,6 @@ import type { EnvironmentPreset, VisualQuality, VisualState } from "../../visual
 import { DEFAULT_CITY_SETTINGS, type CitySettings } from "../../world/types";
 import type {
   CreateFrameworkOptions,
-  FeatureId,
   FrameworkApi,
   FrameworkEventApi,
   FrameworkFeatureAccess,
@@ -25,6 +24,7 @@ import type {
   MapLoadOptions,
   WorldCreateOptions,
 } from "../public/FrameworkTypes";
+import { FeatureRegistry } from "../public/FeatureRegistry";
 
 /** @internal Public consumers create this through createFramework(). */
 export class DefaultFrameworkFacade implements FrameworkApi {
@@ -35,9 +35,10 @@ export class DefaultFrameworkFacade implements FrameworkApi {
   private navigation?: NavigationManager;
   private map?: WorldMapManager;
   private interaction?: InteractionManager;
+  private rendering = false;
   private readonly config: FrameworkConfig;
   private readonly citySettings: CitySettings;
-  private readonly enabledFeatures: FeatureId[];
+  private readonly features: FeatureRegistry;
   private readonly mobile: boolean;
   private readonly resize = () => this.renderer?.resize();
 
@@ -45,8 +46,7 @@ export class DefaultFrameworkFacade implements FrameworkApi {
     this.config = mergeConfig(options.config);
     this.citySettings = { ...DEFAULT_CITY_SETTINGS, ...options.world?.city };
     this.mobile = options.mobile ?? (matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0);
-    const features = options.features ?? {};
-    this.enabledFeatures = (["navigation", "map", "interaction"] as FeatureId[]).filter((id) => features[id] !== false);
+    this.features = new FeatureRegistry(options.profile ?? "FULL", options.features);
   }
 
   async initialize(): Promise<void> {
@@ -67,7 +67,7 @@ export class DefaultFrameworkFacade implements FrameworkApi {
       if (this.hasFeature("navigation")) {
         this.navigation = new NavigationManager(base.scene, base.registry, (event) => base.events.emit(FRAMEWORK_EVENT.NAVIGATION_STATUS_CHANGED, event));
       }
-      if (this.hasFeature("map")) {
+      if (this.hasFeature("worldMap")) {
         this.map = new WorldMapManager(
           base.objectContext,
           base.registry,
@@ -78,8 +78,9 @@ export class DefaultFrameworkFacade implements FrameworkApi {
           this.mobile,
           (event) => base.events.emit(FRAMEWORK_EVENT.MAP_STATUS_CHANGED, event),
         );
-        this.map.setAutoExpansion(this.config.map.autoExpansion);
-        this.map.setChunkUnload(this.config.map.chunkUnload);
+        const streaming = this.hasFeature("chunkStreaming");
+        this.map.setAutoExpansion(streaming && this.config.map.autoExpansion);
+        this.map.setChunkUnload(streaming && this.config.map.chunkUnload);
       }
       if (this.hasFeature("interaction")) this.interaction = new InteractionManager(base.scene, base.player.camera, () => undefined);
       base.visuals.setQuality(this.config.visual.quality);
@@ -97,8 +98,10 @@ export class DefaultFrameworkFacade implements FrameworkApi {
 
   async start(): Promise<void> {
     await this.initialize();
+    if (this.rendering) return;
     const base = this.requireScene();
     this.renderer?.engine.runRenderLoop(() => base.scene.render());
+    this.rendering = true;
   }
 
   dispose(): void {
@@ -137,6 +140,9 @@ export class DefaultFrameworkFacade implements FrameworkApi {
       setPosition: (position: Vector3) => player.camera.position.copyFrom(position),
       setMovementSpeeds: (settings: MovementSettings) => player.setMovementSpeeds(settings),
       setInputEnabled: (enabled: boolean) => player.setInputEnabled(enabled),
+      setMoveInput: (x, y) => player.setMoveInput(x, y),
+      setSprinting: (active) => player.setSprinting(active),
+      rotate: (deltaX, deltaY) => player.rotate(deltaX, deltaY),
       jump: () => player.jump(),
     };
   }
@@ -159,7 +165,7 @@ export class DefaultFrameworkFacade implements FrameworkApi {
   }
 
   getFeatures(): FrameworkFeatureAccess {
-    return { has: (id) => this.hasFeature(id), enabled: () => [...this.enabledFeatures] };
+    return this.features;
   }
 
   getState(): FrameworkState {
@@ -167,14 +173,14 @@ export class DefaultFrameworkFacade implements FrameworkApi {
       frameworkVersion: FRAMEWORK_VERSION,
       mapFormatVersion: MAP_FORMAT_VERSION,
       lifecycle: this.lifecycle,
-      features: [...this.enabledFeatures],
+      features: this.features.enabled(),
       worldAreaCount: this.sceneRuntime?.registry.getAll().length ?? 0,
       map: this.map?.snapshot(),
       error: this.error || undefined,
     };
   }
 
-  private hasFeature(id: FeatureId): boolean { return this.enabledFeatures.includes(id); }
+  private hasFeature(id: Parameters<FeatureRegistry["has"]>[0]): boolean { return this.features.has(id); }
   private requireScene(): FrameworkSceneRuntime { if (!this.sceneRuntime) throw new Error("FRAMEWORK NOT INITIALIZED"); return this.sceneRuntime; }
   private requireMap(): WorldMapManager { if (!this.map) throw new Error("MAP FEATURE NOT ENABLED"); return this.map; }
 
@@ -183,6 +189,7 @@ export class DefaultFrameworkFacade implements FrameworkApi {
     window.removeEventListener("orientationchange", this.resize);
     window.visualViewport?.removeEventListener("resize", this.resize);
     this.renderer?.engine.stopRenderLoop();
+    this.rendering = false;
     this.interaction?.dispose();
     this.map?.dispose();
     this.navigation?.dispose();

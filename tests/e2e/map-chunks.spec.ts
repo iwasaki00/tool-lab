@@ -14,6 +14,7 @@ test("World Map / Chunks", async ({ page }) => {
 
   const exported = await page.evaluate(() => window.__SPACE_LAB_TEST__!.exportMap()); expect(exported.mapFormatVersion).toBe(1); expect(exported.frameworkVersion).toMatch(/^\d+\.\d+\.\d+$/); expect(exported.chunks.length).toBeGreaterThan(1);
   await page.evaluate(async (map) => { await window.__SPACE_LAB_TEST__!.importMap(map); }, exported); const restored = await page.evaluate(() => window.__SPACE_LAB_TEST__!.exportMap());
+  expect((await page.evaluate(() => window.__SPACE_LAB_TEST__!.getMapState())).mode).toBe("PREBUILT");
   expect(restored.seed).toBe(exported.seed); expect(restored.chunks.map((item: any) => `${item.id}:${item.seed}`).sort()).toEqual(exported.chunks.map((item: any) => `${item.id}:${item.seed}`).sort());
   const futureVersionError = await page.evaluate(async (map) => { try { await window.__SPACE_LAB_TEST__!.importMap({ ...map, mapFormatVersion: 999 }); return ""; } catch (error) { return error instanceof Error ? error.message : String(error); } }, exported);
   expect(futureVersionError).toContain("UNSUPPORTED MAP VERSION");

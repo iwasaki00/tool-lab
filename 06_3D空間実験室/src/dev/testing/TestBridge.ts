@@ -36,6 +36,7 @@ export interface SpaceLabTestBridge {
   setEnvironmentPreset: (preset: EnvironmentPreset) => void;
   setVisualQuality: (quality: VisualQuality) => void;
   getPerformanceState: () => ReturnType<LaboratoryApi["visualState"]> & { fps: number; loadedChunks: number };
+  getResourceState: () => { meshNames: string[]; materialNames: string[]; lineMeshes: number; lights: number; beforeRenderObservers: number; pointerObservers: number };
   teleportToObjective: () => void;
   teleportToStart: () => void;
   teleportToGoal: () => void;
@@ -90,6 +91,7 @@ export function installTestBridge(options: TestBridgeOptions): () => void {
     setEnvironmentPreset: (preset) => lab().setEnvironmentPreset(preset),
     setVisualQuality: (quality) => lab().setVisualQuality(quality),
     getPerformanceState: () => ({ ...lab().visualState(), fps: lab().scene.getEngine().getFps(), loadedChunks: lab().mapState().loadedChunks.length }),
+    getResourceState: () => ({ meshNames: lab().scene.meshes.filter((mesh) => !mesh.isDisposed()).map((mesh) => mesh.name).sort(), materialNames: lab().scene.materials.map((material) => material.name).sort(), lineMeshes: lab().scene.meshes.filter((mesh) => !mesh.isDisposed() && mesh.getClassName() === "LinesMesh").length, lights: lab().scene.lights.length, beforeRenderObservers: lab().scene.onBeforeRenderObservable.observers.length, pointerObservers: lab().scene.onPointerObservable.observers.length }),
     teleportToObjective: () => lab().debugCommand("teleport-current"),
     teleportToStart: () => lab().debugCommand("teleport-start"),
     teleportToGoal: () => lab().debugCommand("teleport-goal"),

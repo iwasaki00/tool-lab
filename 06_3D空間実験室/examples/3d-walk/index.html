@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+    <title>3D Walk Sample</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <canvas id="walk-canvas"></canvas>
+    <div id="look-zone" aria-label="Look area"></div>
+    <header class="walk-hud">
+      <div><strong>3D WALK SAMPLE</strong><small id="profile-state">STARTING</small></div>
+      <div class="status"><span id="chunk-state">CHUNK 0, 0</span><span id="interaction-state">INTERACTION 0</span></div>
+    </header>
+    <nav class="walk-controls" aria-label="Walk sample controls">
+      <button class="is-active" data-environment="CLEAR_DAY">DAY</button>
+      <button data-environment="SUNSET">SUNSET</button>
+      <button data-environment="NIGHT">NIGHT</button>
+      <button id="auto-expansion" data-enabled="true">AUTO EXPANSION ON</button>
+      <button id="interact-button">INTERACT [E]</button>
+    </nav>
+    <div class="desktop-help">WASD MOVE · MOUSE LOOK · SPACE JUMP · E INTERACT</div>
+    <div class="mobile-controls">
+      <div id="joystick"><div id="joystick-knob"></div></div>
+      <button id="jump-button">JUMP</button>
+      <button id="mobile-interact-button">USE</button>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
