@@ -1,49 +1,46 @@
 # Tilt 3D Lab / 傾き3D実験室
 
-スマートフォンの画面を3D空間への窓として扱い、端末の傾き、またはPCのマウス位置に応じてPerspective Cameraを移動する実験用Webアプリです。オブジェクトを入力に合わせて回転させるのではなく、観察者の位置を動かすことで、側面、重なり、遮蔽の変化を作ります。
+スマートフォン画面を3D世界への窓として扱い、端末の傾きやPCのマウス位置に応じてPerspective Cameraを移動するショーケースです。物体を入力で回転させるのではなく観察者の位置を動かし、側面、重なり、遮蔽、透明物の見え方を変化させます。
 
 ## Version
 
-**0.2.0 — Phase 2「3D WINDOW」**
+**0.3.0 — Phase 3「SHOWCASE SCENES」**
 
-テーマは「スマートフォン画面を、3D空間を覗く窓にする」です。
+テーマは「3Dになる」から「3Dを体験したくなる」へ、です。
 
 ## Three.js
 
 - Version: **0.170.0**
-- 導入方法: 公式配布ES Moduleを`js/three.module.js`としてプロジェクト内へ同梱し、ローカルから動的ロード
+- 導入方法: 公式配布ES Moduleを`js/three.module.js`として同梱
 - 取得元: `https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js`
 
-同梱ファイルのVersionを固定しているため、実行時の外部通信は不要です。Three.jsやWebGLを読み込めない場合も、センサーUIを停止せず、3D表示を利用できない旨をシーン領域に表示します。
+実行時の外部通信は不要です。WebGLを利用できない場合もUIは停止せず、3D表示を利用できない旨を表示します。
 
-## Phase 2で実装した範囲
+## SHOWCASE SCENES
 
-- Three.js `WebGLRenderer`と`PerspectiveCamera`による実3D描画
-- `viewX` / `viewY`によるカメラ位置移動と固定注視点への`lookAt`
-- 背景壁、奥側オブジェクト、中央オブジェクト、前景オブジェクトのZ深度分離
-- Perspectiveによる自然な視差と、中央物体の裏が見える遮蔽変化
-- 未来的な展示室、空間グリッド、立体フレーム、複数ライト、簡易シャドウ
-- 控えめに浮遊する前景オブジェクト
-- 縦画面専用UIと横画面時の回転案内
-- カメラ座標、FOV、描画サイズ、Pixel Ratio、WebGL状態のDEBUG表示
-- WebGL／Three.jsロード失敗時のフォールバック表示
-- Phase 1のセンサー、反転、ニュートラル、感度、スムージング、PCマウス操作を継承
+### AQUARIUM（デフォルト）
 
-## 3Dシーン構成
+小さな水中世界です。波打つ半透明水面と波紋、FogExp2、上方からの光線、12個の多深度Bubble、Geometryを組み合わせた3匹の魚、海底、岩、サンゴを配置しています。大きな前景魚、岩、泡は意図的に画面端からはみ出し、視点移動で画面外だった部分や背後の物体が見えます。
 
-```text
-CAMERA            z = +7.5
-FRONT OBJECTS     z = +1.2 ～ +1.7
-MAIN OBJECT       z = -0.15
-HIDDEN OBJECTS    z = -1.55 ～ -1.8
-BACK WALL         z = -5.2
-```
+### NEON CHAMBER
 
-中央には面ごとの材質差が分かるBox型展示物、手前にはSphere、Icosahedron、Cube、Tetrahedronを配置しています。中央物体の後ろには発光する球体と多面体があり、左右から覗くと隠れていた部分が見える構成です。
+Phase 2の展示室を発展させたSF空間です。奥行きグリッド、立体フレーム、Box・Octahedron・Torus・Cylinderからなる中央展示物、背後の発光体、画面端の大型前景物を配置しています。正面で隠れたCylinderや発光球が横から見える構成です。
+
+### BUBBLE / CRYSTAL
+
+透明物の重なりを体験する幻想的な空間です。中央の透明Icosahedronシェルと発光Octahedron、周囲の小型結晶、奥の光点、画面端から切れる大型透明Sphereを配置しています。透明Materialは`depthWrite: false`と明示的な`renderOrder`で描画順を調整しています。
+
+## Scene切替とリソース管理
+
+Canvas内下部のAQUARIUM／NEON／CRYSTALボタンで、ページ再読み込みなしに切り替えます。共通Scene Managerが現在のシーンだけをThree.js Sceneへ接続します。切替時は旧シーンを走査し、Geometry、Material、Textureを`dispose()`してから削除します。イベントは親要素への1つのイベント委譲のみで、シーンごとのRAFやイベントは作りません。切替時には約210msの軽いフェードを使用します。
+
+## 前景・中景・背景
+
+各シーンは実際のZ座標で、画面端にはみ出す前景、主役となる中景、Fogへ溶ける背景に分けています。視差量をCSSで作り分けず、Perspective Cameraと実Z深度によって自然に変化させています。
 
 ## カメラ制御とDeviceOrientation
 
-`orientation.js`はDeviceOrientationの取得、画面方向補正、ニュートラル差分、正規化された`tiltX` / `tiltY`の提供を担当します。`app.js`で反転設定を適用して`viewX` / `viewY`を作り、`renderer.js`でスムージングします。`scene3d.js`は入力方式を意識せず、描画用の視点値だけを受け取ります。
+Phase 2までの入力構造を維持しています。
 
 ```text
 DeviceOrientation / Mouse
@@ -55,73 +52,72 @@ DeviceOrientation / Mouse
   → camera.lookAt(focalTarget)
 ```
 
-中央オブジェクトは入力によって回転しません。実際にカメラが少し横・縦へ移動するため、Z深度の異なる物体にPerspective由来の視差が生じます。
+基本FOVは42°です。カメラ移動倍率はAQUARIUM 1.0、NEON 1.1、CRYSTAL 0.92です。
+
+## Animation
+
+単一RAF内でセンサー平滑化、シーン更新、カメラ更新、Three.js描画を順番に処理します。AQUARIUMでは魚の遊泳、泡の上昇、水面の波、NEONではRing回転と発光変化、CRYSTALでは結晶の緩やかな自転を行います。Reduce Motion時は自動Animationとカメラ移動量を低減します。
+
+## DEBUG
+
+センサー値に加えて、現在のScene、Object Count、Triangle Count、Draw Calls、GPU Geometry／Texture数、Quality、Fog、Shadow、Animation、Camera座標、FOV、描画サイズ、Pixel Ratio、WebGL状態、FPSを表示します。描画統計は`renderer.info`から取得します。
 
 ## ファイル構成
 
 ```text
-index.html          画面構造、3D Canvas、縦向き案内
-style.css           UI、3D窓枠、レスポンシブ表示
-js/app.js           UI、状態管理、view変換、シーン接続
-js/orientation.js   許可、姿勢取得、画面方向補正、正規化
-js/renderer.js      単一RAF、スムージング、感度、FPS計測
-js/scene3d.js       Three.jsシーン、カメラ、リサイズ、3D描画
-js/three.module.js  Three.js 0.170.0（同梱依存ファイル）
-README.md           このファイル
+index.html                    Canvas、シーン切替、UI
+style.css                     3D窓枠、シーンUI、レスポンシブ表示
+js/app.js                     UI、入力変換、Scene Manager接続
+js/orientation.js             センサー許可、画面方向補正、正規化
+js/renderer.js                単一RAF、スムージング、感度、FPS
+js/scene3d.js                 Three.js共通処理とシーン管理
+js/scenes/aquariumScene.js    水中ショーケース
+js/scenes/neonScene.js        ネオン展示室
+js/scenes/crystalScene.js     透明結晶ショーケース
+js/three.module.js            Three.js 0.170.0
+README.md
 ```
 
 ## ローカル確認方法
-
-ES Moduleを使うため、HTTPサーバーから表示します。
 
 ```powershell
 cd 07_スマホ傾き疑似3Dツール
 py -3 -m http.server 8080
 ```
 
-ブラウザで `http://localhost:8080` を開きます。Three.jsは同梱済みなので、実行時のインターネット接続は不要です。
+ブラウザで`http://localhost:8080`を開きます。PCでは3D窓内のマウス位置を使って全シーンのカメラを移動できます。
 
-## iPhoneでの確認方法
+## iPhone / Android
 
-1. HTTPSでアクセスできる場所へ配置し、iPhone Safariで縦向きに開きます。
-2. 「モーション開始」をタップし、モーション利用を許可します。
-3. 自然な姿勢で「現在位置を中央にする」をタップします。
-4. 端末を小さく上下左右へ傾け、中央物体の側面や背後の発光体が見えることを確認します。
+HTTPSで配置し、縦向きで開きます。「モーション開始」からセンサー利用を許可し、自然な姿勢で「現在位置を中央にする」を押してください。iOSではユーザー操作内で`DeviceOrientationEvent.requestPermission()`を呼びます。
 
-iOSではユーザー操作内で`DeviceOrientationEvent.requestPermission()`を呼びます。センサーには原則としてHTTPSのSecure Contextが必要です。
+## 縦画面仕様
 
-## Androidでの確認方法
+スマートフォンではportraitが正式対象です。landscape時は描画ループを停止し、「端末を縦向きに戻してください」と表示します。portraitへ戻すとリサイズして自動復帰します。
 
-HTTPSで配置したページをAndroid Chromeで開き、「モーション開始」をタップします。機種やOS設定によってセンサーが制限される場合はDEBUGで受信値を確認してください。
+## Performance
 
-## PCのマウス操作
+- Pixel Ratioを最大2、スマートフォンでは最大1.5に制限
+- GeometryとMaterialはScene生成時のみ作成
+- 同時に保持するShowcase Sceneは1つだけ
+- Shadow Mapは512×512、スマートフォンではShadowを無効化
+- 透明物とライト数を限定
+- 非表示時・スマートフォン横画面時はRAF停止
+- Quality表示は現在`STANDARD`固定
 
-3D窓領域の中央がニュートラルです。マウスを左右上下へ動かすと、実センサーと同じ`viewX` / `viewY`経路を通ってカメラが移動します。領域から外すと中央へ戻ります。
+## 既知の制限
 
-## 縦画面専用仕様
+- Geometryのみで構成しているため、魚や岩はスタイライズされた表現です。
+- 本格的な水面反射・屈折、Post Processing、Bloomは未使用です。
+- 半透明物は端末GPUや視点によって重なりの見え方が多少変化します。
+- 端末ごとにセンサー感度とGPU性能が異なります。
 
-タッチ端末ではportraitを正式な表示方向としています。landscapeにすると3D描画ループを一時停止し、操作UIを隠して「端末を縦向きに戻してください」と表示します。portraitへ戻るとシーンをリサイズして自動復帰します。Orientation Lockの成功には依存しません。
+## Phase 4候補
 
-## パフォーマンス
+**GLTF / GLB MODEL VIEWER**
 
-- センサー処理、スムージング、浮遊アニメーション、Three.js描画を単一の`requestAnimationFrame`へ統合
-- Pixel Ratioを`Math.min(devicePixelRatio, 2)`に制限
-- GeometryとMaterialは初期化時に一度だけ生成
-- 影のマップを512×512に制限
-- 非表示時とスマートフォン横画面時はRAFを停止
-- Reduce Motion時はカメラ移動量と浮遊量を低減
-
-## WebGL要件と既知の制限
-
-- WebGL対応ブラウザが必要です。
-- ブラウザや端末ごとにセンサー軸、感度、GPU性能に差があります。
-- 実機によって方向の体感が異なる場合は、DEBUGの左右・上下反転を個別に調整できます。
-- Phase 2ではGLTF、外部モデル、Post Processing、Bloom、物理エンジンは使用していません。
-
-## Phase 3候補
-
-- GLTF / GLBによる展示モデルの読み込み
-- 複数の3D WINDOWデモ切替
-- 水中・浮遊空間シーン
-- 端末別カメラ範囲のキャリブレーション
-- Depth Mapを使った画像の疑似3D表示
+- GLTF / GLBモデル読み込み
+- モデルごとの自動フレーミング
+- ライト・背景プリセット
+- モデル情報とAnimation一覧
+- モバイル向け品質自動調整

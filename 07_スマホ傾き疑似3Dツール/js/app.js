@@ -2,7 +2,7 @@ import { OrientationController, SENSOR_STATES } from "./orientation.js";
 import { TiltRenderer } from "./renderer.js";
 import { createScene3D } from "./scene3d.js";
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 
 const viewSettings = {
   invertX: true,
@@ -16,6 +16,8 @@ const elements = {
   canvas: document.querySelector("#scene-canvas"),
   sceneFallback: document.querySelector("#scene-fallback"),
   webglBadge: document.querySelector("#webgl-badge"),
+  sceneName: document.querySelector("#scene-name"),
+  sceneSwitcher: document.querySelector("#scene-switcher"),
   rotateOverlay: document.querySelector("#rotate-overlay"),
   start: document.querySelector("#start-motion"),
   reset: document.querySelector("#reset-neutral"),
@@ -41,6 +43,11 @@ const elements = {
     devicePixelRatio: document.querySelector("#debug-device-pixel-ratio"),
     effectivePixelRatio: document.querySelector("#debug-effective-pixel-ratio"),
     webgl: document.querySelector("#debug-webgl"),
+    currentScene: document.querySelector("#debug-current-scene"), objects: document.querySelector("#debug-objects"),
+    triangles: document.querySelector("#debug-triangles"), drawCalls: document.querySelector("#debug-draw-calls"),
+    gpuMemory: document.querySelector("#debug-gpu-memory"),
+    quality: document.querySelector("#debug-quality"), effects: document.querySelector("#debug-effects"),
+    animation: document.querySelector("#debug-animation"),
   },
 };
 
@@ -140,6 +147,14 @@ function updateDebug(frame = latestFrame) {
     elements.debug.devicePixelRatio.textContent = devicePixelRatio.toFixed(2);
     elements.debug.effectivePixelRatio.textContent = effectivePixelRatio.toFixed(2);
     elements.debug.webgl.textContent = metrics.available ? "利用可能" : "非対応";
+    elements.debug.currentScene.textContent = metrics.currentScene;
+    elements.debug.objects.textContent = String(metrics.objectCount);
+    elements.debug.triangles.textContent = metrics.triangles.toLocaleString("ja-JP");
+    elements.debug.drawCalls.textContent = String(metrics.drawCalls);
+    elements.debug.gpuMemory.textContent = `${metrics.geometries} / ${metrics.textures}`;
+    elements.debug.quality.textContent = metrics.quality;
+    elements.debug.effects.textContent = `${metrics.fog} / SHADOW ${metrics.shadows ? "ON" : "OFF"}`;
+    elements.debug.animation.textContent = metrics.animation;
   }
 }
 
@@ -201,6 +216,17 @@ async function init() {
     scene3d?.setDebugVisible(elements.debugToggle.checked);
     if (elements.debugToggle.checked) updateDebug();
   });
+  elements.sceneSwitcher.addEventListener("click", async (event) => {
+    const button = event.target.closest("button[data-scene]");
+    if (!button || !scene3d?.available) return;
+    elements.sceneSwitcher.querySelectorAll("button[data-scene]").forEach((item) => {
+      const selected = item === button;
+      item.classList.toggle("is-active", selected);
+      item.setAttribute("aria-pressed", String(selected));
+    });
+    await scene3d.switchScene(button.dataset.scene);
+    updateDebug();
+  });
   elements.invertX.addEventListener("change", updateViewSettings);
   elements.invertY.addEventListener("change", updateViewSettings);
   document.addEventListener("visibilitychange", () => {
@@ -219,6 +245,10 @@ async function init() {
       elements.webglBadge.textContent = available ? "WEBGL ACTIVE" : "WEBGL UNAVAILABLE";
       elements.sceneFallback.hidden = available;
       elements.debug.webgl.textContent = available ? message : `非対応: ${message}`;
+    },
+    onSceneChange: ({ label }) => {
+      elements.sceneName.textContent = label;
+      elements.debug.currentScene.textContent = label;
     },
   });
   scene3d.setDebugVisible(elements.debugToggle.checked);

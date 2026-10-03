@@ -24,14 +24,14 @@
             <small>TILT 3D LAB</small>
           </span>
         </a>
-        <span class="version" data-version>Version 0.2.0</span>
+        <span class="version" data-version>Version 0.3.0</span>
       </header>
 
       <section id="top" class="hero" aria-labelledby="hero-title">
         <div class="hero__intro">
-          <p class="eyebrow"><span></span> PHASE 2 / 3D WINDOW</p>
+          <p class="eyebrow"><span></span> PHASE 3 / SHOWCASE SCENES</p>
           <h1 id="hero-title">傾けて、<br /><em>奥をのぞく。</em></h1>
-          <p class="hero__copy">画面を窓にして、端末の向きに合わせて本物の3D空間を覗き込みます。</p>
+          <p class="hero__copy">水中、ネオン、結晶。画面の奥に広がる3つの世界を、端末を傾けて覗き込みます。</p>
         </div>
 
         <div id="motion-stage" class="stage" aria-label="傾きに反応する3D空間">
@@ -40,8 +40,14 @@
             <canvas id="scene-canvas" aria-label="3D WINDOW DEMO"></canvas>
             <div class="window-frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
             <div class="window-hud" aria-hidden="true">
-              <span>3D WINDOW DEMO</span><span id="webgl-badge">INITIALIZING</span>
+              <span id="scene-name">AQUARIUM</span><span id="webgl-badge">INITIALIZING</span>
             </div>
+            <div id="scene-transition" class="scene-transition" aria-hidden="true"></div>
+            <nav id="scene-switcher" class="scene-switcher" aria-label="ショーケースシーン">
+              <button class="is-active" type="button" data-scene="aquarium" aria-pressed="true">AQUARIUM</button>
+              <button type="button" data-scene="neon" aria-pressed="false">NEON</button>
+              <button type="button" data-scene="crystal" aria-pressed="false">CRYSTAL</button>
+            </nav>
             <div id="scene-fallback" class="scene-fallback" hidden>
               <span aria-hidden="true">◇</span>
               <strong>3D表示を利用できません</strong>
@@ -146,12 +152,20 @@
             <div><dt>device pixel ratio</dt><dd id="debug-device-pixel-ratio">—</dd></div>
             <div><dt>effective pixel ratio</dt><dd id="debug-effective-pixel-ratio">—</dd></div>
             <div><dt>WebGL</dt><dd id="debug-webgl">初期化中</dd></div>
+            <div><dt>current scene</dt><dd id="debug-current-scene">AQUARIUM</dd></div>
+            <div><dt>objects</dt><dd id="debug-objects">—</dd></div>
+            <div><dt>triangles</dt><dd id="debug-triangles">—</dd></div>
+            <div><dt>draw calls</dt><dd id="debug-draw-calls">—</dd></div>
+            <div><dt>GPU geometry / texture</dt><dd id="debug-gpu-memory">—</dd></div>
+            <div><dt>quality</dt><dd id="debug-quality">STANDARD</dd></div>
+            <div><dt>fog / shadow</dt><dd id="debug-effects">—</dd></div>
+            <div><dt>animation</dt><dd id="debug-animation">ACTIVE</dd></div>
           </dl>
         </aside>
       </section>
 
       <footer class="app-footer">
-        <span>PHASE 02</span><span>3D WINDOW</span><span>2026</span>
+        <span>PHASE 03</span><span>SHOWCASE SCENES</span><span>2026</span>
       </footer>
     </main>
 

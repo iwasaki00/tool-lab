@@ -238,6 +238,12 @@ select { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-r
 .window-frame i:nth-child(4) { bottom: 15px; left: 15px; border-width: 0 0 1px 1px; }
 .window-hud { position: absolute; z-index: 4; display: flex; justify-content: space-between; top: 21px; right: 23px; left: 23px; color: rgba(217,251,247,.72); font: 600 .48rem monospace; letter-spacing: .13em; pointer-events: none; }
 .window-hud span:last-child { color: var(--cyan); }
+.scene-transition { position: absolute; z-index: 2; inset: 0; pointer-events: none; background: #050914; opacity: 0; transition: opacity 140ms ease; }
+.window-viewport.is-switching .scene-transition { opacity: .88; }
+.scene-switcher { position: absolute; z-index: 5; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; right: 22px; bottom: 21px; left: 22px; padding: 4px; border: 1px solid rgba(255,255,255,.11); border-radius: 11px; background: rgba(4,10,17,.68); backdrop-filter: blur(12px); }
+.scene-switcher button { min-width: 0; min-height: 30px; padding: 0 5px; border: 0; border-radius: 7px; color: #718093; background: transparent; font: 600 .47rem/1 monospace; letter-spacing: .06em; cursor: pointer; touch-action: manipulation; }
+.scene-switcher button.is-active { color: #061312; background: var(--cyan); box-shadow: 0 0 16px rgba(112,245,220,.23); }
+.scene-switcher button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .scene-fallback { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; background: radial-gradient(circle at 50% 40%, rgba(112,245,220,.1), transparent 45%), #070b14; text-align: center; }
 .scene-fallback span { margin-bottom: 18px; color: var(--cyan); font-size: 3rem; }.scene-fallback strong { font-size: .85rem; }.scene-fallback small { margin-top: 9px; color: var(--muted); font-size: .65rem; }
 .stage__halo { transform: none; }
@@ -252,9 +258,10 @@ body.is-landscape-mobile { overflow: hidden; }
 @keyframes rotate-device { 0%, 20% { transform: rotate(90deg); } 60%, 100% { transform: rotate(0); } }
 
 @media (max-width: 680px) {
-  .window-viewport { width: min(82vw, 370px); border-radius: 25px; }
-  .stage { min-height: min(124vw, 585px); }
+  .window-viewport { width: min(calc(100vw - 28px), 390px); aspect-ratio: .68; border-radius: 25px; }
+  .stage { min-height: min(146vw, 610px); }
   .stage__hint { bottom: -2px; }
+  .scene-switcher { right: 17px; bottom: 17px; left: 17px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
