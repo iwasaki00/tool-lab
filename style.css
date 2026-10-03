@@ -196,6 +196,7 @@ a {
 }
 
 .game-card--parrot { --card-accent: #167452; }
+.game-card--tilt { --card-accent: #287a81; }
 .game-card--space { --card-accent: #15799b; }
 .game-card--strobe { --card-accent: #3847b5; }
 .game-card--harmony { --card-accent: #df654d; }
@@ -261,6 +262,56 @@ a {
   background-size: 30px 30px, 30px 30px, auto;
   color: #d9f9ff;
 }
+
+.game-art--tilt {
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 25% 22%, rgba(112, 245, 220, .28), transparent 30%),
+    linear-gradient(145deg, #101d25, #080c17 68%);
+  perspective: 500px;
+}
+
+.tilt-art-grid {
+  position: absolute;
+  inset: 0;
+  opacity: .18;
+  background-image:
+    linear-gradient(rgba(112, 245, 220, .35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(112, 245, 220, .35) 1px, transparent 1px);
+  background-size: 28px 28px;
+  transform: rotate(-8deg) scale(1.18);
+}
+
+.tilt-art-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 55%;
+  aspect-ratio: .72;
+  border: 1px solid rgba(255, 255, 255, .48);
+  border-radius: 14px;
+  padding: 14px 12px;
+  background: linear-gradient(145deg, rgba(51, 74, 87, .94), rgba(17, 21, 37, .98));
+  color: #f5f8ff;
+  box-shadow: 18px 22px 35px rgba(0, 0, 0, .38), inset 0 1px rgba(255, 255, 255, .2);
+  transform: rotateX(9deg) rotateY(-14deg) rotateZ(3deg);
+}
+
+.tilt-art-card::before,
+.tilt-art-card::after {
+  position: absolute;
+  border: 1px solid rgba(112, 245, 220, .32);
+  border-radius: 50%;
+  content: "";
+}
+
+.tilt-art-card::before { width: 72%; aspect-ratio: 1; top: 22%; left: -24%; }
+.tilt-art-card::after { width: 50%; aspect-ratio: 1; right: -18%; bottom: 5%; }
+.tilt-art-card i { z-index: 1; font-size: clamp(10px, 1.35vw, 16px); font-style: normal; font-weight: 800; letter-spacing: .08em; }
+.tilt-art-card b { z-index: 1; align-self: flex-end; color: #70f5dc; font-size: clamp(38px, 6vw, 74px); line-height: .8; letter-spacing: -.09em; text-shadow: 0 0 22px rgba(112, 245, 220, .25); }
 
 .space-art-label {
   font-size: clamp(11px, 1.3vw, 15px);
