@@ -24,45 +24,30 @@
             <small>TILT 3D LAB</small>
           </span>
         </a>
-        <span class="version" data-version>Version 0.1.1</span>
+        <span class="version" data-version>Version 0.2.0</span>
       </header>
 
       <section id="top" class="hero" aria-labelledby="hero-title">
         <div class="hero__intro">
-          <p class="eyebrow"><span></span> MOTION / PARALLAX EXPERIMENT</p>
+          <p class="eyebrow"><span></span> PHASE 2 / 3D WINDOW</p>
           <h1 id="hero-title">傾けて、<br /><em>奥をのぞく。</em></h1>
-          <p class="hero__copy">端末の向きに合わせて、光とレイヤーが静かに反応します。</p>
+          <p class="hero__copy">画面を窓にして、端末の向きに合わせて本物の3D空間を覗き込みます。</p>
         </div>
 
-        <div id="motion-stage" class="stage" aria-label="傾きに反応する3Dカード">
+        <div id="motion-stage" class="stage" aria-label="傾きに反応する3D空間">
           <div class="stage__halo" aria-hidden="true"></div>
-          <article id="tilt-card" class="tilt-card">
-            <div class="card__depth card__depth--back" data-depth="back" aria-hidden="true">
-              <span class="orbit orbit--one"></span>
-              <span class="orbit orbit--two"></span>
-              <span class="coordinate coordinate--top">35.6762° N</span>
-              <span class="coordinate coordinate--bottom">139.6503° E</span>
+          <div id="window-viewport" class="window-viewport">
+            <canvas id="scene-canvas" aria-label="3D WINDOW DEMO"></canvas>
+            <div class="window-frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <div class="window-hud" aria-hidden="true">
+              <span>3D WINDOW DEMO</span><span id="webgl-badge">INITIALIZING</span>
             </div>
-            <div class="card__depth card__depth--mid" data-depth="mid" aria-hidden="true">
-              <span class="axis axis--horizontal"></span>
-              <span class="axis axis--vertical"></span>
-              <span class="node node--a"></span>
-              <span class="node node--b"></span>
-              <span class="node node--c"></span>
+            <div id="scene-fallback" class="scene-fallback" hidden>
+              <span aria-hidden="true">◇</span>
+              <strong>3D表示を利用できません</strong>
+              <small>WebGL対応ブラウザでお試しください。</small>
             </div>
-            <div class="card__depth card__depth--front" data-depth="front">
-              <p class="card__index">EXP — 001</p>
-              <div class="card__title" aria-label="Tilt 3D Lab">
-                <span>TILT</span><span>3D</span><span>LAB</span>
-              </div>
-              <div class="card__footer">
-                <span>DEVICE ORIENTATION</span>
-                <span class="card__live"><i></i> LIVE INPUT</span>
-              </div>
-            </div>
-            <div class="card__shine" aria-hidden="true"></div>
-            <div class="card__edge" aria-hidden="true"></div>
-          </article>
+          </div>
           <p class="stage__hint" id="stage-hint"><span aria-hidden="true">↔</span> マウスを動かして試す</p>
         </div>
 
@@ -155,14 +140,26 @@
             <div><dt>sensor state</dt><dd id="debug-state">IDLE</dd></div>
             <div><dt>orientation</dt><dd id="debug-orientation">portrait / 0°</dd></div>
             <div><dt>FPS</dt><dd id="debug-fps">—</dd></div>
+            <div><dt>camera X / Y / Z</dt><dd id="debug-camera">0.00 / 0.00 / 7.50</dd></div>
+            <div><dt>FOV</dt><dd id="debug-fov">42°</dd></div>
+            <div><dt>renderer W × H</dt><dd id="debug-renderer-size">—</dd></div>
+            <div><dt>device pixel ratio</dt><dd id="debug-device-pixel-ratio">—</dd></div>
+            <div><dt>effective pixel ratio</dt><dd id="debug-effective-pixel-ratio">—</dd></div>
+            <div><dt>WebGL</dt><dd id="debug-webgl">初期化中</dd></div>
           </dl>
         </aside>
       </section>
 
       <footer class="app-footer">
-        <span>PHASE 01</span><span>ORIENTATION FOUNDATION</span><span>2026</span>
+        <span>PHASE 02</span><span>3D WINDOW</span><span>2026</span>
       </footer>
     </main>
+
+    <div id="rotate-overlay" class="rotate-overlay" hidden role="status" aria-live="polite">
+      <div class="rotate-device" aria-hidden="true"><i></i></div>
+      <strong>端末を縦向きに<br />戻してください</strong>
+      <p>3D WINDOWは縦画面でお楽しみいただけます。</p>
+    </div>
 
     <script type="module" src="./js/app.js"></script>
   </body>

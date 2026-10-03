@@ -7,9 +7,7 @@ const SMOOTHING_FACTORS = Object.freeze({
 });
 
 export class TiltRenderer {
-  constructor({ root, card, inputProvider, onFrame }) {
-    this.root = root;
-    this.card = card;
+  constructor({ inputProvider, onFrame }) {
     this.inputProvider = inputProvider;
     this.onFrame = onFrame ?? (() => {});
     this.current = { x: 0, y: 0 };
@@ -62,24 +60,8 @@ export class TiltRenderer {
     this.current.x += (input.viewX - this.current.x) * frameSmoothing;
     this.current.y += (input.viewY - this.current.y) * frameSmoothing;
 
-    const x = this.current.x * this.sensitivity * this.motionScale;
-    const y = this.current.y * this.sensitivity * this.motionScale;
-    const style = this.root.style;
-    style.setProperty("--rotate-x", `${(-y * 13).toFixed(3)}deg`);
-    style.setProperty("--rotate-y", `${(x * 15).toFixed(3)}deg`);
-    style.setProperty("--card-x", `${(x * 7).toFixed(2)}px`);
-    style.setProperty("--card-y", `${(y * 6).toFixed(2)}px`);
-    // The rear plane shifts slightly against the viewpoint while nearer planes
-    // travel with it, creating a window-like look-through effect.
-    style.setProperty("--back-x", `${(-x * 4).toFixed(2)}px`);
-    style.setProperty("--back-y", `${(-y * 4).toFixed(2)}px`);
-    style.setProperty("--mid-x", `${(x * 8).toFixed(2)}px`);
-    style.setProperty("--mid-y", `${(y * 8).toFixed(2)}px`);
-    style.setProperty("--front-x", `${(x * 14).toFixed(2)}px`);
-    style.setProperty("--front-y", `${(y * 14).toFixed(2)}px`);
-    // Reflections move opposite the viewpoint, as they do on a glossy surface.
-    style.setProperty("--shine-x", `${clamp(50 - x * 32, 12, 88).toFixed(1)}%`);
-    style.setProperty("--shine-y", `${clamp(40 - y * 30, 10, 90).toFixed(1)}%`);
+    const cameraViewX = clamp(this.current.x * this.sensitivity * this.motionScale, -1.65, 1.65);
+    const cameraViewY = clamp(this.current.y * this.sensitivity * this.motionScale, -1.65, 1.65);
 
     this.frameCount += 1;
     const fpsElapsed = now - this.fpsStartedAt;
@@ -88,7 +70,15 @@ export class TiltRenderer {
       this.frameCount = 0;
       this.fpsStartedAt = now;
     }
-    this.onFrame({ smoothViewX: this.current.x, smoothViewY: this.current.y, fps: this.fps, input });
+    this.onFrame({
+      smoothViewX: this.current.x,
+      smoothViewY: this.current.y,
+      cameraViewX,
+      cameraViewY,
+      fps: this.fps,
+      time: now,
+      input,
+    });
     this.lastFrameTime = now;
     this.animationId = requestAnimationFrame(this.render);
   }

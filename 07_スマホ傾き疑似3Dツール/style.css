@@ -22,6 +22,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 html { min-height: 100%; background: var(--bg); scroll-behavior: smooth; }
 
@@ -210,4 +211,52 @@ select { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-r
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .button, .toggle-track i { transition-duration: .01ms; }
+}
+
+/* Phase 2: the screen becomes a window into a real WebGL scene. */
+.window-viewport {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 410px);
+  aspect-ratio: .72;
+  overflow: hidden;
+  border: 1px solid rgba(176, 225, 230, .32);
+  border-radius: 28px;
+  background: #050913;
+  box-shadow: 0 46px 90px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.16);
+  isolation: isolate;
+}
+
+#scene-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.window-frame { position: absolute; inset: 0; z-index: 3; border: 8px solid rgba(8, 14, 23, .68); border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(158,246,232,.15), inset 0 0 32px rgba(0,0,0,.5); }
+.window-frame::before, .window-frame::after { position: absolute; left: 50%; width: 42px; height: 1px; background: rgba(112,245,220,.55); content: ""; transform: translateX(-50%); box-shadow: 0 0 8px rgba(112,245,220,.45); }
+.window-frame::before { top: 7px; }.window-frame::after { bottom: 7px; }
+.window-frame i { position: absolute; width: 15px; height: 15px; border-color: rgba(112,245,220,.5); border-style: solid; }
+.window-frame i:nth-child(1) { top: 15px; left: 15px; border-width: 1px 0 0 1px; }
+.window-frame i:nth-child(2) { top: 15px; right: 15px; border-width: 1px 1px 0 0; }
+.window-frame i:nth-child(3) { right: 15px; bottom: 15px; border-width: 0 1px 1px 0; }
+.window-frame i:nth-child(4) { bottom: 15px; left: 15px; border-width: 0 0 1px 1px; }
+.window-hud { position: absolute; z-index: 4; display: flex; justify-content: space-between; top: 21px; right: 23px; left: 23px; color: rgba(217,251,247,.72); font: 600 .48rem monospace; letter-spacing: .13em; pointer-events: none; }
+.window-hud span:last-child { color: var(--cyan); }
+.scene-fallback { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; background: radial-gradient(circle at 50% 40%, rgba(112,245,220,.1), transparent 45%), #070b14; text-align: center; }
+.scene-fallback span { margin-bottom: 18px; color: var(--cyan); font-size: 3rem; }.scene-fallback strong { font-size: .85rem; }.scene-fallback small { margin-top: 9px; color: var(--muted); font-size: .65rem; }
+.stage__halo { transform: none; }
+.stage::after { bottom: 59px; transform: none; }
+
+.rotate-overlay { position: fixed; z-index: 100; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: max(28px, env(safe-area-inset-top)) 28px max(28px, env(safe-area-inset-bottom)); color: #f3f7fd; background: radial-gradient(circle at 50% 42%, rgba(112,245,220,.13), transparent 34%), #05070d; text-align: center; }
+.rotate-device { position: relative; width: 54px; height: 88px; margin-bottom: 28px; border: 2px solid rgba(112,245,220,.8); border-radius: 12px; box-shadow: 0 0 25px rgba(112,245,220,.15); animation: rotate-device 1.8s ease-in-out infinite; }
+.rotate-device::before { position: absolute; top: 6px; left: 50%; width: 13px; height: 2px; border-radius: 2px; background: rgba(112,245,220,.7); content: ""; transform: translateX(-50%); }
+.rotate-device i { position: absolute; inset: 19px 7px 8px; border: 1px solid rgba(154,137,255,.45); border-radius: 4px; background: linear-gradient(145deg, rgba(112,245,220,.1), rgba(154,137,255,.08)); }
+.rotate-overlay strong { font-size: 1.25rem; line-height: 1.5; letter-spacing: .05em; }.rotate-overlay p { margin: 12px 0 0; color: var(--muted); font-size: .72rem; }
+body.is-landscape-mobile { overflow: hidden; }
+@keyframes rotate-device { 0%, 20% { transform: rotate(90deg); } 60%, 100% { transform: rotate(0); } }
+
+@media (max-width: 680px) {
+  .window-viewport { width: min(82vw, 370px); border-radius: 25px; }
+  .stage { min-height: min(124vw, 585px); }
+  .stage__hint { bottom: -2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotate-device { animation: none; transform: rotate(0); }
 }
