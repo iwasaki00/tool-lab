@@ -24,12 +24,12 @@
             <small>TILT 3D LAB</small>
           </span>
         </a>
-        <span class="version" data-version>Version 0.3.0</span>
+        <span class="version" data-version>Version 0.3.1</span>
       </header>
 
       <section id="top" class="hero" aria-labelledby="hero-title">
         <div class="hero__intro">
-          <p class="eyebrow"><span></span> PHASE 3 / SHOWCASE SCENES</p>
+          <p class="eyebrow"><span></span> VIEW CALIBRATION / SHOWCASE</p>
           <h1 id="hero-title">傾けて、<br /><em>奥をのぞく。</em></h1>
           <p class="hero__copy">水中、ネオン、結晶。画面の奥に広がる3つの世界を、端末を傾けて覗き込みます。</p>
         </div>
@@ -80,21 +80,11 @@
             </button>
           </div>
 
-          <div class="settings-grid">
-            <label class="setting setting--range" for="sensitivity">
-              <span><b>感度</b><output id="sensitivity-value" for="sensitivity">100%</output></span>
-              <input id="sensitivity" type="range" min="40" max="160" value="100" step="5" />
-            </label>
-
-            <label class="setting" for="smoothing">
-              <span><b>スムージング</b></span>
-              <select id="smoothing">
-                <option value="smooth">滑らか</option>
-                <option value="standard" selected>標準</option>
-                <option value="responsive">追従重視</option>
-              </select>
-            </label>
-
+          <div class="settings-grid settings-grid--compact">
+            <button id="view-settings-open" class="view-settings-button" type="button">
+              <span><b>VIEW SETTINGS</b><small id="view-settings-summary">WINDOW · 100%</small></span>
+              <i aria-hidden="true">›</i>
+            </button>
             <label class="debug-toggle">
               <input id="debug-toggle" type="checkbox" />
               <span class="toggle-track" aria-hidden="true"><i></i></span>
@@ -114,26 +104,14 @@
               <span class="direction-map__up">↑ UP</span>
               <span class="direction-map__down">DOWN ↓</span>
             </div>
-            <div class="direction-map direction-map--view">
-              <strong>VIEW</strong>
+            <div class="direction-map direction-map--camera">
+              <strong>CAMERA</strong>
               <span class="direction-map__axis" aria-hidden="true"><i></i></span>
               <span class="direction-map__left">← LEFT</span>
               <span class="direction-map__right">RIGHT →</span>
               <span class="direction-map__up">↑ UP</span>
               <span class="direction-map__down">DOWN ↓</span>
             </div>
-          </div>
-          <div class="debug-controls" aria-label="視点方向設定">
-            <label class="axis-toggle">
-              <input id="invert-x" type="checkbox" checked />
-              <span class="toggle-track" aria-hidden="true"><i></i></span>
-              <span><b>左右反転</b><small>invertX</small></span>
-            </label>
-            <label class="axis-toggle">
-              <input id="invert-y" type="checkbox" checked />
-              <span class="toggle-track" aria-hidden="true"><i></i></span>
-              <span><b>上下反転</b><small>invertY</small></span>
-            </label>
           </div>
           <dl>
             <div><dt>alpha</dt><dd id="debug-alpha">—</dd></div>
@@ -142,7 +120,10 @@
             <div><dt>tilt X / Y</dt><dd id="debug-tilt">0.000 / 0.000</dd></div>
             <div><dt>view X / Y</dt><dd id="debug-view">0.000 / 0.000</dd></div>
             <div><dt>smoothed view X / Y</dt><dd id="debug-smooth">0.000 / 0.000</dd></div>
-            <div><dt>invert X / Y</dt><dd id="debug-invert">ON / ON</dd></div>
+            <div><dt>final input X / Y</dt><dd id="debug-final">0.000 / 0.000</dd></div>
+            <div><dt>direction X / Y</dt><dd id="debug-directions">INVERT / INVERT</dd></div>
+            <div><dt>master / gain X / gain Y</dt><dd id="debug-gains">100% / 100% / 100%</dd></div>
+            <div><dt>view mode</dt><dd id="debug-view-mode">WINDOW</dd></div>
             <div><dt>sensor state</dt><dd id="debug-state">IDLE</dd></div>
             <div><dt>orientation</dt><dd id="debug-orientation">portrait / 0°</dd></div>
             <div><dt>FPS</dt><dd id="debug-fps">—</dd></div>
@@ -165,9 +146,77 @@
       </section>
 
       <footer class="app-footer">
-        <span>PHASE 03</span><span>SHOWCASE SCENES</span><span>2026</span>
+        <span>VERSION 0.3.1</span><span>VIEW CALIBRATION</span><span>2026</span>
       </footer>
     </main>
+
+    <div id="calibration-layer" class="calibration-layer" hidden>
+      <button id="calibration-backdrop" class="calibration-backdrop" type="button" aria-label="視点設定を閉じる"></button>
+      <section class="calibration-sheet" role="dialog" aria-modal="true" aria-labelledby="calibration-title">
+        <header class="calibration-sheet__header">
+          <div><small>VIEW CALIBRATION</small><h2 id="calibration-title">視点を調整</h2></div>
+          <button id="view-settings-close" class="sheet-close" type="button" aria-label="視点設定を閉じる">×</button>
+        </header>
+
+        <div class="calibration-content">
+          <fieldset class="calibration-group">
+            <legend>VIEW MODE</legend>
+            <div class="segment-control segment-control--two">
+              <label><input type="radio" name="view-mode" value="window" checked /><span>WINDOW<small>固定された窓</small></span></label>
+              <label><input type="radio" name="view-mode" value="lookAt" /><span>LOOK AT<small>中心を注視</small></span></label>
+            </div>
+          </fieldset>
+
+          <label class="calibration-range" for="sensitivity">
+            <span><b>MASTER SENSITIVITY</b><output id="sensitivity-value" for="sensitivity">100%</output></span>
+            <input id="sensitivity" type="range" min="25" max="400" value="100" step="5" />
+          </label>
+
+          <div class="axis-settings">
+            <section class="calibration-group">
+              <label class="calibration-range" for="horizontal-gain">
+                <span><b>HORIZONTAL</b><output id="horizontal-gain-value" for="horizontal-gain">100%</output></span>
+                <input id="horizontal-gain" type="range" min="0" max="300" value="100" step="5" />
+              </label>
+              <div class="segment-control segment-control--three" aria-label="左右方向">
+                <label><input type="radio" name="horizontal-direction" value="normal" /><span>NORMAL</span></label>
+                <label><input type="radio" name="horizontal-direction" value="invert" checked /><span>INVERT</span></label>
+                <label><input type="radio" name="horizontal-direction" value="off" /><span>OFF</span></label>
+              </div>
+            </section>
+
+            <section class="calibration-group">
+              <label class="calibration-range" for="vertical-gain">
+                <span><b>VERTICAL</b><output id="vertical-gain-value" for="vertical-gain">100%</output></span>
+                <input id="vertical-gain" type="range" min="0" max="300" value="100" step="5" />
+              </label>
+              <div class="segment-control segment-control--three" aria-label="上下方向">
+                <label><input type="radio" name="vertical-direction" value="normal" /><span>NORMAL</span></label>
+                <label><input type="radio" name="vertical-direction" value="invert" checked /><span>INVERT</span></label>
+                <label><input type="radio" name="vertical-direction" value="off" /><span>OFF</span></label>
+              </div>
+            </section>
+          </div>
+
+          <div class="advanced-settings">
+            <label class="calibration-range" for="fov">
+              <span><b>FOV</b><output id="fov-value" for="fov">42°</output></span>
+              <input id="fov" type="range" min="35" max="80" value="42" step="1" />
+            </label>
+            <label class="setting" for="smoothing">
+              <span><b>SMOOTHING</b></span>
+              <select id="smoothing">
+                <option value="smooth">滑らか</option>
+                <option value="standard" selected>標準</option>
+                <option value="responsive">追従重視</option>
+              </select>
+            </label>
+          </div>
+
+          <button id="reset-view-settings" class="button button--secondary reset-view-settings" type="button">RESET VIEW SETTINGS</button>
+        </div>
+      </section>
+    </div>
 
     <div id="rotate-overlay" class="rotate-overlay" hidden role="status" aria-live="polite">
       <div class="rotate-device" aria-hidden="true"><i></i></div>

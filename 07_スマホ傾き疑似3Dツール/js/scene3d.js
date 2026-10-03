@@ -38,6 +38,7 @@ export async function createScene3D({ canvas, container, onStatus = () => {}, on
   const focalTarget = new THREE.Vector3(0, -0.05, -0.55);
   camera.position.set(0, 0, CAMERA_Z);
   camera.lookAt(focalTarget);
+  const windowQuaternion = camera.quaternion.clone();
 
   const phonePerformanceMode = window.matchMedia("(pointer: coarse)").matches
     && Math.min(window.innerWidth, window.innerHeight) <= 600;
@@ -62,6 +63,8 @@ export async function createScene3D({ canvas, container, onStatus = () => {}, on
   let height = 1;
   let lastCamera = { x: 0, y: 0, z: CAMERA_Z };
   let objectCount = 0;
+  let viewMode = "window";
+  let calibratedFov = DEFAULT_FOV;
 
   function resize() {
     const rect = container.getBoundingClientRect();
@@ -84,7 +87,7 @@ export async function createScene3D({ canvas, container, onStatus = () => {}, on
     } else {
       scene.fog = null;
     }
-    camera.fov = config.fov ?? DEFAULT_FOV;
+    camera.fov = calibratedFov;
     camera.updateProjectionMatrix();
     webglRenderer.shadowMap.enabled = Boolean(config.shadows) && !phonePerformanceMode;
   }
@@ -119,14 +122,26 @@ export async function createScene3D({ canvas, container, onStatus = () => {}, on
     return currentScene.config;
   }
 
-  function render({ cameraViewX = 0, cameraViewY = 0, time = 0 } = {}) {
+  function setViewCalibration({ viewMode: nextViewMode, fov } = {}) {
+    viewMode = nextViewMode === "lookAt" ? "lookAt" : "window";
+    const numericFov = Number(fov);
+    calibratedFov = Number.isFinite(numericFov)
+      ? Math.min(80, Math.max(35, numericFov))
+      : DEFAULT_FOV;
+    camera.fov = calibratedFov;
+    camera.updateProjectionMatrix();
+  }
+
+  function render({ finalX = 0, finalY = 0, time = 0 } = {}) {
     if (paused || !currentScene) return;
     resize();
     const range = currentScene.config.cameraRange ?? 1;
-    camera.position.x = cameraViewX * CAMERA_RANGE_X * range;
-    camera.position.y = cameraViewY * CAMERA_RANGE_Y * range;
+    camera.position.x = finalX * CAMERA_RANGE_X * range;
+    camera.position.y = finalY * CAMERA_RANGE_Y * range;
     camera.position.z = CAMERA_Z;
-    camera.lookAt(focalTarget);
+    camera.clearViewOffset();
+    if (viewMode === "lookAt") camera.lookAt(focalTarget);
+    else camera.quaternion.copy(windowQuaternion);
     lastCamera = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
     currentScene.update?.(time);
     webglRenderer.render(scene, camera);
@@ -138,6 +153,7 @@ export async function createScene3D({ canvas, container, onStatus = () => {}, on
       available: true,
       camera: { ...lastCamera },
       fov: camera.fov,
+      viewMode,
       width,
       height,
       devicePixelRatio: window.devicePixelRatio || 1,
@@ -168,6 +184,7 @@ export async function createScene3D({ canvas, container, onStatus = () => {}, on
     render,
     resize,
     switchScene,
+    setViewCalibration,
     setPaused(value) { paused = Boolean(value); },
     setDebugVisible(value) { axes.visible = Boolean(value); },
     getMetrics,
@@ -212,13 +229,14 @@ function createUnavailableScene(error) {
     available: false,
     version: THREE_VERSION,
     error,
-    render() {}, resize() {}, setPaused() {}, setDebugVisible() {}, dispose() {},
+    render() {}, resize() {}, setPaused() {}, setDebugVisible() {}, setViewCalibration() {}, dispose() {},
     async switchScene() { return null; },
     getMetrics() {
       return {
         available: false,
         camera: { x: 0, y: 0, z: CAMERA_Z },
         fov: DEFAULT_FOV,
+        viewMode: "window",
         width: 0,
         height: 0,
         devicePixelRatio: window.devicePixelRatio || 1,

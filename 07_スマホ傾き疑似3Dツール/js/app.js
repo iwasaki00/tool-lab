@@ -1,13 +1,25 @@
 import { OrientationController, SENSOR_STATES } from "./orientation.js";
-import { TiltRenderer } from "./renderer.js";
+import { TiltRenderer, FINAL_INPUT_LIMIT } from "./renderer.js";
 import { createScene3D } from "./scene3d.js";
 
-export const VERSION = "0.3.0";
+export const VERSION = "0.3.1";
 
-const viewSettings = {
-  invertX: true,
-  invertY: true,
-};
+const STORAGE_KEY = "tilt3d:view-calibration:v1";
+const STORAGE_VERSION = 1;
+const DIRECTIONS = ["normal", "invert", "off"];
+const VIEW_MODES = ["window", "lookAt"];
+const DEFAULT_CALIBRATION = Object.freeze({
+  masterSensitivity: 1,
+  horizontalGain: 1,
+  verticalGain: 1,
+  horizontalDirection: "invert",
+  verticalDirection: "invert",
+  viewMode: "window",
+  fov: 42,
+});
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const calibration = loadCalibration();
 
 const elements = {
   root: document.documentElement,
@@ -25,27 +37,37 @@ const elements = {
   statusDot: document.querySelector("#status-dot"),
   statusMessage: document.querySelector("#status-message"),
   stageHint: document.querySelector("#stage-hint"),
-  sensitivity: document.querySelector("#sensitivity"),
-  sensitivityValue: document.querySelector("#sensitivity-value"),
-  smoothing: document.querySelector("#smoothing"),
   debugToggle: document.querySelector("#debug-toggle"),
   debugPanel: document.querySelector("#debug-panel"),
-  invertX: document.querySelector("#invert-x"),
-  invertY: document.querySelector("#invert-y"),
+  calibrationLayer: document.querySelector("#calibration-layer"),
+  calibrationOpen: document.querySelector("#view-settings-open"),
+  calibrationClose: document.querySelector("#view-settings-close"),
+  calibrationBackdrop: document.querySelector("#calibration-backdrop"),
+  calibrationSummary: document.querySelector("#view-settings-summary"),
+  resetViewSettings: document.querySelector("#reset-view-settings"),
+  sensitivity: document.querySelector("#sensitivity"),
+  sensitivityValue: document.querySelector("#sensitivity-value"),
+  horizontalGain: document.querySelector("#horizontal-gain"),
+  horizontalGainValue: document.querySelector("#horizontal-gain-value"),
+  verticalGain: document.querySelector("#vertical-gain"),
+  verticalGainValue: document.querySelector("#vertical-gain-value"),
+  fov: document.querySelector("#fov"),
+  fovValue: document.querySelector("#fov-value"),
+  smoothing: document.querySelector("#smoothing"),
   debug: {
     alpha: document.querySelector("#debug-alpha"), beta: document.querySelector("#debug-beta"),
     gamma: document.querySelector("#debug-gamma"), tilt: document.querySelector("#debug-tilt"),
-    view: document.querySelector("#debug-view"), invert: document.querySelector("#debug-invert"),
-    smooth: document.querySelector("#debug-smooth"), state: document.querySelector("#debug-state"),
-    orientation: document.querySelector("#debug-orientation"), fps: document.querySelector("#debug-fps"),
-    camera: document.querySelector("#debug-camera"), fov: document.querySelector("#debug-fov"),
-    rendererSize: document.querySelector("#debug-renderer-size"),
+    view: document.querySelector("#debug-view"), smooth: document.querySelector("#debug-smooth"),
+    final: document.querySelector("#debug-final"), directions: document.querySelector("#debug-directions"),
+    gains: document.querySelector("#debug-gains"), viewMode: document.querySelector("#debug-view-mode"),
+    state: document.querySelector("#debug-state"), orientation: document.querySelector("#debug-orientation"),
+    fps: document.querySelector("#debug-fps"), camera: document.querySelector("#debug-camera"),
+    fov: document.querySelector("#debug-fov"), rendererSize: document.querySelector("#debug-renderer-size"),
     devicePixelRatio: document.querySelector("#debug-device-pixel-ratio"),
     effectivePixelRatio: document.querySelector("#debug-effective-pixel-ratio"),
-    webgl: document.querySelector("#debug-webgl"),
-    currentScene: document.querySelector("#debug-current-scene"), objects: document.querySelector("#debug-objects"),
-    triangles: document.querySelector("#debug-triangles"), drawCalls: document.querySelector("#debug-draw-calls"),
-    gpuMemory: document.querySelector("#debug-gpu-memory"),
+    webgl: document.querySelector("#debug-webgl"), currentScene: document.querySelector("#debug-current-scene"),
+    objects: document.querySelector("#debug-objects"), triangles: document.querySelector("#debug-triangles"),
+    drawCalls: document.querySelector("#debug-draw-calls"), gpuMemory: document.querySelector("#debug-gpu-memory"),
     quality: document.querySelector("#debug-quality"), effects: document.querySelector("#debug-effects"),
     animation: document.querySelector("#debug-animation"),
   },
@@ -75,19 +97,25 @@ let lastDebugUpdate = 0;
 let latestFrame = null;
 let scene3d = null;
 let isLandscapeMobile = false;
+let calibrationOpener = null;
 
 const orientation = new OrientationController({
   onStateChange: ({ state, detail }) => updateStateUI(state, detail),
 });
 
+function applyAxisDirection(value, direction) {
+  if (direction === "off") return 0;
+  return direction === "invert" ? -value : value;
+}
+
 function getViewSnapshot() {
   const snapshot = orientation.getSnapshot();
   return {
     ...snapshot,
-    viewX: viewSettings.invertX ? -snapshot.tiltX : snapshot.tiltX,
-    viewY: viewSettings.invertY ? -snapshot.tiltY : snapshot.tiltY,
-    invertX: viewSettings.invertX,
-    invertY: viewSettings.invertY,
+    viewX: applyAxisDirection(snapshot.tiltX, calibration.horizontalDirection),
+    viewY: applyAxisDirection(snapshot.tiltY, calibration.verticalDirection),
+    horizontalDirection: calibration.horizontalDirection,
+    verticalDirection: calibration.verticalDirection,
   };
 }
 
@@ -95,13 +123,91 @@ const motionRenderer = new TiltRenderer({
   inputProvider: getViewSnapshot,
   onFrame: (frame) => {
     latestFrame = frame;
-    scene3d?.render({ cameraViewX: frame.cameraViewX, cameraViewY: frame.cameraViewY, time: frame.time });
+    scene3d?.render({ finalX: frame.finalX, finalY: frame.finalY, time: frame.time });
     const now = performance.now();
     if (!elements.debugToggle.checked || now - lastDebugUpdate < 100) return;
     lastDebugUpdate = now;
     updateDebug(frame);
   },
 });
+
+function numberOrDefault(value, min, max, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= min && number <= max ? number : fallback;
+}
+
+function loadCalibration() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
+    if (!stored || stored.storageVersion !== STORAGE_VERSION) return { ...DEFAULT_CALIBRATION };
+    return {
+      masterSensitivity: numberOrDefault(stored.masterSensitivity, 0.25, 4, DEFAULT_CALIBRATION.masterSensitivity),
+      horizontalGain: numberOrDefault(stored.horizontalGain, 0, 3, DEFAULT_CALIBRATION.horizontalGain),
+      verticalGain: numberOrDefault(stored.verticalGain, 0, 3, DEFAULT_CALIBRATION.verticalGain),
+      horizontalDirection: DIRECTIONS.includes(stored.horizontalDirection) ? stored.horizontalDirection : DEFAULT_CALIBRATION.horizontalDirection,
+      verticalDirection: DIRECTIONS.includes(stored.verticalDirection) ? stored.verticalDirection : DEFAULT_CALIBRATION.verticalDirection,
+      viewMode: VIEW_MODES.includes(stored.viewMode) ? stored.viewMode : DEFAULT_CALIBRATION.viewMode,
+      fov: numberOrDefault(stored.fov, 35, 80, DEFAULT_CALIBRATION.fov),
+    };
+  } catch {
+    return { ...DEFAULT_CALIBRATION };
+  }
+}
+
+function saveCalibration() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ storageVersion: STORAGE_VERSION, ...calibration }));
+  } catch {
+    // Storage may be disabled; calibration still works for the current session.
+  }
+}
+
+function checkedValue(name) {
+  return document.querySelector(`input[name="${name}"]:checked`)?.value;
+}
+
+function setCheckedValue(name, value) {
+  const input = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (input) input.checked = true;
+}
+
+function renderCalibrationUI() {
+  elements.sensitivity.value = String(Math.round(calibration.masterSensitivity * 100));
+  elements.horizontalGain.value = String(Math.round(calibration.horizontalGain * 100));
+  elements.verticalGain.value = String(Math.round(calibration.verticalGain * 100));
+  elements.fov.value = String(Math.round(calibration.fov));
+  elements.sensitivityValue.value = `${elements.sensitivity.value}%`;
+  elements.horizontalGainValue.value = `${elements.horizontalGain.value}%`;
+  elements.verticalGainValue.value = `${elements.verticalGain.value}%`;
+  elements.fovValue.value = `${elements.fov.value}°`;
+  setCheckedValue("horizontal-direction", calibration.horizontalDirection);
+  setCheckedValue("vertical-direction", calibration.verticalDirection);
+  setCheckedValue("view-mode", calibration.viewMode);
+  elements.calibrationSummary.textContent = `${calibration.viewMode === "window" ? "WINDOW" : "LOOK AT"} · ${elements.sensitivity.value}%`;
+}
+
+function applyCalibration({ syncInput = false, persist = true } = {}) {
+  motionRenderer.setCalibration({
+    masterSensitivity: calibration.masterSensitivity,
+    horizontalGain: calibration.horizontalGain,
+    verticalGain: calibration.verticalGain,
+  });
+  scene3d?.setViewCalibration({ viewMode: calibration.viewMode, fov: calibration.fov });
+  if (syncInput) motionRenderer.syncToInput();
+  renderCalibrationUI();
+  if (persist) saveCalibration();
+  updateDebug();
+}
+
+function readCalibrationUI() {
+  calibration.masterSensitivity = numberOrDefault(Number(elements.sensitivity.value) / 100, 0.25, 4, DEFAULT_CALIBRATION.masterSensitivity);
+  calibration.horizontalGain = numberOrDefault(Number(elements.horizontalGain.value) / 100, 0, 3, DEFAULT_CALIBRATION.horizontalGain);
+  calibration.verticalGain = numberOrDefault(Number(elements.verticalGain.value) / 100, 0, 3, DEFAULT_CALIBRATION.verticalGain);
+  calibration.horizontalDirection = DIRECTIONS.includes(checkedValue("horizontal-direction")) ? checkedValue("horizontal-direction") : DEFAULT_CALIBRATION.horizontalDirection;
+  calibration.verticalDirection = DIRECTIONS.includes(checkedValue("vertical-direction")) ? checkedValue("vertical-direction") : DEFAULT_CALIBRATION.verticalDirection;
+  calibration.viewMode = VIEW_MODES.includes(checkedValue("view-mode")) ? checkedValue("view-mode") : DEFAULT_CALIBRATION.viewMode;
+  calibration.fov = numberOrDefault(elements.fov.value, 35, 80, DEFAULT_CALIBRATION.fov);
+}
 
 function updateStateUI(state, detail = "") {
   elements.state.textContent = STATE_LABELS[state] ?? state;
@@ -130,39 +236,34 @@ function updateDebug(frame = latestFrame) {
   elements.debug.tilt.textContent = `${snapshot.tiltX.toFixed(3)} / ${snapshot.tiltY.toFixed(3)}`;
   elements.debug.view.textContent = `${snapshot.viewX.toFixed(3)} / ${snapshot.viewY.toFixed(3)}`;
   elements.debug.smooth.textContent = `${frame.smoothViewX.toFixed(3)} / ${frame.smoothViewY.toFixed(3)}`;
-  elements.debug.invert.textContent = `${snapshot.invertX ? "ON" : "OFF"} / ${snapshot.invertY ? "ON" : "OFF"}`;
+  elements.debug.final.textContent = `${frame.finalX.toFixed(3)} / ${frame.finalY.toFixed(3)}`;
+  elements.debug.directions.textContent = `${calibration.horizontalDirection.toUpperCase()} / ${calibration.verticalDirection.toUpperCase()}`;
+  elements.debug.gains.textContent = `${Math.round(calibration.masterSensitivity * 100)}% / ${Math.round(calibration.horizontalGain * 100)}% / ${Math.round(calibration.verticalGain * 100)}%`;
+  elements.debug.viewMode.textContent = calibration.viewMode === "window" ? "WINDOW" : "LOOK AT";
   elements.debug.state.textContent = snapshot.state;
   elements.debug.orientation.textContent = `${snapshot.orientation} / ${snapshot.screenAngle}°`;
   elements.debug.fps.textContent = frame.fps ? String(frame.fps) : "計測中";
   elements.root.style.setProperty("--debug-tilt-x", snapshot.tiltX.toFixed(3));
   elements.root.style.setProperty("--debug-tilt-y", snapshot.tiltY.toFixed(3));
-  elements.root.style.setProperty("--debug-view-x", snapshot.viewX.toFixed(3));
-  elements.root.style.setProperty("--debug-view-y", snapshot.viewY.toFixed(3));
+  elements.root.style.setProperty("--debug-camera-x", clamp(frame.finalX / FINAL_INPUT_LIMIT, -1, 1).toFixed(3));
+  elements.root.style.setProperty("--debug-camera-y", clamp(frame.finalY / FINAL_INPUT_LIMIT, -1, 1).toFixed(3));
   const metrics = scene3d?.getMetrics();
-  if (metrics) {
-    const { camera, fov, width, height, devicePixelRatio, effectivePixelRatio } = metrics;
-    elements.debug.camera.textContent = `${camera.x.toFixed(2)} / ${camera.y.toFixed(2)} / ${camera.z.toFixed(2)}`;
-    elements.debug.fov.textContent = `${fov.toFixed(0)}°`;
-    elements.debug.rendererSize.textContent = `${width} × ${height}`;
-    elements.debug.devicePixelRatio.textContent = devicePixelRatio.toFixed(2);
-    elements.debug.effectivePixelRatio.textContent = effectivePixelRatio.toFixed(2);
-    elements.debug.webgl.textContent = metrics.available ? "利用可能" : "非対応";
-    elements.debug.currentScene.textContent = metrics.currentScene;
-    elements.debug.objects.textContent = String(metrics.objectCount);
-    elements.debug.triangles.textContent = metrics.triangles.toLocaleString("ja-JP");
-    elements.debug.drawCalls.textContent = String(metrics.drawCalls);
-    elements.debug.gpuMemory.textContent = `${metrics.geometries} / ${metrics.textures}`;
-    elements.debug.quality.textContent = metrics.quality;
-    elements.debug.effects.textContent = `${metrics.fog} / SHADOW ${metrics.shadows ? "ON" : "OFF"}`;
-    elements.debug.animation.textContent = metrics.animation;
-  }
-}
-
-function updateViewSettings() {
-  viewSettings.invertX = elements.invertX.checked;
-  viewSettings.invertY = elements.invertY.checked;
-  motionRenderer.syncToInput();
-  updateDebug();
+  if (!metrics) return;
+  const { camera, fov, width, height, devicePixelRatio, effectivePixelRatio } = metrics;
+  elements.debug.camera.textContent = `${camera.x.toFixed(2)} / ${camera.y.toFixed(2)} / ${camera.z.toFixed(2)}`;
+  elements.debug.fov.textContent = `${fov.toFixed(0)}°`;
+  elements.debug.rendererSize.textContent = `${width} × ${height}`;
+  elements.debug.devicePixelRatio.textContent = devicePixelRatio.toFixed(2);
+  elements.debug.effectivePixelRatio.textContent = effectivePixelRatio.toFixed(2);
+  elements.debug.webgl.textContent = metrics.available ? "利用可能" : "非対応";
+  elements.debug.currentScene.textContent = metrics.currentScene;
+  elements.debug.objects.textContent = String(metrics.objectCount);
+  elements.debug.triangles.textContent = metrics.triangles.toLocaleString("ja-JP");
+  elements.debug.drawCalls.textContent = String(metrics.drawCalls);
+  elements.debug.gpuMemory.textContent = `${metrics.geometries} / ${metrics.textures}`;
+  elements.debug.quality.textContent = metrics.quality;
+  elements.debug.effects.textContent = `${metrics.fog} / SHADOW ${metrics.shadows ? "ON" : "OFF"}`;
+  elements.debug.animation.textContent = metrics.animation;
 }
 
 function handlePointerMove(event) {
@@ -173,6 +274,19 @@ function handlePointerMove(event) {
   orientation.setMouseTilt(x, y);
 }
 
+function openCalibration() {
+  calibrationOpener = document.activeElement;
+  elements.calibrationLayer.hidden = false;
+  document.body.classList.add("has-calibration");
+  elements.calibrationClose.focus();
+}
+
+function closeCalibration() {
+  elements.calibrationLayer.hidden = true;
+  document.body.classList.remove("has-calibration");
+  calibrationOpener?.focus?.();
+}
+
 function updateOrientationLayout() {
   const hasTouch = navigator.maxTouchPoints > 0 || window.matchMedia("(pointer: coarse)").matches;
   const hasPhoneSizedShortEdge = Math.min(window.innerWidth, window.innerHeight) <= 600;
@@ -180,9 +294,8 @@ function updateOrientationLayout() {
   elements.rotateOverlay.hidden = !isLandscapeMobile;
   document.body.classList.toggle("is-landscape-mobile", isLandscapeMobile);
   scene3d?.setPaused(isLandscapeMobile || document.hidden);
-  if (isLandscapeMobile || document.hidden) {
-    motionRenderer.stop();
-  } else {
+  if (isLandscapeMobile || document.hidden) motionRenderer.stop();
+  else {
     scene3d?.resize();
     motionRenderer.start();
   }
@@ -190,6 +303,10 @@ function updateOrientationLayout() {
 
 async function init() {
   document.querySelectorAll("[data-version]").forEach((node) => { node.textContent = `Version ${VERSION}`; });
+  renderCalibrationUI();
+  motionRenderer.setSmoothing(elements.smoothing.value);
+  applyCalibration({ syncInput: true, persist: false });
+
   const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   if (finePointer) orientation.enableMouseSimulation();
   else updateStateUI(SENSOR_STATES.IDLE);
@@ -206,11 +323,29 @@ async function init() {
   elements.stage.addEventListener("pointerleave", () => {
     if (orientation.state !== SENSOR_STATES.ACTIVE) orientation.setMouseTilt(0, 0);
   }, { passive: true });
-  elements.sensitivity.addEventListener("input", (event) => {
-    motionRenderer.setSensitivity(event.target.value);
-    elements.sensitivityValue.value = `${event.target.value}%`;
+
+  elements.calibrationOpen.addEventListener("click", openCalibration);
+  elements.calibrationClose.addEventListener("click", closeCalibration);
+  elements.calibrationBackdrop.addEventListener("click", closeCalibration);
+  elements.calibrationLayer.addEventListener("input", (event) => {
+    if (!event.target.matches('input[type="range"]')) return;
+    readCalibrationUI();
+    applyCalibration();
+  });
+  elements.calibrationLayer.addEventListener("change", (event) => {
+    if (!event.target.matches('input[type="radio"]')) return;
+    readCalibrationUI();
+    applyCalibration({ syncInput: true });
   });
   elements.smoothing.addEventListener("change", (event) => motionRenderer.setSmoothing(event.target.value));
+  elements.resetViewSettings.addEventListener("click", () => {
+    Object.assign(calibration, DEFAULT_CALIBRATION);
+    applyCalibration({ syncInput: true });
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !elements.calibrationLayer.hidden) closeCalibration();
+  });
+
   elements.debugToggle.addEventListener("change", () => {
     elements.debugPanel.hidden = !elements.debugToggle.checked;
     scene3d?.setDebugVisible(elements.debugToggle.checked);
@@ -227,17 +362,10 @@ async function init() {
     await scene3d.switchScene(button.dataset.scene);
     updateDebug();
   });
-  elements.invertX.addEventListener("change", updateViewSettings);
-  elements.invertY.addEventListener("change", updateViewSettings);
-  document.addEventListener("visibilitychange", () => {
-    updateOrientationLayout();
-  });
+  document.addEventListener("visibilitychange", updateOrientationLayout);
   window.addEventListener("resize", updateOrientationLayout, { passive: true });
   window.screen?.orientation?.addEventListener?.("change", updateOrientationLayout);
 
-  motionRenderer.setSensitivity(elements.sensitivity.value);
-  motionRenderer.setSmoothing(elements.smoothing.value);
-  updateViewSettings();
   scene3d = await createScene3D({
     canvas: elements.canvas,
     container: elements.viewport,
@@ -252,6 +380,7 @@ async function init() {
     },
   });
   scene3d.setDebugVisible(elements.debugToggle.checked);
+  scene3d.setViewCalibration({ viewMode: calibration.viewMode, fov: calibration.fov });
   updateOrientationLayout();
 }
 

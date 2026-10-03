@@ -6,12 +6,16 @@ const SMOOTHING_FACTORS = Object.freeze({
   responsive: 0.22,
 });
 
+export const FINAL_INPUT_LIMIT = 3.5;
+
 export class TiltRenderer {
   constructor({ inputProvider, onFrame }) {
     this.inputProvider = inputProvider;
     this.onFrame = onFrame ?? (() => {});
     this.current = { x: 0, y: 0 };
-    this.sensitivity = 1;
+    this.masterSensitivity = 1;
+    this.horizontalGain = 1;
+    this.verticalGain = 1;
     this.smoothing = SMOOTHING_FACTORS.standard;
     this.motionScale = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0.45 : 1;
     this.animationId = null;
@@ -34,8 +38,10 @@ export class TiltRenderer {
     this.animationId = null;
   }
 
-  setSensitivity(percent) {
-    this.sensitivity = clamp(Number(percent) / 100, 0.4, 1.6);
+  setCalibration({ masterSensitivity, horizontalGain, verticalGain }) {
+    this.masterSensitivity = clamp(Number(masterSensitivity) || 1, 0.25, 4);
+    this.horizontalGain = clamp(Number(horizontalGain) || 0, 0, 3);
+    this.verticalGain = clamp(Number(verticalGain) || 0, 0, 3);
   }
 
   setSmoothing(mode) {
@@ -60,8 +66,16 @@ export class TiltRenderer {
     this.current.x += (input.viewX - this.current.x) * frameSmoothing;
     this.current.y += (input.viewY - this.current.y) * frameSmoothing;
 
-    const cameraViewX = clamp(this.current.x * this.sensitivity * this.motionScale, -1.65, 1.65);
-    const cameraViewY = clamp(this.current.y * this.sensitivity * this.motionScale, -1.65, 1.65);
+    const finalX = clamp(
+      this.current.x * this.masterSensitivity * this.horizontalGain * this.motionScale,
+      -FINAL_INPUT_LIMIT,
+      FINAL_INPUT_LIMIT,
+    );
+    const finalY = clamp(
+      this.current.y * this.masterSensitivity * this.verticalGain * this.motionScale,
+      -FINAL_INPUT_LIMIT,
+      FINAL_INPUT_LIMIT,
+    );
 
     this.frameCount += 1;
     const fpsElapsed = now - this.fpsStartedAt;
@@ -73,8 +87,8 @@ export class TiltRenderer {
     this.onFrame({
       smoothViewX: this.current.x,
       smoothViewY: this.current.y,
-      cameraViewX,
-      cameraViewY,
+      finalX,
+      finalY,
       fps: this.fps,
       time: now,
       input,
