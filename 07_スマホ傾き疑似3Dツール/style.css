@@ -146,6 +146,24 @@ select { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-r
 .debug-panel { grid-column: 1 / -1; width: min(100%, 760px); margin: -6px auto 18px; padding: 17px 20px; border: 1px solid rgba(112,245,220,.17); border-radius: 14px; background: rgba(4,8,13,.87); font-family: ui-monospace, Consolas, monospace; }
 .debug-panel__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; color: var(--cyan); font-size: .58rem; letter-spacing: .18em; }
 .debug-panel__head i { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+.direction-monitor { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.direction-map { position: relative; height: 112px; overflow: hidden; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; background: rgba(255,255,255,.025); }
+.direction-map strong { position: absolute; top: 9px; left: 11px; color: var(--cyan); font-size: .55rem; letter-spacing: .15em; }
+.direction-map__axis { position: absolute; width: 52px; height: 52px; top: 35px; left: 50%; border: 1px solid rgba(255,255,255,.1); border-radius: 50%; transform: translateX(-50%); }
+.direction-map__axis::before, .direction-map__axis::after { position: absolute; background: rgba(255,255,255,.11); content: ""; }
+.direction-map__axis::before { width: 74px; height: 1px; top: 25px; left: -11px; }
+.direction-map__axis::after { width: 1px; height: 74px; top: -11px; left: 25px; }
+.direction-map__axis i { position: absolute; z-index: 1; width: 8px; height: 8px; top: 21px; left: 21px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); will-change: transform; }
+.direction-map--device .direction-map__axis i { transform: translate(calc(var(--debug-tilt-x, 0) * 24px), calc(var(--debug-tilt-y, 0) * 24px)); }
+.direction-map--view .direction-map__axis i { background: var(--violet); box-shadow: 0 0 10px var(--violet); transform: translate(calc(var(--debug-view-x, 0) * 24px), calc(var(--debug-view-y, 0) * 24px)); }
+.direction-map__left, .direction-map__right, .direction-map__up, .direction-map__down { position: absolute; color: #647084; font-size: .44rem; letter-spacing: .06em; }
+.direction-map__left { left: 8px; top: 58px; }.direction-map__right { right: 8px; top: 58px; }
+.direction-map__up { top: 13px; left: 50%; transform: translateX(-50%); }.direction-map__down { bottom: 7px; left: 50%; transform: translateX(-50%); }
+.debug-controls { display: flex; gap: 10px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.axis-toggle { display: flex; align-items: center; gap: 8px; min-width: 128px; padding: 9px 10px; border: 1px solid rgba(255,255,255,.08); border-radius: 9px; background: rgba(255,255,255,.025); cursor: pointer; }
+.axis-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.axis-toggle input:checked + .toggle-track i { transform: translateX(13px); background: var(--cyan); box-shadow: 0 0 8px rgba(112,245,220,.7); }
+.axis-toggle b, .axis-toggle small { display: block; }.axis-toggle b { font-size: .57rem; }.axis-toggle small { margin-top: 2px; color: #667185; font-size: .48rem; }
 .debug-panel dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px 22px; margin: 0; }
 .debug-panel dl div { min-width: 0; }
 .debug-panel dt { margin-bottom: 4px; color: #667185; font-size: .52rem; }
@@ -176,6 +194,9 @@ select { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-r
   .settings-grid { grid-template-columns: 1fr; }
   .debug-panel { width: 100%; margin-top: 2px; }
   .debug-panel dl { grid-template-columns: 1fr 1fr; }
+  .direction-monitor { grid-template-columns: 1fr; }
+  .debug-controls { display: grid; grid-template-columns: 1fr 1fr; }
+  .axis-toggle { min-width: 0; }
   .app-footer { margin-top: 30px; }
   .app-footer span:nth-child(2) { display: none; }
 }

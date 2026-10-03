@@ -1,7 +1,12 @@
 import { OrientationController, SENSOR_STATES } from "./orientation.js";
 import { TiltRenderer } from "./renderer.js";
 
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.1";
+
+const viewSettings = {
+  invertX: true,
+  invertY: true,
+};
 
 const elements = {
   root: document.documentElement,
@@ -18,9 +23,12 @@ const elements = {
   smoothing: document.querySelector("#smoothing"),
   debugToggle: document.querySelector("#debug-toggle"),
   debugPanel: document.querySelector("#debug-panel"),
+  invertX: document.querySelector("#invert-x"),
+  invertY: document.querySelector("#invert-y"),
   debug: {
     alpha: document.querySelector("#debug-alpha"), beta: document.querySelector("#debug-beta"),
-    gamma: document.querySelector("#debug-gamma"), raw: document.querySelector("#debug-raw"),
+    gamma: document.querySelector("#debug-gamma"), tilt: document.querySelector("#debug-tilt"),
+    view: document.querySelector("#debug-view"), invert: document.querySelector("#debug-invert"),
     smooth: document.querySelector("#debug-smooth"), state: document.querySelector("#debug-state"),
     orientation: document.querySelector("#debug-orientation"), fps: document.querySelector("#debug-fps"),
   },
@@ -53,10 +61,21 @@ const orientation = new OrientationController({
   onStateChange: ({ state, detail }) => updateStateUI(state, detail),
 });
 
+function getViewSnapshot() {
+  const snapshot = orientation.getSnapshot();
+  return {
+    ...snapshot,
+    viewX: viewSettings.invertX ? -snapshot.tiltX : snapshot.tiltX,
+    viewY: viewSettings.invertY ? -snapshot.tiltY : snapshot.tiltY,
+    invertX: viewSettings.invertX,
+    invertY: viewSettings.invertY,
+  };
+}
+
 const renderer = new TiltRenderer({
   root: elements.root,
   card: elements.card,
-  inputProvider: () => orientation.getSnapshot(),
+  inputProvider: getViewSnapshot,
   onFrame: (frame) => {
     latestFrame = frame;
     const now = performance.now();
@@ -90,11 +109,24 @@ function updateDebug(frame = latestFrame) {
   elements.debug.alpha.textContent = formatAngle(snapshot.alpha);
   elements.debug.beta.textContent = formatAngle(snapshot.beta);
   elements.debug.gamma.textContent = formatAngle(snapshot.gamma);
-  elements.debug.raw.textContent = `${snapshot.tiltX.toFixed(3)} / ${snapshot.tiltY.toFixed(3)}`;
-  elements.debug.smooth.textContent = `${frame.smoothX.toFixed(3)} / ${frame.smoothY.toFixed(3)}`;
+  elements.debug.tilt.textContent = `${snapshot.tiltX.toFixed(3)} / ${snapshot.tiltY.toFixed(3)}`;
+  elements.debug.view.textContent = `${snapshot.viewX.toFixed(3)} / ${snapshot.viewY.toFixed(3)}`;
+  elements.debug.smooth.textContent = `${frame.smoothViewX.toFixed(3)} / ${frame.smoothViewY.toFixed(3)}`;
+  elements.debug.invert.textContent = `${snapshot.invertX ? "ON" : "OFF"} / ${snapshot.invertY ? "ON" : "OFF"}`;
   elements.debug.state.textContent = snapshot.state;
   elements.debug.orientation.textContent = `${snapshot.orientation} / ${snapshot.screenAngle}°`;
   elements.debug.fps.textContent = frame.fps ? String(frame.fps) : "計測中";
+  elements.root.style.setProperty("--debug-tilt-x", snapshot.tiltX.toFixed(3));
+  elements.root.style.setProperty("--debug-tilt-y", snapshot.tiltY.toFixed(3));
+  elements.root.style.setProperty("--debug-view-x", snapshot.viewX.toFixed(3));
+  elements.root.style.setProperty("--debug-view-y", snapshot.viewY.toFixed(3));
+}
+
+function updateViewSettings() {
+  viewSettings.invertX = elements.invertX.checked;
+  viewSettings.invertY = elements.invertY.checked;
+  renderer.syncToInput();
+  updateDebug();
 }
 
 function handlePointerMove(event) {
@@ -132,12 +164,15 @@ function init() {
     elements.debugPanel.hidden = !elements.debugToggle.checked;
     if (elements.debugToggle.checked) updateDebug();
   });
+  elements.invertX.addEventListener("change", updateViewSettings);
+  elements.invertY.addEventListener("change", updateViewSettings);
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) renderer.stop(); else renderer.start();
   });
 
   renderer.setSensitivity(elements.sensitivity.value);
   renderer.setSmoothing(elements.smoothing.value);
+  updateViewSettings();
   renderer.start();
 }
 

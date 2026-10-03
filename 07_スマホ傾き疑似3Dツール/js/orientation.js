@@ -146,10 +146,9 @@ export class OrientationController {
   resetNeutral() {
     if (this.state === SENSOR_STATES.ACTIVE) {
       this.neutral = { ...this.lastScreenVector };
-    } else {
-      this.raw.tiltX = 0;
-      this.raw.tiltY = 0;
     }
+    this.raw.tiltX = 0;
+    this.raw.tiltY = 0;
   }
 
   getSnapshot() {

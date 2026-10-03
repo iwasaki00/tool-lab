@@ -24,7 +24,7 @@
             <small>TILT 3D LAB</small>
           </span>
         </a>
-        <span class="version" data-version>Version 0.1.0</span>
+        <span class="version" data-version>Version 0.1.1</span>
       </header>
 
       <section id="top" class="hero" aria-labelledby="hero-title">
@@ -114,12 +114,44 @@
 
         <aside id="debug-panel" class="debug-panel" hidden aria-label="デバッグ情報">
           <div class="debug-panel__head"><span>LIVE TELEMETRY</span><i></i></div>
+          <div class="direction-monitor" aria-label="端末の傾きと描画視点の方向">
+            <div class="direction-map direction-map--device">
+              <strong>DEVICE</strong>
+              <span class="direction-map__axis" aria-hidden="true"><i></i></span>
+              <span class="direction-map__left">← LEFT</span>
+              <span class="direction-map__right">RIGHT →</span>
+              <span class="direction-map__up">↑ UP</span>
+              <span class="direction-map__down">DOWN ↓</span>
+            </div>
+            <div class="direction-map direction-map--view">
+              <strong>VIEW</strong>
+              <span class="direction-map__axis" aria-hidden="true"><i></i></span>
+              <span class="direction-map__left">← LEFT</span>
+              <span class="direction-map__right">RIGHT →</span>
+              <span class="direction-map__up">↑ UP</span>
+              <span class="direction-map__down">DOWN ↓</span>
+            </div>
+          </div>
+          <div class="debug-controls" aria-label="視点方向設定">
+            <label class="axis-toggle">
+              <input id="invert-x" type="checkbox" checked />
+              <span class="toggle-track" aria-hidden="true"><i></i></span>
+              <span><b>左右反転</b><small>invertX</small></span>
+            </label>
+            <label class="axis-toggle">
+              <input id="invert-y" type="checkbox" checked />
+              <span class="toggle-track" aria-hidden="true"><i></i></span>
+              <span><b>上下反転</b><small>invertY</small></span>
+            </label>
+          </div>
           <dl>
             <div><dt>alpha</dt><dd id="debug-alpha">—</dd></div>
             <div><dt>beta</dt><dd id="debug-beta">—</dd></div>
             <div><dt>gamma</dt><dd id="debug-gamma">—</dd></div>
-            <div><dt>raw tilt X / Y</dt><dd id="debug-raw">0.000 / 0.000</dd></div>
-            <div><dt>smooth X / Y</dt><dd id="debug-smooth">0.000 / 0.000</dd></div>
+            <div><dt>tilt X / Y</dt><dd id="debug-tilt">0.000 / 0.000</dd></div>
+            <div><dt>view X / Y</dt><dd id="debug-view">0.000 / 0.000</dd></div>
+            <div><dt>smoothed view X / Y</dt><dd id="debug-smooth">0.000 / 0.000</dd></div>
+            <div><dt>invert X / Y</dt><dd id="debug-invert">ON / ON</dd></div>
             <div><dt>sensor state</dt><dd id="debug-state">IDLE</dd></div>
             <div><dt>orientation</dt><dd id="debug-orientation">portrait / 0°</dd></div>
             <div><dt>FPS</dt><dd id="debug-fps">—</dd></div>
