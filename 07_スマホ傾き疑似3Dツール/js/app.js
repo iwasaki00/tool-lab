@@ -1,8 +1,8 @@
 import { OrientationController, SENSOR_STATES } from "./orientation.js";
 import { TiltRenderer, FINAL_INPUT_LIMIT } from "./renderer.js";
-import { createScene3D } from "./scene3d.js";
+import { createScene3D } from "./scene3d.js?v=0401";
 
-export const VERSION = "0.3.1";
+export const VERSION = "0.4.0";
 
 const STORAGE_KEY = "tilt3d:view-calibration:v1";
 const STORAGE_VERSION = 1;
@@ -12,9 +12,9 @@ const DEFAULT_CALIBRATION = Object.freeze({
   masterSensitivity: 1,
   horizontalGain: 1,
   verticalGain: 1,
-  horizontalDirection: "invert",
+  horizontalDirection: "normal",
   verticalDirection: "invert",
-  viewMode: "window",
+  viewMode: "lookAt",
   fov: 42,
 });
 
@@ -45,6 +45,26 @@ const elements = {
   calibrationBackdrop: document.querySelector("#calibration-backdrop"),
   calibrationSummary: document.querySelector("#view-settings-summary"),
   resetViewSettings: document.querySelector("#reset-view-settings"),
+  modelDock: document.querySelector("#model-dock"),
+  modelFileInput: document.querySelector("#model-file-input"),
+  modelSettingsOpen: document.querySelector("#model-settings-open"),
+  modelSettingsLayer: document.querySelector("#model-settings-layer"),
+  modelSettingsClose: document.querySelector("#model-settings-close"),
+  modelSettingsBackdrop: document.querySelector("#model-settings-backdrop"),
+  modelLoaderState: document.querySelector("#model-loader-state"),
+  modelDockName: document.querySelector("#model-dock-name"),
+  modelSettingsState: document.querySelector("#model-settings-state"),
+  modelSettingsName: document.querySelector("#model-settings-name"),
+  modelSettingsMessage: document.querySelector("#model-settings-message"),
+  modelAnimationCount: document.querySelector("#model-animation-count"),
+  modelAnimationSelect: document.querySelector("#model-animation-select"),
+  modelAnimationToggle: document.querySelector("#model-animation-toggle"),
+  modelPerformanceWarning: document.querySelector("#model-performance-warning"),
+  modelInfo: {
+    dimensions: document.querySelector("#model-info-dimensions"), meshes: document.querySelector("#model-info-meshes"),
+    triangles: document.querySelector("#model-info-triangles"), materials: document.querySelector("#model-info-materials"),
+    scale: document.querySelector("#model-info-scale"), distance: document.querySelector("#model-info-distance"),
+  },
   sensitivity: document.querySelector("#sensitivity"),
   sensitivityValue: document.querySelector("#sensitivity-value"),
   horizontalGain: document.querySelector("#horizontal-gain"),
@@ -70,6 +90,13 @@ const elements = {
     drawCalls: document.querySelector("#debug-draw-calls"), gpuMemory: document.querySelector("#debug-gpu-memory"),
     quality: document.querySelector("#debug-quality"), effects: document.querySelector("#debug-effects"),
     animation: document.querySelector("#debug-animation"),
+    modelLoaded: document.querySelector("#debug-model-loaded"), modelName: document.querySelector("#debug-model-name"),
+    modelDimensions: document.querySelector("#debug-model-dimensions"), modelCenter: document.querySelector("#debug-model-center"),
+    modelScale: document.querySelector("#debug-model-scale"), modelDistance: document.querySelector("#debug-model-distance"),
+    modelTarget: document.querySelector("#debug-model-target"), modelGeometry: document.querySelector("#debug-model-geometry"),
+    modelMaterials: document.querySelector("#debug-model-materials"), modelAnimationCount: document.querySelector("#debug-model-animation-count"),
+    modelCurrentAnimation: document.querySelector("#debug-model-current-animation"), modelMixer: document.querySelector("#debug-model-mixer"),
+    modelLoader: document.querySelector("#debug-model-loader"), modelError: document.querySelector("#debug-model-error"),
   },
 };
 
@@ -98,6 +125,9 @@ let latestFrame = null;
 let scene3d = null;
 let isLandscapeMobile = false;
 let calibrationOpener = null;
+let modelSettingsOpener = null;
+let currentSceneId = "aquarium";
+let latestModelInfo = null;
 
 const orientation = new OrientationController({
   onStateChange: ({ state, detail }) => updateStateUI(state, detail),
@@ -227,6 +257,11 @@ function formatAngle(value) {
   return Number.isFinite(value) ? `${value.toFixed(1)}°` : "—";
 }
 
+function formatVector(vector, digits = 2) {
+  if (!vector) return "—";
+  return `${Number(vector.x).toFixed(digits)} / ${Number(vector.y).toFixed(digits)} / ${Number(vector.z).toFixed(digits)}`;
+}
+
 function updateDebug(frame = latestFrame) {
   if (!frame) return;
   const snapshot = frame.input;
@@ -264,6 +299,21 @@ function updateDebug(frame = latestFrame) {
   elements.debug.quality.textContent = metrics.quality;
   elements.debug.effects.textContent = `${metrics.fog} / SHADOW ${metrics.shadows ? "ON" : "OFF"}`;
   elements.debug.animation.textContent = metrics.animation;
+  const model = metrics.model;
+  elements.debug.modelLoaded.textContent = model ? (model.loaded ? "YES" : "PLACEHOLDER") : "—";
+  elements.debug.modelName.textContent = model?.name ?? "—";
+  elements.debug.modelDimensions.textContent = model ? formatVector(model.dimensions) : "—";
+  elements.debug.modelCenter.textContent = model ? formatVector(model.center) : "—";
+  elements.debug.modelScale.textContent = model ? Number(model.scale).toFixed(4) : "—";
+  elements.debug.modelDistance.textContent = model ? Number(model.baseCameraDistance).toFixed(2) : "—";
+  elements.debug.modelTarget.textContent = model ? formatVector(model.target) : "—";
+  elements.debug.modelGeometry.textContent = model ? `${model.meshCount} / ${model.triangleCount.toLocaleString("ja-JP")}` : "—";
+  elements.debug.modelMaterials.textContent = model ? String(model.materialCount) : "—";
+  elements.debug.modelAnimationCount.textContent = model ? String(model.animationCount) : "—";
+  elements.debug.modelCurrentAnimation.textContent = model?.currentAnimation ?? "—";
+  elements.debug.modelMixer.textContent = model?.mixerState ?? "—";
+  elements.debug.modelLoader.textContent = model ? `${model.loaderState} / ${Math.round(model.loadTime)}ms` : "—";
+  elements.debug.modelError.textContent = model?.errorCode || "—";
 }
 
 function handlePointerMove(event) {
@@ -285,6 +335,67 @@ function closeCalibration() {
   elements.calibrationLayer.hidden = true;
   document.body.classList.remove("has-calibration");
   calibrationOpener?.focus?.();
+}
+
+function openModelSettings() {
+  modelSettingsOpener = document.activeElement;
+  updateModelUI(scene3d?.getModelInfo());
+  elements.modelSettingsLayer.hidden = false;
+  document.body.classList.add("has-calibration");
+  elements.modelSettingsClose.focus();
+}
+
+function closeModelSettings() {
+  elements.modelSettingsLayer.hidden = true;
+  document.body.classList.remove("has-calibration");
+  modelSettingsOpener?.focus?.();
+}
+
+function updateModelUI(info) {
+  if (!info) return;
+  latestModelInfo = { ...latestModelInfo, ...info };
+  const model = latestModelInfo;
+  elements.modelLoaderState.textContent = model.loaderState;
+  elements.modelDockName.textContent = model.name;
+  elements.modelSettingsState.textContent = model.loaderState;
+  elements.modelSettingsName.textContent = model.name;
+  if (model.loaderState === "LOADING MODEL...") {
+    elements.modelSettingsMessage.textContent = "モデルをブラウザ内で読み込んでいます。";
+  } else if (model.loaderState === "MODEL LOAD ERROR") {
+    elements.modelSettingsMessage.textContent = model.errorDetail || "モデルを読み込めませんでした。";
+  } else if (model.loaded) {
+    elements.modelSettingsMessage.textContent = "中央配置とカメラフレーミングが完了しました。";
+  } else {
+    elements.modelSettingsMessage.textContent = "内蔵のプレースホルダーモデルを表示しています。";
+  }
+
+  elements.modelInfo.dimensions.textContent = formatVector(model.dimensions);
+  elements.modelInfo.meshes.textContent = String(model.meshCount ?? 0);
+  elements.modelInfo.triangles.textContent = Number(model.triangleCount ?? 0).toLocaleString("ja-JP");
+  elements.modelInfo.materials.textContent = String(model.materialCount ?? 0);
+  elements.modelInfo.scale.textContent = Number(model.scale ?? 1).toFixed(4);
+  elements.modelInfo.distance.textContent = Number(model.baseCameraDistance ?? 0).toFixed(2);
+  elements.modelPerformanceWarning.hidden = !model.warning;
+  elements.modelPerformanceWarning.textContent = model.warning || "";
+
+  const animations = model.animations ?? [];
+  const optionSignature = animations.map((item) => `${item.index}:${item.name}`).join("|");
+  if (elements.modelAnimationSelect.dataset.signature !== optionSignature) {
+    elements.modelAnimationSelect.replaceChildren();
+    if (!animations.length) {
+      elements.modelAnimationSelect.add(new Option("NO ANIMATION", ""));
+    } else {
+      animations.forEach((item) => elements.modelAnimationSelect.add(new Option(item.name, String(item.index))));
+    }
+    elements.modelAnimationSelect.dataset.signature = optionSignature;
+  }
+  elements.modelAnimationCount.textContent = `${model.animationCount ?? 0} CLIPS`;
+  elements.modelAnimationSelect.disabled = !animations.length;
+  elements.modelAnimationToggle.disabled = !animations.length;
+  const activeIndex = animations.find((item) => item.name === model.currentAnimation)?.index;
+  if (activeIndex !== undefined) elements.modelAnimationSelect.value = String(activeIndex);
+  elements.modelAnimationToggle.textContent = model.mixerState === "PLAYING" ? "PAUSE" : "PLAY";
+  updateDebug();
 }
 
 function updateOrientationLayout() {
@@ -344,6 +455,30 @@ async function init() {
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !elements.calibrationLayer.hidden) closeCalibration();
+    if (event.key === "Escape" && !elements.modelSettingsLayer.hidden) closeModelSettings();
+  });
+
+  elements.modelSettingsOpen.addEventListener("click", openModelSettings);
+  elements.modelSettingsClose.addEventListener("click", closeModelSettings);
+  elements.modelSettingsBackdrop.addEventListener("click", closeModelSettings);
+  elements.modelFileInput.addEventListener("change", async (event) => {
+    const [file] = event.target.files ?? [];
+    if (!file) return;
+    try {
+      await scene3d.loadModel(file);
+    } catch {
+      // The MODEL VIEWER remains usable and reports a friendly error through onModelUpdate.
+    } finally {
+      event.target.value = "";
+    }
+  });
+  elements.modelSettingsLayer.addEventListener("change", (event) => {
+    if (event.target.matches('input[name="model-lighting"]')) scene3d?.setModelLighting(event.target.value);
+    if (event.target.matches('input[name="model-background"]')) scene3d?.setModelBackground(event.target.value);
+  });
+  elements.modelAnimationSelect.addEventListener("change", (event) => scene3d?.setModelAnimation(event.target.value));
+  elements.modelAnimationToggle.addEventListener("click", () => {
+    scene3d?.setModelPlaying(latestModelInfo?.mixerState !== "PLAYING");
   });
 
   elements.debugToggle.addEventListener("change", () => {
@@ -374,10 +509,15 @@ async function init() {
       elements.sceneFallback.hidden = available;
       elements.debug.webgl.textContent = available ? message : `非対応: ${message}`;
     },
-    onSceneChange: ({ label }) => {
+    onSceneChange: ({ id, label }) => {
+      currentSceneId = id;
       elements.sceneName.textContent = label;
       elements.debug.currentScene.textContent = label;
+      elements.modelDock.hidden = id !== "model";
+      if (id === "model") updateModelUI(scene3d?.getModelInfo());
+      if (id !== "model" && !elements.modelSettingsLayer.hidden) closeModelSettings();
     },
+    onModelUpdate: updateModelUI,
   });
   scene3d.setDebugVisible(elements.debugToggle.checked);
   scene3d.setViewCalibration({ viewMode: calibration.viewMode, fov: calibration.fov });

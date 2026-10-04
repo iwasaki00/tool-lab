@@ -1,6 +1,8 @@
 import { createAquariumScene } from "./scenes/aquariumScene.js";
 import { createNeonScene } from "./scenes/neonScene.js";
 import { createCrystalScene } from "./scenes/crystalScene.js";
+import { createModelScene } from "./scenes/modelScene.js?v=0401";
+import { GLTFLoader } from "./addons/loaders/GLTFLoader.js?v=170";
 
 const THREE_VERSION = "0.170.0";
 const THREE_MODULE_URL = "./three.module.js";
@@ -12,11 +14,18 @@ const SCENE_FACTORIES = Object.freeze({
   aquarium: createAquariumScene,
   neon: createNeonScene,
   crystal: createCrystalScene,
+  model: createModelScene,
 });
 
 export { THREE_VERSION };
 
-export async function createScene3D({ canvas, container, onStatus = () => {}, onSceneChange = () => {} }) {
+export async function createScene3D({
+  canvas,
+  container,
+  onStatus = () => {},
+  onSceneChange = () => {},
+  onModelUpdate = () => {},
+}) {
   let THREE;
   try {
     THREE = await import(THREE_MODULE_URL);
@@ -88,6 +97,8 @@ export async function createScene3D({ canvas, container, onStatus = () => {}, on
       scene.fog = null;
     }
     camera.fov = calibratedFov;
+    camera.near = 0.1;
+    camera.far = 40;
     camera.updateProjectionMatrix();
     webglRenderer.shadowMap.enabled = Boolean(config.shadows) && !phonePerformanceMode;
   }
@@ -107,10 +118,19 @@ export async function createScene3D({ canvas, container, onStatus = () => {}, on
     if (token !== switchToken) return null;
 
     if (currentScene) {
+      currentScene.dispose?.();
       scene.remove(currentScene.root);
       disposeObjectTree(currentScene.root);
     }
-    currentScene = SCENE_FACTORIES[targetId](THREE, { reducedMotion });
+    currentScene = SCENE_FACTORIES[targetId](THREE, {
+      GLTFLoader,
+      reducedMotion,
+      phonePerformanceMode,
+      onModelUpdate: (info) => {
+        if (currentSceneId === targetId) countObjects();
+        onModelUpdate(info);
+      },
+    });
     currentSceneId = targetId;
     scene.add(currentScene.root);
     applySceneConfig(currentScene.config);
@@ -136,11 +156,24 @@ export async function createScene3D({ canvas, container, onStatus = () => {}, on
     if (paused || !currentScene) return;
     resize();
     const range = currentScene.config.cameraRange ?? 1;
-    camera.position.x = finalX * CAMERA_RANGE_X * range;
-    camera.position.y = finalY * CAMERA_RANGE_Y * range;
-    camera.position.z = CAMERA_Z;
+    const cameraSettings = currentScene.getCameraSettings?.(camera.fov, camera.aspect) ?? {
+      distance: CAMERA_Z,
+      target: focalTarget,
+      rangeX: CAMERA_RANGE_X * range,
+      rangeY: CAMERA_RANGE_Y * range,
+      near: 0.1,
+      far: 40,
+    };
+    camera.position.x = cameraSettings.target.x + finalX * cameraSettings.rangeX;
+    camera.position.y = cameraSettings.target.y + finalY * cameraSettings.rangeY;
+    camera.position.z = cameraSettings.target.z + cameraSettings.distance;
+    if (camera.near !== cameraSettings.near || camera.far !== cameraSettings.far) {
+      camera.near = cameraSettings.near;
+      camera.far = cameraSettings.far;
+      camera.updateProjectionMatrix();
+    }
     camera.clearViewOffset();
-    if (viewMode === "lookAt") camera.lookAt(focalTarget);
+    if (viewMode === "lookAt") camera.lookAt(cameraSettings.target);
     else camera.quaternion.copy(windowQuaternion);
     lastCamera = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
     currentScene.update?.(time);
@@ -168,6 +201,7 @@ export async function createScene3D({ canvas, container, onStatus = () => {}, on
       fog: config?.fog ? config.fog.type.toUpperCase() : "OFF",
       shadows: webglRenderer.shadowMap.enabled,
       animation: paused ? "PAUSED" : "ACTIVE",
+      model: currentScene?.getModelInfo?.() ?? null,
     };
   }
 
@@ -185,12 +219,26 @@ export async function createScene3D({ canvas, container, onStatus = () => {}, on
     resize,
     switchScene,
     setViewCalibration,
+    async loadModel(file) {
+      if (currentSceneId !== "model" || !currentScene?.loadFile) throw new Error("MODEL_SCENE_NOT_ACTIVE");
+      const info = await currentScene.loadFile(file);
+      countObjects();
+      return info;
+    },
+    setModelLighting(preset) { return currentScene?.setLightingPreset?.(preset); },
+    setModelBackground(preset) { return currentScene?.setBackgroundPreset?.(preset); },
+    setModelAnimation(index) { return currentScene?.setAnimation?.(index); },
+    setModelPlaying(value) { return currentScene?.setPlaying?.(value); },
+    getModelInfo() { return currentScene?.getModelInfo?.() ?? null; },
     setPaused(value) { paused = Boolean(value); },
     setDebugVisible(value) { axes.visible = Boolean(value); },
     getMetrics,
     dispose() {
       resizeObserver.disconnect();
-      if (currentScene) disposeObjectTree(currentScene.root);
+      if (currentScene) {
+        currentScene.dispose?.();
+        disposeObjectTree(currentScene.root);
+      }
       webglRenderer.dispose();
     },
   };
@@ -230,6 +278,9 @@ function createUnavailableScene(error) {
     version: THREE_VERSION,
     error,
     render() {}, resize() {}, setPaused() {}, setDebugVisible() {}, setViewCalibration() {}, dispose() {},
+    async loadModel() { throw new Error("WEBGL_UNAVAILABLE"); },
+    setModelLighting() {}, setModelBackground() {}, setModelAnimation() {}, setModelPlaying() {},
+    getModelInfo() { return null; },
     async switchScene() { return null; },
     getMetrics() {
       return {
@@ -251,6 +302,7 @@ function createUnavailableScene(error) {
         fog: "OFF",
         shadows: false,
         animation: "PAUSED",
+        model: null,
       };
     },
   };

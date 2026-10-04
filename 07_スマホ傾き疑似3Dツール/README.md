@@ -1,91 +1,132 @@
 # Tilt 3D Lab / 傾き3D実験室
 
-スマートフォン画面を3D世界への窓として扱い、端末の傾きやPCのマウス位置に応じてPerspective Cameraを移動するショーケースです。物体ではなく観察者の位置を動かし、側面、重なり、遮蔽、透明物の見え方を変化させます。
+スマートフォンの傾きやPCのマウス位置をカメラ移動へ変換し、GLBモデルや3つのショーケースを画面という窓から覗き込むWebアプリです。モデル自体を入力で回転させず、観察者の位置を動かして側面・上面・隠れた部分を表示します。
 
 ## Version
 
-**0.3.1 — VIEW CALIBRATION**
+**0.4.0 — Phase 4「MODEL VIEWER」**
 
-Phase 3の3シーンを維持したまま、端末や好みに合わせて視点挙動を調整できる実機調整機能を追加しています。
+「Geometryで作ったデモ」から「実際の3Dモデルを傾けて覗く」へ進みました。
 
-## VIEW SETTINGS
+## MODEL VIEWER
 
-メイン画面の「VIEW SETTINGS」から、次の項目を調整できます。
+シーン切替の`MODEL`を選ぶと、同梱した小型GLBサンプルを表示します。`OPEN GLB`から端末内の別モデルへ差し替えられます。
 
-- `MASTER SENSITIVITY`: 25〜400%。全体の移動量を調整します。初期値は100%です。
-- `HORIZONTAL / VERTICAL`: 軸別ゲインを0〜300%で調整します。初期値は各100%です。
-- `NORMAL / INVERT / OFF`: 左右・上下それぞれの方向を独立して設定します。初期値は既存挙動を引き継ぐ`INVERT`です。
-- `WINDOW`: カメラの向きを固定し、画面を固定された窓として覗き込むモードです。初期設定です。
-- `LOOK AT`: カメラを常にシーン中央へ向ける、従来の注視挙動です。
-- `FOV`: 35〜80°。初期値は42°です。
-- `SMOOTHING`: 滑らか・標準・追従重視から選択できます。
+- 正式なユーザー読込対象: 単一ファイルの`.glb`
+- `.gltf`: Loader自体は対応しますが、外部`.bin`やTexture参照を伴うローカル単一ファイル選択は正式対応外です。
+- 選択したファイルは`File.arrayBuffer()`で読み、GLTFLoaderへ直接渡します。
+- 選択した3Dモデルを外部サーバーへアップロードしません。Object URLも作成しません。
+- GLB内の外部Buffer/Image URIを事前検査し、Data URI以外の外部参照は読み込みません。
+- 同梱サンプル以外の実行時CDN通信はありません。
 
-調整値は`localStorage`へ保存され、再訪時に復元されます。不正値や古い形式は安全な初期値へ戻します。「RESET VIEW SETTINGS」は視点設定だけを初期化し、「現在位置を中央にする」はセンサーのニュートラル位置だけを更新します。
+### GLTFLoader
 
-## 入力からカメラまで
+- Three.js: **0.170.0**
+- GLTFLoader: **Three.js r170対応版**
+- `js/addons/loaders/GLTFLoader.js`と依存する`BufferGeometryUtils.js`をローカル同梱
+- 取得元: Three.js公式GitHubリポジトリの`r170`タグ
+- Draco、KTX2、Meshopt decoderはVersion 0.4.0では同梱していません。
 
-```text
-DeviceOrientation / Mouse
-  → tiltX / tiltY
-  → direction X / Y（NORMAL・INVERT・OFF）
-  → viewX / viewY
-  → smoothing
-  → master sensitivity × axis gain
-  → finalX / finalY（安全範囲でクランプ）
-  → camera.position.x / y
-  → WINDOW または LOOK AT
-```
+## 自動センタリングとフレーミング
 
-最大設定でも最終入力を±3.5に制限し、過大なカメラ移動を防ぎます。`prefers-reduced-motion`環境では移動量も抑えます。
+読み込み後に`THREE.Box3`でBounding Boxを取得し、次の処理を行います。
 
-## SHOWCASE SCENES
+1. 元モデルの中心とX/Y/Z寸法を計測
+2. GLTF内部の階層を保ったまま、最上位Sceneを`MODEL_ROOT`配下へ配置
+3. Bounding Box中心がViewer原点へ来るよう平行移動
+4. 最大Dimensionが約3.35ワールド単位になるよう均一Scale
+5. FOVと縦長ViewportのAspectから必要距離を算出
+6. モデルが約70〜80%に収まり、視点移動の余白が残る距離へCameraを配置
+7. モデル寸法に合わせてCamera移動量とNear/Far Clipを設定
 
-- **AQUARIUM（デフォルト）**: 水面、FogExp2、光線、泡、魚、海底、岩、サンゴで構成した多層の水中世界です。
-- **NEON CHAMBER**: グリッド、立体フレーム、発光オブジェクト、前景・背景を配置したSF空間です。
-- **BUBBLE / CRYSTAL**: 透明Icosahedron、発光Octahedron、結晶群、光線、前景Sphereで透明物の重なりを確認できます。
+LOOK ATモードでは、中央化後のBounding Box中心をCamera Targetとして使用します。
 
-シーンはページ再読み込みなしで切り替わります。切り替え時に旧シーンのGeometry、Material、Texture、Shadow Mapを破棄し、単一のRAFで入力平滑化・シーン更新・カメラ更新・Three.js描画を行います。
+## Lighting / Background
+
+MODEL SETTINGSからリアルタイムに切り替えられます。
+
+- Lighting: `STUDIO`、`SOFT`、`DRAMATIC`
+- Background: `DARK`、`LIGHT`、`GRID`
+- GRIDでは床Gridと簡易Shadow受けを表示
+- スマートフォンでは既存方針どおりShadowを無効化して負荷を抑えます。
+
+モデル本来のMaterialは書き換えません。読み込んだMeshへShadow設定だけを付与します。
+
+## Animation
+
+GLBにAnimation Clipがある場合、`THREE.AnimationMixer`で先頭Clipを自動再生します。
+
+- Animation数と現在名を表示
+- Animation選択
+- PLAY / PAUSE
+- `prefers-reduced-motion`環境では初期停止
+- 端末傾きはCamera、Animationはモデル自身へ適用し、独立して更新
+
+Animationを持たないGLBも静止モデルとして正常に表示します。
+
+## MODEL INFO / Performance Warning
+
+MODEL SETTINGSにModel Name、Dimensions、Animation Count、Mesh Count、Triangle Count、Material Count、Auto Scale、Camera Distanceを表示します。50万Triangles以上では「モバイル端末では重い可能性があります」と警告しますが、読み込み自体は禁止しません。
+
+モデル差し替え時は旧AnimationMixerを停止・解除し、旧モデルのGeometry、Material、Textureを破棄します。Scene切替時にも同じResource解放を行います。
+
+## View Calibration
+
+Version 0.4.0の新規利用時および`RESET VIEW SETTINGS`の基準値は次の組み合わせです。
+
+- Horizontal Direction: **NORMAL**
+- Vertical Direction: **INVERT**
+- View Mode: **LOOK AT**
+- Master Sensitivity: 100%（25〜400%）
+- Horizontal / Vertical Gain: 各100%（0〜300%）
+- FOV: 42°（35〜80°）
+
+既に`localStorage`へ保存された設定は上書きしません。WINDOW / LOOK AT、軸別NORMAL / INVERT / OFF、Smoothing、最終入力±3.5 Clampも維持しています。端末傾きを視点位置として利用するため、自然に感じる方向には端末・持ち方・ユーザー差があります。
+
+## Scene一覧
+
+- **AQUARIUM**: 魚、泡、水面、海底、Fogを持つ水中世界
+- **NEON**: Gridと発光立体で構成したSF展示空間
+- **CRYSTAL**: 透明結晶と前景・背景の重なりを確認する空間
+- **MODEL**: GLB読込、自動フレーミング、照明・背景・Animation設定を持つモデルビューアー
+
+シーン切替やGLTF AnimationのためにRAFを増やさず、入力平滑化・カメラ・シーン・Mixer・描画を単一RAFで処理します。
 
 ## DEBUG
 
-DEBUGを有効にすると、次の情報を確認できます。
+既存情報に加えてMODEL時は次を表示します。
 
-- raw tilt、方向適用後のview、平滑化後のview、最終入力
-- X/Y方向、マスター感度、X/Yゲイン、視点モード
-- DEVICE/CAMERAの方向図、カメラ座標、FOV、FPS
-- Scene、Object、Triangle、Draw Call、GPU Geometry/Texture
-- Rendererサイズ、Pixel Ratio、Fog、Shadow、Animation状態
+- Model Loaded / Model Name
+- Bounding Box X/Y/Z、Model Center、Model Scale
+- Base Camera Distance、現在Camera X/Y/Z、Target X/Y/Z
+- Mesh / Triangle / Material Count
+- Animation Count、Current Animation、Mixer State
+- Loader State、GLTF Load Time、詳細Error Code
 
-## Three.jsとファイル構成
-
-- Three.js: **0.170.0**（`js/three.module.js`へ同梱、実行時の外部通信なし）
-- `index.html`: Canvas、シーン切替、操作UI、調整シート
-- `style.css`: 3D窓、レスポンシブUI、調整シート
-- `js/app.js`: UI、入力変換、設定保存、Scene Manager接続
-- `js/orientation.js`: センサー許可、画面方向補正、正規化
-- `js/renderer.js`: 単一RAF、平滑化、感度・ゲイン、安全制限、FPS
-- `js/scene3d.js`: Three.js共通処理、視点モード、シーン管理
-- `js/scenes/*.js`: AQUARIUM、NEON、CRYSTALの各シーン
-
-## ローカル確認
+## ローカル実行
 
 ```powershell
 cd 07_スマホ傾き疑似3Dツール
 py -3 -m http.server 8080
 ```
 
-ブラウザで`http://localhost:8080`を開きます。PCでは3D窓内のマウス位置で端末の傾きを再現できます。
+`http://localhost:8080`を開きます。PCでは3D画面内のマウス位置で端末傾きをシミュレーションできます。
 
 ## iPhone / Android
 
-HTTPSで配信し、縦向きで開きます。「モーション開始」からセンサー利用を許可し、自然な姿勢で「現在位置を中央にする」を押してください。iOSではユーザー操作内で`DeviceOrientationEvent.requestPermission()`を呼びます。スマートフォンの横画面では描画ループを停止し、縦向きへ戻す案内を表示します。
+DeviceOrientationにはHTTPSが必要です。縦向きで「モーション開始」を押して許可し、自然な姿勢で「現在位置を中央にする」を実行してください。横向きでは描画を停止して縦向き案内を表示し、portraitへ戻ると自動復帰します。
 
-実機ではまず初期値で試し、必要に応じて軸方向、軸別ゲイン、マスター感度、視点モード、FOVの順で調整してください。端末傾きを視点位置として利用しているため、体感上の自然な方向には端末・持ち方・ユーザー差があります。
+## Error Handling
 
-## パフォーマンスと既知の制約
+拡張子不正、空ファイル、GLB Header不正、Parse失敗、Meshなし、WebGL非対応を区別します。読込失敗後も現在モデルを維持し、別GLBを再選択できます。
 
-- Pixel Ratioは通常最大2、スマートフォンでは最大1.5です。
-- スマートフォンではShadowを無効化し、同時に保持するShowcase Sceneを1つに限定します。
-- 水面反射・屈折、Post Processing、Bloom、GLTF/GLB読み込みは未実装です。
-- センサーの軸、感度、許可仕様は端末・OS・ブラウザにより差があります。
-- WebGL非対応時もUIを維持し、3D表示を利用できない旨を表示します。
+## Version 0.4.0の制限
+
+- Draco、KTX2、Meshopt、HDRI、Post Processing、Bloomは未対応です。
+- 外部ファイル参照を持つローカル`.gltf`一式の複数選択には未対応です。
+- 非常に巨大なGLBは端末メモリやGPU性能により読み込めない場合があります。
+- Auto RotateとOrbitControlsは主操作を端末傾きに保つため導入していません。
+
+## Phase 5候補
+
+**DEPTH PHOTO** — 写真とDepth情報を使い、端末を傾けて写真の奥を覗く体験。

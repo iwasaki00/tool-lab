@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#05070d" />
     <meta name="color-scheme" content="dark" />
     <title>傾き3D実験室 — Tilt 3D Lab</title>
-    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./style.css?v=0401" />
   </head>
   <body>
     <div class="ambient" aria-hidden="true">
@@ -24,14 +24,14 @@
             <small>TILT 3D LAB</small>
           </span>
         </a>
-        <span class="version" data-version>Version 0.3.1</span>
+        <span class="version" data-version>Version 0.4.0</span>
       </header>
 
       <section id="top" class="hero" aria-labelledby="hero-title">
         <div class="hero__intro">
-          <p class="eyebrow"><span></span> VIEW CALIBRATION / SHOWCASE</p>
+          <p class="eyebrow"><span></span> PHASE 04 / MODEL VIEWER</p>
           <h1 id="hero-title">傾けて、<br /><em>奥をのぞく。</em></h1>
-          <p class="hero__copy">水中、ネオン、結晶。画面の奥に広がる3つの世界を、端末を傾けて覗き込みます。</p>
+          <p class="hero__copy">GLBモデルと3つのショーケースを、端末を傾けてあらゆる角度から覗き込みます。</p>
         </div>
 
         <div id="motion-stage" class="stage" aria-label="傾きに反応する3D空間">
@@ -47,11 +47,22 @@
               <button class="is-active" type="button" data-scene="aquarium" aria-pressed="true">AQUARIUM</button>
               <button type="button" data-scene="neon" aria-pressed="false">NEON</button>
               <button type="button" data-scene="crystal" aria-pressed="false">CRYSTAL</button>
+              <button type="button" data-scene="model" aria-pressed="false">MODEL</button>
             </nav>
             <div id="scene-fallback" class="scene-fallback" hidden>
               <span aria-hidden="true">◇</span>
               <strong>3D表示を利用できません</strong>
               <small>WebGL対応ブラウザでお試しください。</small>
+            </div>
+          </div>
+          <div id="model-dock" class="model-dock" hidden>
+            <div class="model-dock__status">
+              <small id="model-loader-state">PLACEHOLDER READY</small>
+              <strong id="model-dock-name">PLACEHOLDER MODEL</strong>
+            </div>
+            <div class="model-dock__actions">
+              <label class="model-file-button" for="model-file-input">OPEN GLB<input id="model-file-input" type="file" accept=".glb,model/gltf-binary" /></label>
+              <button id="model-settings-open" class="model-settings-button" type="button">MODEL SETTINGS</button>
             </div>
           </div>
           <p class="stage__hint" id="stage-hint"><span aria-hidden="true">↔</span> マウスを動かして試す</p>
@@ -121,9 +132,9 @@
             <div><dt>view X / Y</dt><dd id="debug-view">0.000 / 0.000</dd></div>
             <div><dt>smoothed view X / Y</dt><dd id="debug-smooth">0.000 / 0.000</dd></div>
             <div><dt>final input X / Y</dt><dd id="debug-final">0.000 / 0.000</dd></div>
-            <div><dt>direction X / Y</dt><dd id="debug-directions">INVERT / INVERT</dd></div>
+            <div><dt>direction X / Y</dt><dd id="debug-directions">NORMAL / INVERT</dd></div>
             <div><dt>master / gain X / gain Y</dt><dd id="debug-gains">100% / 100% / 100%</dd></div>
-            <div><dt>view mode</dt><dd id="debug-view-mode">WINDOW</dd></div>
+            <div><dt>view mode</dt><dd id="debug-view-mode">LOOK AT</dd></div>
             <div><dt>sensor state</dt><dd id="debug-state">IDLE</dd></div>
             <div><dt>orientation</dt><dd id="debug-orientation">portrait / 0°</dd></div>
             <div><dt>FPS</dt><dd id="debug-fps">—</dd></div>
@@ -141,12 +152,26 @@
             <div><dt>quality</dt><dd id="debug-quality">STANDARD</dd></div>
             <div><dt>fog / shadow</dt><dd id="debug-effects">—</dd></div>
             <div><dt>animation</dt><dd id="debug-animation">ACTIVE</dd></div>
+            <div><dt>model loaded</dt><dd id="debug-model-loaded">—</dd></div>
+            <div><dt>model name</dt><dd id="debug-model-name">—</dd></div>
+            <div><dt>bounding box X / Y / Z</dt><dd id="debug-model-dimensions">—</dd></div>
+            <div><dt>model center X / Y / Z</dt><dd id="debug-model-center">—</dd></div>
+            <div><dt>model scale</dt><dd id="debug-model-scale">—</dd></div>
+            <div><dt>base camera distance</dt><dd id="debug-model-distance">—</dd></div>
+            <div><dt>target X / Y / Z</dt><dd id="debug-model-target">—</dd></div>
+            <div><dt>model mesh / triangle</dt><dd id="debug-model-geometry">—</dd></div>
+            <div><dt>model materials</dt><dd id="debug-model-materials">—</dd></div>
+            <div><dt>animation count</dt><dd id="debug-model-animation-count">—</dd></div>
+            <div><dt>current animation</dt><dd id="debug-model-current-animation">—</dd></div>
+            <div><dt>mixer state</dt><dd id="debug-model-mixer">—</dd></div>
+            <div><dt>loader state / time</dt><dd id="debug-model-loader">—</dd></div>
+            <div><dt>model error</dt><dd id="debug-model-error">—</dd></div>
           </dl>
         </aside>
       </section>
 
       <footer class="app-footer">
-        <span>VERSION 0.3.1</span><span>VIEW CALIBRATION</span><span>2026</span>
+        <span>VERSION 0.4.0</span><span>MODEL VIEWER</span><span>2026</span>
       </footer>
     </main>
 
@@ -162,8 +187,8 @@
           <fieldset class="calibration-group">
             <legend>VIEW MODE</legend>
             <div class="segment-control segment-control--two">
-              <label><input type="radio" name="view-mode" value="window" checked /><span>WINDOW<small>固定された窓</small></span></label>
-              <label><input type="radio" name="view-mode" value="lookAt" /><span>LOOK AT<small>中心を注視</small></span></label>
+              <label><input type="radio" name="view-mode" value="window" /><span>WINDOW<small>固定された窓</small></span></label>
+              <label><input type="radio" name="view-mode" value="lookAt" checked /><span>LOOK AT<small>中心を注視</small></span></label>
             </div>
           </fieldset>
 
@@ -179,8 +204,8 @@
                 <input id="horizontal-gain" type="range" min="0" max="300" value="100" step="5" />
               </label>
               <div class="segment-control segment-control--three" aria-label="左右方向">
-                <label><input type="radio" name="horizontal-direction" value="normal" /><span>NORMAL</span></label>
-                <label><input type="radio" name="horizontal-direction" value="invert" checked /><span>INVERT</span></label>
+                <label><input type="radio" name="horizontal-direction" value="normal" checked /><span>NORMAL</span></label>
+                <label><input type="radio" name="horizontal-direction" value="invert" /><span>INVERT</span></label>
                 <label><input type="radio" name="horizontal-direction" value="off" /><span>OFF</span></label>
               </div>
             </section>
@@ -218,12 +243,64 @@
       </section>
     </div>
 
+    <div id="model-settings-layer" class="calibration-layer" hidden>
+      <button id="model-settings-backdrop" class="calibration-backdrop" type="button" aria-label="モデル設定を閉じる"></button>
+      <section class="calibration-sheet model-settings-sheet" role="dialog" aria-modal="true" aria-labelledby="model-settings-title">
+        <header class="calibration-sheet__header">
+          <div><small>MODEL VIEWER</small><h2 id="model-settings-title">モデル設定</h2></div>
+          <button id="model-settings-close" class="sheet-close" type="button" aria-label="モデル設定を閉じる">×</button>
+        </header>
+        <div class="calibration-content">
+          <div class="model-load-summary">
+            <span id="model-settings-state">PLACEHOLDER READY</span>
+            <strong id="model-settings-name">PLACEHOLDER MODEL</strong>
+            <p id="model-settings-message">内蔵のプレースホルダーモデルを表示しています。</p>
+          </div>
+
+          <fieldset class="calibration-group">
+            <legend>LIGHTING</legend>
+            <div class="segment-control segment-control--three">
+              <label><input type="radio" name="model-lighting" value="studio" checked /><span>STUDIO</span></label>
+              <label><input type="radio" name="model-lighting" value="soft" /><span>SOFT</span></label>
+              <label><input type="radio" name="model-lighting" value="dramatic" /><span>DRAMATIC</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="calibration-group">
+            <legend>BACKGROUND</legend>
+            <div class="segment-control segment-control--three">
+              <label><input type="radio" name="model-background" value="dark" checked /><span>DARK</span></label>
+              <label><input type="radio" name="model-background" value="light" /><span>LIGHT</span></label>
+              <label><input type="radio" name="model-background" value="grid" /><span>GRID</span></label>
+            </div>
+          </fieldset>
+
+          <section class="animation-settings" aria-labelledby="animation-settings-title">
+            <div><small id="animation-settings-title">ANIMATION</small><b id="model-animation-count">0 CLIPS</b></div>
+            <select id="model-animation-select" aria-label="Animation選択" disabled><option value="">NO ANIMATION</option></select>
+            <button id="model-animation-toggle" class="button button--secondary" type="button" disabled>PLAY</button>
+          </section>
+
+          <dl class="model-info" aria-label="モデル情報">
+            <div><dt>DIMENSIONS X / Y / Z</dt><dd id="model-info-dimensions">—</dd></div>
+            <div><dt>MESHES</dt><dd id="model-info-meshes">—</dd></div>
+            <div><dt>TRIANGLES</dt><dd id="model-info-triangles">—</dd></div>
+            <div><dt>MATERIALS</dt><dd id="model-info-materials">—</dd></div>
+            <div><dt>AUTO SCALE</dt><dd id="model-info-scale">—</dd></div>
+            <div><dt>CAMERA DISTANCE</dt><dd id="model-info-distance">—</dd></div>
+          </dl>
+          <p id="model-performance-warning" class="model-warning" hidden></p>
+          <p class="model-privacy-note">選択したGLBは外部サーバーへ送信せず、このブラウザ内だけで処理します。</p>
+        </div>
+      </section>
+    </div>
+
     <div id="rotate-overlay" class="rotate-overlay" hidden role="status" aria-live="polite">
       <div class="rotate-device" aria-hidden="true"><i></i></div>
       <strong>端末を縦向きに<br />戻してください</strong>
       <p>3D WINDOWは縦画面でお楽しみいただけます。</p>
     </div>
 
-    <script type="module" src="./js/app.js"></script>
+    <script type="module" src="./js/app.js?v=0401"></script>
   </body>
 </html>
