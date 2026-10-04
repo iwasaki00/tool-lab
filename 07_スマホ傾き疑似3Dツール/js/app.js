@@ -1,11 +1,13 @@
 import { OrientationController, SENSOR_STATES } from "./orientation.js";
 import { TiltRenderer, FINAL_INPUT_LIMIT } from "./renderer.js";
-import { createScene3D } from "./scene3d.js?v=0401";
+import { createScene3D } from "./scene3d.js?v=0500";
 
-export const VERSION = "0.4.0";
+export const VERSION = "0.5.0";
 
 const STORAGE_KEY = "tilt3d:view-calibration:v1";
 const STORAGE_VERSION = 1;
+const DEPTH_STORAGE_KEY = "tilt3d:depth-photo:v1";
+const DEFAULT_DEPTH_SETTINGS = Object.freeze({ mode: "mesh", strength: 0.9, invert: false, smooth: "medium", quality: "standard", maxDepthStep: true });
 const DIRECTIONS = ["normal", "invert", "off"];
 const VIEW_MODES = ["window", "lookAt"];
 const DEFAULT_CALIBRATION = Object.freeze({
@@ -20,6 +22,16 @@ const DEFAULT_CALIBRATION = Object.freeze({
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const calibration = loadCalibration();
+const depthSettings = loadDepthSettings();
+
+const debugFields = [
+  ["alpha","alpha"],["beta","beta"],["gamma","gamma"],["tilt","tilt X / Y"],["view","view X / Y"],["smooth","smoothed X / Y"],["final","final input X / Y"],["directions","direction X / Y"],
+  ["gains","master / gain X / Y"],["view-mode","view mode"],["state","sensor state"],["orientation","orientation"],["fps","FPS"],["camera","camera X / Y / Z"],["fov","FOV"],["renderer-size","renderer W × H"],
+  ["device-pixel-ratio","device pixel ratio"],["effective-pixel-ratio","effective pixel ratio"],["webgl","WebGL"],["current-scene","current scene"],["objects","objects"],["triangles","triangles"],["draw-calls","draw calls"],["gpu-memory","GPU geometry / texture"],["quality","quality"],["effects","fog / shadow"],["animation","animation"],
+  ["model-loaded","model loaded"],["model-name","model name"],["model-dimensions","bounding box X / Y / Z"],["model-center","model center X / Y / Z"],["model-scale","model scale"],["model-distance","base camera distance"],["model-target","target X / Y / Z"],["model-geometry","model mesh / triangle"],["model-materials","model materials"],["model-animation-count","animation count"],["model-current-animation","current animation"],["model-mixer","mixer state"],["model-loader","loader state / time"],["model-error","model error"],
+  ["photo-size","photo W × H"],["depth-size","depth W × H"],["depth-source","photo / depth source"],["depth-mode","depth mode"],["depth-strength","strength / invert"],["depth-quality","smooth / quality"],["depth-stats","depth min / avg / max"],["depth-mesh","mesh C × R / vertices"],["depth-triangles","depth triangles"],["depth-camera","photo camera range"],["depth-risk","disocclusion risk"],["depth-process","process time / state"],["depth-error","depth error"],
+];
+document.querySelector("#debug-list").innerHTML = debugFields.map(([id,label]) => `<div><dt>${label}</dt><dd id="debug-${id}">—</dd></div>`).join("");
 
 const elements = {
   root: document.documentElement,
@@ -65,6 +77,16 @@ const elements = {
     triangles: document.querySelector("#model-info-triangles"), materials: document.querySelector("#model-info-materials"),
     scale: document.querySelector("#model-info-scale"), distance: document.querySelector("#model-info-distance"),
   },
+  depthDock: document.querySelector("#depth-dock"),
+  photoFileInput: document.querySelector("#photo-file-input"), depthFileInput: document.querySelector("#depth-file-input"),
+  depthSettingsOpen: document.querySelector("#depth-settings-open"), depthSettingsLayer: document.querySelector("#depth-settings-layer"),
+  depthSettingsClose: document.querySelector("#depth-settings-close"), depthSettingsBackdrop: document.querySelector("#depth-settings-backdrop"),
+  depthLoaderState: document.querySelector("#depth-loader-state"), depthDockName: document.querySelector("#depth-dock-name"),
+  depthSettingsState: document.querySelector("#depth-settings-state"), depthSettingsName: document.querySelector("#depth-settings-name"), depthSettingsMessage: document.querySelector("#depth-settings-message"),
+  photoPreview: document.querySelector("#photo-preview"), depthPreview: document.querySelector("#depth-preview"),
+  depthStrength: document.querySelector("#depth-strength"), depthStrengthValue: document.querySelector("#depth-strength-value"),
+  depthSmooth: document.querySelector("#depth-smooth"), depthQuality: document.querySelector("#depth-quality"), depthMaxStep: document.querySelector("#depth-max-step"),
+  depthWarning: document.querySelector("#depth-warning"), depthError: document.querySelector("#depth-error"), resetDepthSettings: document.querySelector("#reset-depth-settings"),
   sensitivity: document.querySelector("#sensitivity"),
   sensitivityValue: document.querySelector("#sensitivity-value"),
   horizontalGain: document.querySelector("#horizontal-gain"),
@@ -97,6 +119,7 @@ const elements = {
     modelMaterials: document.querySelector("#debug-model-materials"), modelAnimationCount: document.querySelector("#debug-model-animation-count"),
     modelCurrentAnimation: document.querySelector("#debug-model-current-animation"), modelMixer: document.querySelector("#debug-model-mixer"),
     modelLoader: document.querySelector("#debug-model-loader"), modelError: document.querySelector("#debug-model-error"),
+    photoSize: document.querySelector("#debug-photo-size"), depthSize: document.querySelector("#debug-depth-size"), depthSource: document.querySelector("#debug-depth-source"), depthMode: document.querySelector("#debug-depth-mode"), depthStrength: document.querySelector("#debug-depth-strength"), depthQuality: document.querySelector("#debug-depth-quality"), depthStats: document.querySelector("#debug-depth-stats"), depthMesh: document.querySelector("#debug-depth-mesh"), depthTriangles: document.querySelector("#debug-depth-triangles"), depthCamera: document.querySelector("#debug-depth-camera"), depthRisk: document.querySelector("#debug-depth-risk"), depthProcess: document.querySelector("#debug-depth-process"), depthError: document.querySelector("#debug-depth-error"),
   },
 };
 
@@ -126,8 +149,10 @@ let scene3d = null;
 let isLandscapeMobile = false;
 let calibrationOpener = null;
 let modelSettingsOpener = null;
+let depthSettingsOpener = null;
 let currentSceneId = "aquarium";
 let latestModelInfo = null;
+let latestDepthInfo = null;
 
 const orientation = new OrientationController({
   onStateChange: ({ state, detail }) => updateStateUI(state, detail),
@@ -182,6 +207,26 @@ function loadCalibration() {
   } catch {
     return { ...DEFAULT_CALIBRATION };
   }
+}
+
+function loadDepthSettings() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(DEPTH_STORAGE_KEY) ?? "null");
+    if (!stored) return { ...DEFAULT_DEPTH_SETTINGS };
+    return {
+      mode: ["flat", "layers", "mesh"].includes(stored.mode) ? stored.mode : DEFAULT_DEPTH_SETTINGS.mode,
+      strength: numberOrDefault(stored.strength, 0, 3, DEFAULT_DEPTH_SETTINGS.strength),
+      invert: Boolean(stored.invert),
+      smooth: ["off", "low", "medium", "high"].includes(stored.smooth) ? stored.smooth : DEFAULT_DEPTH_SETTINGS.smooth,
+      quality: ["low", "standard", "high"].includes(stored.quality) ? stored.quality : DEFAULT_DEPTH_SETTINGS.quality,
+      maxDepthStep: DEFAULT_DEPTH_SETTINGS.maxDepthStep,
+    };
+  } catch { return { ...DEFAULT_DEPTH_SETTINGS }; }
+}
+
+function saveDepthSettings() {
+  const { mode, strength, invert, smooth, quality } = depthSettings;
+  try { localStorage.setItem(DEPTH_STORAGE_KEY, JSON.stringify({ mode, strength, invert, smooth, quality })); } catch { /* Current session remains usable. */ }
 }
 
 function saveCalibration() {
@@ -314,6 +359,20 @@ function updateDebug(frame = latestFrame) {
   elements.debug.modelMixer.textContent = model?.mixerState ?? "—";
   elements.debug.modelLoader.textContent = model ? `${model.loaderState} / ${Math.round(model.loadTime)}ms` : "—";
   elements.debug.modelError.textContent = model?.errorCode || "—";
+  const depth = metrics.depthPhoto;
+  elements.debug.photoSize.textContent = depth ? `${depth.photoWidth} × ${depth.photoHeight}` : "—";
+  elements.debug.depthSize.textContent = depth ? `${depth.depthWidth} × ${depth.depthHeight}` : "—";
+  elements.debug.depthSource.textContent = depth ? `${depth.photoSource} / ${depth.depthSource}` : "—";
+  elements.debug.depthMode.textContent = depth?.mode?.toUpperCase() ?? "—";
+  elements.debug.depthStrength.textContent = depth ? `${Math.round(depth.strength * 100)}% / ${depth.invert ? "INVERT" : "NORMAL"}` : "—";
+  elements.debug.depthQuality.textContent = depth ? `${depth.smooth.toUpperCase()} / ${depth.quality.toUpperCase()}` : "—";
+  elements.debug.depthStats.textContent = depth ? `${depth.depthMin.toFixed(3)} / ${depth.depthAverage.toFixed(3)} / ${depth.depthMax.toFixed(3)}` : "—";
+  elements.debug.depthMesh.textContent = depth ? `${depth.columns} × ${depth.rows} / ${depth.vertices.toLocaleString("ja-JP")}` : "—";
+  elements.debug.depthTriangles.textContent = depth ? depth.triangles.toLocaleString("ja-JP") : "—";
+  elements.debug.depthCamera.textContent = depth ? `${Number(depth.baseCameraDistance || 0).toFixed(2)} / ±${Number(depth.cameraRangeX || 0).toFixed(2)}, ±${Number(depth.cameraRangeY || 0).toFixed(2)}` : "—";
+  elements.debug.depthRisk.textContent = depth?.risk ?? "—";
+  elements.debug.depthProcess.textContent = depth ? `${Math.round(depth.processingTime)}ms / ${depth.status}` : "—";
+  elements.debug.depthError.textContent = depth?.errorCode || "—";
 }
 
 function handlePointerMove(event) {
@@ -349,6 +408,63 @@ function closeModelSettings() {
   elements.modelSettingsLayer.hidden = true;
   document.body.classList.remove("has-calibration");
   modelSettingsOpener?.focus?.();
+}
+
+function openDepthSettings() {
+  depthSettingsOpener = document.activeElement;
+  renderDepthSettingsUI();
+  elements.depthSettingsLayer.hidden = false;
+  document.body.classList.add("has-calibration");
+  elements.depthSettingsClose.focus();
+}
+
+function closeDepthSettings() {
+  elements.depthSettingsLayer.hidden = true;
+  document.body.classList.remove("has-calibration");
+  depthSettingsOpener?.focus?.();
+}
+
+function renderDepthSettingsUI() {
+  setCheckedValue("depth-mode", depthSettings.mode);
+  setCheckedValue("depth-invert", depthSettings.invert ? "on" : "off");
+  elements.depthStrength.value = String(Math.round(depthSettings.strength * 100));
+  elements.depthStrengthValue.value = `${elements.depthStrength.value}%`;
+  elements.depthSmooth.value = depthSettings.smooth;
+  elements.depthQuality.value = depthSettings.quality;
+  elements.depthMaxStep.checked = depthSettings.maxDepthStep;
+}
+
+function readDepthSettingsUI() {
+  depthSettings.mode = checkedValue("depth-mode") || DEFAULT_DEPTH_SETTINGS.mode;
+  depthSettings.strength = numberOrDefault(Number(elements.depthStrength.value) / 100, 0, 3, DEFAULT_DEPTH_SETTINGS.strength);
+  depthSettings.invert = checkedValue("depth-invert") === "on";
+  depthSettings.smooth = elements.depthSmooth.value;
+  depthSettings.quality = elements.depthQuality.value;
+  depthSettings.maxDepthStep = elements.depthMaxStep.checked;
+}
+
+function applyDepthSettings() {
+  renderDepthSettingsUI();
+  saveDepthSettings();
+  scene3d?.setDepthPhotoSettings(depthSettings);
+}
+
+function updateDepthUI(info) {
+  if (!info) return;
+  latestDepthInfo = { ...latestDepthInfo, ...info };
+  const depth = latestDepthInfo;
+  elements.depthLoaderState.textContent = depth.status;
+  elements.depthDockName.textContent = `${depth.mode?.toUpperCase() ?? "MESH"} · ${Math.round((depth.strength ?? .9) * 100)}%`;
+  elements.depthSettingsState.textContent = depth.status;
+  elements.depthSettingsName.textContent = `${depth.photoName} + ${depth.depthName}`;
+  elements.depthSettingsMessage.textContent = depth.errorDetail || depth.mismatch || "白ほど手前、黒ほど奥として処理します。";
+  if (depth.photoPreview) elements.photoPreview.src = depth.photoPreview;
+  if (depth.depthPreview) elements.depthPreview.src = depth.depthPreview;
+  elements.depthWarning.hidden = !depth.mismatch;
+  elements.depthWarning.textContent = depth.mismatch || "";
+  elements.depthError.hidden = !depth.errorDetail;
+  elements.depthError.textContent = depth.errorDetail || "";
+  updateDebug();
 }
 
 function updateModelUI(info) {
@@ -456,6 +572,7 @@ async function init() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !elements.calibrationLayer.hidden) closeCalibration();
     if (event.key === "Escape" && !elements.modelSettingsLayer.hidden) closeModelSettings();
+    if (event.key === "Escape" && !elements.depthSettingsLayer.hidden) closeDepthSettings();
   });
 
   elements.modelSettingsOpen.addEventListener("click", openModelSettings);
@@ -480,6 +597,32 @@ async function init() {
   elements.modelAnimationToggle.addEventListener("click", () => {
     scene3d?.setModelPlaying(latestModelInfo?.mixerState !== "PLAYING");
   });
+
+  elements.depthSettingsOpen.addEventListener("click", openDepthSettings);
+  elements.depthSettingsClose.addEventListener("click", closeDepthSettings);
+  elements.depthSettingsBackdrop.addEventListener("click", closeDepthSettings);
+  elements.depthSettingsLayer.addEventListener("input", (event) => {
+    if (event.target !== elements.depthStrength) return;
+    readDepthSettingsUI();
+    applyDepthSettings();
+  });
+  elements.depthSettingsLayer.addEventListener("change", (event) => {
+    if (!event.target.matches('input[name="depth-mode"], input[name="depth-invert"], select, #depth-max-step')) return;
+    readDepthSettingsUI();
+    applyDepthSettings();
+  });
+  elements.resetDepthSettings.addEventListener("click", () => {
+    Object.assign(depthSettings, DEFAULT_DEPTH_SETTINGS);
+    applyDepthSettings();
+  });
+  async function loadDepthFile(kind, input) {
+    const [file] = input.files ?? [];
+    if (!file) return;
+    try { await scene3d.loadDepthPhotoImage(kind, file); } catch { /* Friendly error arrives through the scene callback. */ }
+    finally { input.value = ""; }
+  }
+  elements.photoFileInput.addEventListener("change", () => loadDepthFile("photo", elements.photoFileInput));
+  elements.depthFileInput.addEventListener("change", () => loadDepthFile("depth", elements.depthFileInput));
 
   elements.debugToggle.addEventListener("change", () => {
     elements.debugPanel.hidden = !elements.debugToggle.checked;
@@ -514,13 +657,19 @@ async function init() {
       elements.sceneName.textContent = label;
       elements.debug.currentScene.textContent = label;
       elements.modelDock.hidden = id !== "model";
+      elements.depthDock.hidden = id !== "depth";
       if (id === "model") updateModelUI(scene3d?.getModelInfo());
+      if (id === "depth") updateDepthUI(scene3d?.getDepthPhotoInfo());
       if (id !== "model" && !elements.modelSettingsLayer.hidden) closeModelSettings();
+      if (id !== "depth" && !elements.depthSettingsLayer.hidden) closeDepthSettings();
     },
     onModelUpdate: updateModelUI,
+    onDepthPhotoUpdate: updateDepthUI,
+    depthPhotoSettings: depthSettings,
   });
   scene3d.setDebugVisible(elements.debugToggle.checked);
   scene3d.setViewCalibration({ viewMode: calibration.viewMode, fov: calibration.fov });
+  renderDepthSettingsUI();
   updateOrientationLayout();
 }
 

@@ -1,107 +1,90 @@
 # Tilt 3D Lab / 傾き3D実験室
 
-スマートフォンの傾きやPCのマウス位置をカメラ移動へ変換し、GLBモデルや3つのショーケースを画面という窓から覗き込むWebアプリです。モデル自体を入力で回転させず、観察者の位置を動かして側面・上面・隠れた部分を表示します。
+スマートフォンの傾き、またはPCのマウス位置をカメラ移動へ変換し、画面を「窓」として覗き込むWebアプリです。Version 0.5.0では写真とDepth Mapから疑似3Dを生成する `DEPTH PHOTO` を追加しました。
 
 ## Version
 
-**0.4.0 — Phase 4「MODEL VIEWER」**
+**0.5.0 — Phase 5A「DEPTH PHOTO CORE」**
 
-「Geometryで作ったデモ」から「実際の3Dモデルを傾けて覗く」へ進みました。
+既存のAQUARIUM / NEON / CRYSTAL / MODEL VIEWER、DeviceOrientation、iOS許可導線、マウスシミュレーション、VIEW CALIBRATION、Debug表示を維持しています。
 
-## MODEL VIEWER
+## DEPTH PHOTOの使い方
 
-シーン切替の`MODEL`を選ぶと、同梱した小型GLBサンプルを表示します。`OPEN GLB`から端末内の別モデルへ差し替えられます。
+1. シーン切替で `DEPTH` を選びます。
+2. 内蔵サンプルはそのまま操作できます。
+3. `PHOTO` で表示する写真を、`DEPTH MAP` で対応する深度画像を選びます。
+4. 端末を傾けるかPCでマウスを動かし、視差を確認します。
+5. `SETTINGS` でモード、強度、反転、平滑化、品質を調整します。
 
-- 正式なユーザー読込対象: 単一ファイルの`.glb`
-- `.gltf`: Loader自体は対応しますが、外部`.bin`やTexture参照を伴うローカル単一ファイル選択は正式対応外です。
-- 選択したファイルは`File.arrayBuffer()`で読み、GLTFLoaderへ直接渡します。
-- 選択した3Dモデルを外部サーバーへアップロードしません。Object URLも作成しません。
-- GLB内の外部Buffer/Image URIを事前検査し、Data URI以外の外部参照は読み込みません。
-- 同梱サンプル以外の実行時CDN通信はありません。
+白を手前、黒を奥として扱います。逆のDepth Mapは `INVERT` を選びます。写真とDepth Mapの解像度が違う場合、Depth Mapを写真比率のメッシュへ再サンプリングします。縦横比の差が大きい場合は警告します。
 
-### GLTFLoader
+### 入力画像
 
-- Three.js: **0.170.0**
-- GLTFLoader: **Three.js r170対応版**
-- `js/addons/loaders/GLTFLoader.js`と依存する`BufferGeometryUtils.js`をローカル同梱
-- 取得元: Three.js公式GitHubリポジトリの`r170`タグ
-- Draco、KTX2、Meshopt decoderはVersion 0.4.0では同梱していません。
+- ブラウザがデコード可能な `image/*`（JPG / PNG / WebPを推奨）
+- HEICはOS・ブラウザにより非対応です。失敗時はJPG / PNG / WebPへ変換してください。
+- EXIF回転は `createImageBitmap(..., { imageOrientation: "from-image" })` を優先し、ブラウザの画像デコードに従います。
+- 長辺2,048pxを上限としてCanvasへ展開し、端末メモリを抑えます。
 
-## 自動センタリングとフレーミング
+選択した画像は外部サーバーやAPIへ送信しません。File → ImageBitmap → Canvas → WebGL Textureの順にブラウザ内だけで処理します。画像そのものはlocalStorageへ保存しません。
 
-読み込み後に`THREE.Box3`でBounding Boxを取得し、次の処理を行います。
+## 立体化方式
 
-1. 元モデルの中心とX/Y/Z寸法を計測
-2. GLTF内部の階層を保ったまま、最上位Sceneを`MODEL_ROOT`配下へ配置
-3. Bounding Box中心がViewer原点へ来るよう平行移動
-4. 最大Dimensionが約3.35ワールド単位になるよう均一Scale
-5. FOVと縦長ViewportのAspectから必要距離を算出
-6. モデルが約70〜80%に収まり、視点移動の余白が残る距離へCameraを配置
-7. モデル寸法に合わせてCamera移動量とNear/Far Clipを設定
+- `FLAT`: 分割なしの平面。Depth強度は0です。
+- `LAYERS`: 深度を8段階へ量子化した段差メッシュです。
+- `MESH`: Depth輝度を頂点Zへ連続変換する本命モードです。
 
-LOOK ATモードでは、中央化後のBounding Box中心をCamera Targetとして使用します。
+深度値 `0.5` を中央面とし、`(depth - 0.5) × amplitude × strength` でZを求めます。強度は0–300%。写真の縦横比を保って自動スケールします。
 
-## Lighting / Background
+### Mesh Quality
 
-MODEL SETTINGSからリアルタイムに切り替えられます。
+- LOW: 長辺64分割
+- STANDARD: 長辺112分割（既定、約1万頂点以下が目安）
+- HIGH: 長辺192分割
+- 上限: 40,000頂点
 
-- Lighting: `STUDIO`、`SOFT`、`DRAMATIC`
-- Background: `DARK`、`LIGHT`、`GRID`
-- GRIDでは床Gridと簡易Shadow受けを表示
-- スマートフォンでは既存方針どおりShadowを無効化して負荷を抑えます。
+短辺分割数は写真比率から算出します。品質・モード変更時はGeometryを再構築します。強度・反転変更時は既存GeometryのZだけを更新します。
 
-モデル本来のMaterialは書き換えません。読み込んだMeshへShadow設定だけを付与します。
+### 平滑化と段差制限
 
-## Animation
+`DEPTH SMOOTH` はOFF / LOW / MEDIUM / HIGH。3×3近傍平均を指定回数適用します。`MAX DEPTH STEP` は隣接頂点差を0.18以内へ抑え、深度境界のゴム状突起を軽減します。
 
-GLBにAnimation Clipがある場合、`THREE.AnimationMixer`で先頭Clipを自動再生します。
+## Disocclusion対策
 
-- Animation数と現在名を表示
-- Animation選択
-- PLAY / PAUSE
-- `prefers-reduced-motion`環境では初期停止
-- 端末傾きはCamera、Animationはモデル自身へ適用し、独立して更新
+- 表示面を約6.5%拡張
+- 背面に約13%拡張した写真面を配置
+- 外周UVをストレッチ
+- DEPTH PHOTO固有の入力Clamp（X 1.45 / Y 1.35）
+- 強度・頂点数からLOW / MEDIUM / HIGHのリスクをDebug表示
 
-Animationを持たないGLBも静止モデルとして正常に表示します。
-
-## MODEL INFO / Performance Warning
-
-MODEL SETTINGSにModel Name、Dimensions、Animation Count、Mesh Count、Triangle Count、Material Count、Auto Scale、Camera Distanceを表示します。50万Triangles以上では「モバイル端末では重い可能性があります」と警告しますが、読み込み自体は禁止しません。
-
-モデル差し替え時は旧AnimationMixerを停止・解除し、旧モデルのGeometry、Material、Textureを破棄します。Scene切替時にも同じResource解放を行います。
+完全な穴埋めではありません。深度差が大きい境界や強度200%以上では、引き伸ばしや隠れていた領域の不足が見えることがあります。
 
 ## View Calibration
 
-Version 0.4.0の新規利用時および`RESET VIEW SETTINGS`の基準値は次の組み合わせです。
+既定値はHorizontal `NORMAL`、Vertical `INVERT`、View Mode `LOOK AT`、FOV 42°です。DEPTH PHOTOでも写真面自体は回転せず、既存設計どおりカメラが移動して中心を注視します。
 
-- Horizontal Direction: **NORMAL**
-- Vertical Direction: **INVERT**
-- View Mode: **LOOK AT**
-- Master Sensitivity: 100%（25〜400%）
-- Horizontal / Vertical Gain: 各100%（0〜300%）
-- FOV: 42°（35〜80°）
+## 保存範囲
 
-既に`localStorage`へ保存された設定は上書きしません。WINDOW / LOOK AT、軸別NORMAL / INVERT / OFF、Smoothing、最終入力±3.5 Clampも維持しています。端末傾きを視点位置として利用するため、自然に感じる方向には端末・持ち方・ユーザー差があります。
+localStorageへ保存するDepth設定は `mode / strength / invert / smooth / quality` だけです。写真・Depth Map・プレビュー・MAX DEPTH STEPは保存しません。VIEW CALIBRATIONは従来の保存キーを継続します。
 
-## Scene一覧
+## Debug
 
-- **AQUARIUM**: 魚、泡、水面、海底、Fogを持つ水中世界
-- **NEON**: Gridと発光立体で構成したSF展示空間
-- **CRYSTAL**: 透明結晶と前景・背景の重なりを確認する空間
-- **MODEL**: GLB読込、自動フレーミング、照明・背景・Animation設定を持つモデルビューアー
+共通の姿勢、視点、FPS、Camera、FOV、Renderer、Draw Call、GPUリソースに加え、次を表示します。
 
-シーン切替やGLTF AnimationのためにRAFを増やさず、入力平滑化・カメラ・シーン・Mixer・描画を単一RAFで処理します。
+- Photo / Depthの解像度とソース
+- Mode、Strength、Invert、Smooth、Quality
+- Depth最小 / 平均 / 最大
+- Mesh分割、頂点数、三角形数
+- Camera距離・移動幅
+- Disocclusion Risk
+- 処理時間、Resource State、Error Code
 
-## DEBUG
+## エラー処理
 
-既存情報に加えてMODEL時は次を表示します。
+未選択、空ファイル、画像でないファイル、デコード失敗を区別します。失敗しても現在表示中の写真とDepthは保持し、別ファイルを再選択できます。大きな縦横比差は停止せず警告したうえで再サンプリングします。
 
-- Model Loaded / Model Name
-- Bounding Box X/Y/Z、Model Center、Model Scale
-- Base Camera Distance、現在Camera X/Y/Z、Target X/Y/Z
-- Mesh / Triangle / Material Count
-- Animation Count、Current Animation、Mixer State
-- Loader State、GLTF Load Time、詳細Error Code
+## リソース管理と性能
+
+差し替え時は旧Texture / Geometry / Materialをdisposeします。画像デコード後のImageBitmapはCanvas転写後にcloseします。既存の単一RAF内で入力平滑化、カメラ、シーン、AnimationMixer、描画を更新し、追加RAFは作りません。
 
 ## ローカル実行
 
@@ -110,23 +93,16 @@ cd 07_スマホ傾き疑似3Dツール
 py -3 -m http.server 8080
 ```
 
-`http://localhost:8080`を開きます。PCでは3D画面内のマウス位置で端末傾きをシミュレーションできます。
+`http://localhost:8080` を開きます。DeviceOrientationはHTTPSまたはlocalhostが必要です。iPhoneでは縦向きで「モーション開始」を押して許可してください。
 
-## iPhone / Android
+## 既知の制限
 
-DeviceOrientationにはHTTPSが必要です。縦向きで「モーション開始」を押して許可し、自然な姿勢で「現在位置を中央にする」を実行してください。横向きでは描画を停止して縦向き案内を表示し、portraitへ戻ると自動復帰します。
+- 単一Depth Mapから見えていない背景を復元することはできません。
+- ブラウザがHEICをデコードできない環境があります。
+- Depth境界が硬い画像は高強度で引き伸ばしが見えます。
+- HIGH品質は古いスマートフォンで重くなる場合があります。
+- 自動Depth推定、人物セグメント、AI補完は未実装です。
 
-## Error Handling
+## Phase 5B候補
 
-拡張子不正、空ファイル、GLB Header不正、Parse失敗、Meshなし、WebGL非対応を区別します。読込失敗後も現在モデルを維持し、別GLBを再選択できます。
-
-## Version 0.4.0の制限
-
-- Draco、KTX2、Meshopt、HDRI、Post Processing、Bloomは未対応です。
-- 外部ファイル参照を持つローカル`.gltf`一式の複数選択には未対応です。
-- 非常に巨大なGLBは端末メモリやGPU性能により読み込めない場合があります。
-- Auto RotateとOrbitControlsは主操作を端末傾きに保つため導入していません。
-
-## Phase 5候補
-
-**DEPTH PHOTO** — 写真とDepth情報を使い、端末を傾けて写真の奥を覗く体験。
+**AUTO DEPTH**: 画像からDepth Mapをブラウザ内または選択式バックエンドで推定し、境界マスク、穴埋め、被写体別レイヤー調整を追加する予定です。

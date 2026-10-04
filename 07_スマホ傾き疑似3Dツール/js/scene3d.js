@@ -2,6 +2,7 @@ import { createAquariumScene } from "./scenes/aquariumScene.js";
 import { createNeonScene } from "./scenes/neonScene.js";
 import { createCrystalScene } from "./scenes/crystalScene.js";
 import { createModelScene } from "./scenes/modelScene.js?v=0401";
+import { createDepthPhotoScene } from "./scenes/depthPhotoScene.js?v=0500";
 import { GLTFLoader } from "./addons/loaders/GLTFLoader.js?v=170";
 
 const THREE_VERSION = "0.170.0";
@@ -15,6 +16,7 @@ const SCENE_FACTORIES = Object.freeze({
   neon: createNeonScene,
   crystal: createCrystalScene,
   model: createModelScene,
+  depth: createDepthPhotoScene,
 });
 
 export { THREE_VERSION };
@@ -25,6 +27,8 @@ export async function createScene3D({
   onStatus = () => {},
   onSceneChange = () => {},
   onModelUpdate = () => {},
+  onDepthPhotoUpdate = () => {},
+  depthPhotoSettings = {},
 }) {
   let THREE;
   try {
@@ -130,6 +134,11 @@ export async function createScene3D({
         if (currentSceneId === targetId) countObjects();
         onModelUpdate(info);
       },
+      initialSettings: depthPhotoSettings,
+      onDepthPhotoUpdate: (info) => {
+        if (currentSceneId === targetId) countObjects();
+        onDepthPhotoUpdate(info);
+      },
     });
     currentSceneId = targetId;
     scene.add(currentScene.root);
@@ -164,8 +173,10 @@ export async function createScene3D({
       near: 0.1,
       far: 40,
     };
-    camera.position.x = cameraSettings.target.x + finalX * cameraSettings.rangeX;
-    camera.position.y = cameraSettings.target.y + finalY * cameraSettings.rangeY;
+    const cameraInputX = Math.min(cameraSettings.inputLimitX ?? Infinity, Math.max(-(cameraSettings.inputLimitX ?? Infinity), finalX));
+    const cameraInputY = Math.min(cameraSettings.inputLimitY ?? Infinity, Math.max(-(cameraSettings.inputLimitY ?? Infinity), finalY));
+    camera.position.x = cameraSettings.target.x + cameraInputX * cameraSettings.rangeX;
+    camera.position.y = cameraSettings.target.y + cameraInputY * cameraSettings.rangeY;
     camera.position.z = cameraSettings.target.z + cameraSettings.distance;
     if (camera.near !== cameraSettings.near || camera.far !== cameraSettings.far) {
       camera.near = cameraSettings.near;
@@ -202,6 +213,7 @@ export async function createScene3D({
       shadows: webglRenderer.shadowMap.enabled,
       animation: paused ? "PAUSED" : "ACTIVE",
       model: currentScene?.getModelInfo?.() ?? null,
+      depthPhoto: currentScene?.getDepthPhotoInfo?.() ?? null,
     };
   }
 
@@ -230,6 +242,14 @@ export async function createScene3D({
     setModelAnimation(index) { return currentScene?.setAnimation?.(index); },
     setModelPlaying(value) { return currentScene?.setPlaying?.(value); },
     getModelInfo() { return currentScene?.getModelInfo?.() ?? null; },
+    async loadDepthPhotoImage(kind, file) {
+      if (currentSceneId !== "depth" || !currentScene?.loadImage) throw new Error("DEPTH_PHOTO_SCENE_NOT_ACTIVE");
+      const info = await currentScene.loadImage(kind, file);
+      countObjects();
+      return info;
+    },
+    setDepthPhotoSettings(settings) { return currentScene?.setDepthSettings?.(settings); },
+    getDepthPhotoInfo() { return currentScene?.getDepthPhotoInfo?.() ?? null; },
     setPaused(value) { paused = Boolean(value); },
     setDebugVisible(value) { axes.visible = Boolean(value); },
     getMetrics,
@@ -280,6 +300,8 @@ function createUnavailableScene(error) {
     render() {}, resize() {}, setPaused() {}, setDebugVisible() {}, setViewCalibration() {}, dispose() {},
     async loadModel() { throw new Error("WEBGL_UNAVAILABLE"); },
     setModelLighting() {}, setModelBackground() {}, setModelAnimation() {}, setModelPlaying() {},
+    async loadDepthPhotoImage() { throw new Error("WEBGL_UNAVAILABLE"); },
+    setDepthPhotoSettings() {}, getDepthPhotoInfo() { return null; },
     getModelInfo() { return null; },
     async switchScene() { return null; },
     getMetrics() {
@@ -303,6 +325,7 @@ function createUnavailableScene(error) {
         shadows: false,
         animation: "PAUSED",
         model: null,
+        depthPhoto: null,
       };
     },
   };
