@@ -1,90 +1,91 @@
 # Tilt 3D Lab / 傾き3D実験室
 
-スマートフォンの傾き、またはPCのマウス位置をカメラ移動へ変換し、画面を「窓」として覗き込むWebアプリです。Version 0.5.0では写真とDepth Mapから疑似3Dを生成する `DEPTH PHOTO` を追加しました。
+## Version 1.0.0
 
-## Version
+スマートフォンの傾きを利用し、画面を3D空間への窓のように見せられるかを検証する実験ツールです。このVersion 1.0.0を実験プロジェクトとしての完成版とします。
 
-**0.5.0 — Phase 5A「DEPTH PHOTO CORE」**
+## 最終機能
 
-既存のAQUARIUM / NEON / CRYSTAL / MODEL VIEWER、DeviceOrientation、iOS許可導線、マウスシミュレーション、VIEW CALIBRATION、Debug表示を維持しています。
+- DeviceOrientationとiPhoneのモーション利用許可
+- PC Mouse Simulation
+- 現在の姿勢を基準にするNeutral操作
+- Three.js Perspective Cameraによる視点移動
+- VIEW SETTINGSによる視点キャリブレーション
+- AQUA / NEON / CRYSTAL / OBJECTの4シーン
+- GLBのローカル読込
+- GLBのBounding Box、Auto Scale、Auto Framing、Animation
+- Lighting / Background Preset
+- Portrait向け表示とLandscape案内
+- Debug telemetry
 
-## DEPTH PHOTOの使い方
+## シーン
 
-1. シーン切替で `DEPTH` を選びます。
-2. 内蔵サンプルはそのまま操作できます。
-3. `PHOTO` で表示する写真を、`DEPTH MAP` で対応する深度画像を選びます。
-4. 端末を傾けるかPCでマウスを動かし、視差を確認します。
-5. `SETTINGS` でモード、強度、反転、平滑化、品質を調整します。
+- **AQUA**: 水面、泡、魚、岩、海底、Fogからなる水中空間。前景・中景・背景の視差を確認できます。
+- **NEON**: 発光オブジェクトとGridを使い、遮蔽、側面、空間の奥行きを確認できます。
+- **CRYSTAL**: 透明物体、前景物体、背景の重なりを確認できます。
+- **OBJECT**: 非対称な標準Geometryオブジェクトを傾けて観察します。正面から隠れた側面・上面・背面側のパーツを視点移動で確認できます。
 
-白を手前、黒を奥として扱います。逆のDepth Mapは `INVERT` を選びます。写真とDepth Mapの解像度が違う場合、Depth Mapを写真比率のメッシュへ再サンプリングします。縦横比の差が大きい場合は警告します。
+内部Scene IDは互換性維持のため`model`のままですが、通常UIでは`OBJECT`と表示します。
 
-### 入力画像
+## OBJECTとGLB
 
-- ブラウザがデコード可能な `image/*`（JPG / PNG / WebPを推奨）
-- HEICはOS・ブラウザにより非対応です。失敗時はJPG / PNG / WebPへ変換してください。
-- EXIF回転は `createImageBitmap(..., { imageOrientation: "from-image" })` を優先し、ブラウザの画像デコードに従います。
-- 長辺2,048pxを上限としてCanvasへ展開し、端末メモリを抑えます。
+OBJECTを開くとThree.js標準Geometryを組み合わせた`TILT OBJECT`をすぐ表示します。`OPEN GLB`は自分の3Dオブジェクトを試す補助機能です。
 
-選択した画像は外部サーバーやAPIへ送信しません。File → ImageBitmap → Canvas → WebGL Textureの順にブラウザ内だけで処理します。画像そのものはlocalStorageへ保存しません。
+- 対象は自己完結した単一`.glb`
+- 選択ファイルは外部へ送信せず、ブラウザ内で処理
+- Bounding Boxから中央配置、Auto Scale、Camera Distanceを算出
+- Animation Clipがあれば選択とPlay / Pauseが可能
+- 差し替え時とScene切替時にGeometry / Material / Texture / Mixerを解放
 
-## 立体化方式
+Draco、KTX2、Meshopt、外部`.bin`参照を持つ`.gltf`は対象外です。
 
-- `FLAT`: 分割なしの平面。Depth強度は0です。
-- `LAYERS`: 深度を8段階へ量子化した段差メッシュです。
-- `MESH`: Depth輝度を頂点Zへ連続変換する本命モードです。
+## 実機で確定した基準設定
 
-深度値 `0.5` を中央面とし、`(depth - 0.5) × amplitude × strength` でZを求めます。強度は0–300%。写真の縦横比を保って自動スケールします。
+iPhone実機確認で最も自然だった組み合わせを正式デフォルトとしています。
 
-### Mesh Quality
+- Horizontal Direction: **NORMAL**
+- Vertical Direction: **INVERT**
+- View Mode: **LOOK AT**
+- Master Sensitivity: 100%
+- Horizontal / Vertical Gain: 100%
+- FOV: 42°
 
-- LOW: 長辺64分割
-- STANDARD: 長辺112分割（既定、約1万頂点以下が目安）
-- HIGH: 長辺192分割
-- 上限: 40,000頂点
+既存のlocalStorage設定は上書きしません。`RESET VIEW SETTINGS`で上記基準へ戻ります。
 
-短辺分割数は写真比率から算出します。品質・モード変更時はGeometryを再構築します。強度・反転変更時は既存GeometryのZだけを更新します。
+## VIEW SETTINGS
 
-### 平滑化と段差制限
+Master Sensitivity、Horizontal Gain、Vertical Gain、各軸のNORMAL / INVERT / OFF、LOOK AT / WINDOW、FOV、Smoothingを調整できます。設定はlocalStorageへ保存します。
 
-`DEPTH SMOOTH` はOFF / LOW / MEDIUM / HIGH。3×3近傍平均を指定回数適用します。`MAX DEPTH STEP` は隣接頂点差を0.18以内へ抑え、深度境界のゴム状突起を軽減します。
+## 実験した機能: DEPTH PHOTO
 
-## Disocclusion対策
+Version 0.5.0でPHOTO + DEPTH MAPから疑似3Dを生成し、次の方式まで実装・検証しました。
 
-- 表示面を約6.5%拡張
-- 背面に約13%拡張した写真面を配置
-- 外周UVをストレッチ
-- DEPTH PHOTO固有の入力Clamp（X 1.45 / Y 1.35）
-- 強度・頂点数からLOW / MEDIUM / HIGHのリスクをDebug表示
+- FLAT
+- LAYERS
+- MESH
+- Strength / Invert / Smooth / Quality
+- Depth Map再サンプリング
+- Disocclusion軽減
 
-完全な穴埋めではありません。深度差が大きい境界や強度200%以上では、引き伸ばしや隠れていた領域の不足が見えることがあります。
+Depth Mapを別途用意する必要があり、通常ユーザーには目的と操作が分かりにくいため、このツールでは深追いしません。Version 1.0.0では通常のScene切替と写真操作UIから外しました。実験コードは検証記録として残しています。
 
-## View Calibration
+## Motion / Portrait
 
-既定値はHorizontal `NORMAL`、Vertical `INVERT`、View Mode `LOOK AT`、FOV 42°です。DEPTH PHOTOでも写真面自体は回転せず、既存設計どおりカメラが移動して中心を注視します。
+DeviceOrientationはHTTPSまたはlocalhostが必要です。iPhoneでは縦向きで「モーション開始」を押し、ブラウザの許可操作を行います。PCではマウス位置で傾きをシミュレーションできます。
 
-## 保存範囲
+スマートフォンはPortraitを正式対象とします。Landscapeでは「端末を縦向きに戻してください」と案内し、Portraitへ戻ると自動復帰します。
 
-localStorageへ保存するDepth設定は `mode / strength / invert / smooth / quality` だけです。写真・Depth Map・プレビュー・MAX DEPTH STEPは保存しません。VIEW CALIBRATIONは従来の保存キーを継続します。
+## Performance
+
+- 入力平滑化、Camera、Scene、AnimationMixer、描画を単一RAFで更新
+- Device Pixel Ratioをモバイル最大1.5、その他最大2に制限
+- モバイルではShadowを軽量化
+- 非表示時とLandscape案内中はRAFを停止
+- Scene切替とGLB差し替え時にリソースをdispose
 
 ## Debug
 
-共通の姿勢、視点、FPS、Camera、FOV、Renderer、Draw Call、GPUリソースに加え、次を表示します。
-
-- Photo / Depthの解像度とソース
-- Mode、Strength、Invert、Smooth、Quality
-- Depth最小 / 平均 / 最大
-- Mesh分割、頂点数、三角形数
-- Camera距離・移動幅
-- Disocclusion Risk
-- 処理時間、Resource State、Error Code
-
-## エラー処理
-
-未選択、空ファイル、画像でないファイル、デコード失敗を区別します。失敗しても現在表示中の写真とDepthは保持し、別ファイルを再選択できます。大きな縦横比差は停止せず警告したうえで再サンプリングします。
-
-## リソース管理と性能
-
-差し替え時は旧Texture / Geometry / Materialをdisposeします。画像デコード後のImageBitmapはCanvas転写後にcloseします。既存の単一RAF内で入力平滑化、カメラ、シーン、AnimationMixer、描画を更新し、追加RAFは作りません。
+姿勢角、Tilt、View入力、最終入力、Direction、Gain、Sensor状態、Orientation、FPS、Camera、FOV、Renderer、DPR、Scene、Object数、Triangle数、Draw Call、GPUリソース、Fog、Shadow、Animation、GLB情報を確認できます。通常シーンではDepth専用項目を表示しません。
 
 ## ローカル実行
 
@@ -93,16 +94,16 @@ cd 07_スマホ傾き疑似3Dツール
 py -3 -m http.server 8080
 ```
 
-`http://localhost:8080` を開きます。DeviceOrientationはHTTPSまたはlocalhostが必要です。iPhoneでは縦向きで「モーション開始」を押して許可してください。
+`http://localhost:8080`を開きます。
 
 ## 既知の制限
 
-- 単一Depth Mapから見えていない背景を復元することはできません。
-- ブラウザがHEICをデコードできない環境があります。
-- Depth境界が硬い画像は高強度で引き伸ばしが見えます。
-- HIGH品質は古いスマートフォンで重くなる場合があります。
-- 自動Depth推定、人物セグメント、AI補完は未実装です。
+- DeviceOrientationの値、許可方法、軸の挙動にはブラウザ差があります。
+- 見え方と性能は端末のセンサー、GPU、画面サイズに依存します。
+- Webアプリのため、本物のiPhoneホーム画面やロック画面には適用できません。
+- 大きなGLBや高ポリゴンGLBの性能は端末に依存します。
+- DEPTH PHOTOは実験済みコードであり、Version 1.0.0の通常機能ではありません。
 
-## Phase 5B候補
+## 完成状態
 
-**AUTO DEPTH**: 画像からDepth Mapをブラウザ内または選択式バックエンドで推定し、境界マスク、穴埋め、被写体別レイヤー調整を追加する予定です。
+主要な技術検証、実機方向調整、4シーン比較、GLB検証、Depth Photo実験まで完了しました。Version 1.0.0を「スマートフォンを傾けて画面内を立体的に覗き込めるか」という実験プロジェクトの完成版とします。

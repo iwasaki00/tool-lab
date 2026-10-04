@@ -1,7 +1,7 @@
 import { createAquariumScene } from "./scenes/aquariumScene.js";
 import { createNeonScene } from "./scenes/neonScene.js";
 import { createCrystalScene } from "./scenes/crystalScene.js";
-import { createModelScene } from "./scenes/modelScene.js?v=0401";
+import { createModelScene } from "./scenes/modelScene.js?v=1000";
 import { createDepthPhotoScene } from "./scenes/depthPhotoScene.js?v=0500";
 import { GLTFLoader } from "./addons/loaders/GLTFLoader.js?v=170";
 

@@ -1,8 +1,8 @@
 import { OrientationController, SENSOR_STATES } from "./orientation.js";
 import { TiltRenderer, FINAL_INPUT_LIMIT } from "./renderer.js";
-import { createScene3D } from "./scene3d.js?v=0500";
+import { createScene3D } from "./scene3d.js?v=1000";
 
-export const VERSION = "0.5.0";
+export const VERSION = "1.0.0";
 
 const STORAGE_KEY = "tilt3d:view-calibration:v1";
 const STORAGE_VERSION = 1;
@@ -31,7 +31,7 @@ const debugFields = [
   ["model-loaded","model loaded"],["model-name","model name"],["model-dimensions","bounding box X / Y / Z"],["model-center","model center X / Y / Z"],["model-scale","model scale"],["model-distance","base camera distance"],["model-target","target X / Y / Z"],["model-geometry","model mesh / triangle"],["model-materials","model materials"],["model-animation-count","animation count"],["model-current-animation","current animation"],["model-mixer","mixer state"],["model-loader","loader state / time"],["model-error","model error"],
   ["photo-size","photo W × H"],["depth-size","depth W × H"],["depth-source","photo / depth source"],["depth-mode","depth mode"],["depth-strength","strength / invert"],["depth-quality","smooth / quality"],["depth-stats","depth min / avg / max"],["depth-mesh","mesh C × R / vertices"],["depth-triangles","depth triangles"],["depth-camera","photo camera range"],["depth-risk","disocclusion risk"],["depth-process","process time / state"],["depth-error","depth error"],
 ];
-document.querySelector("#debug-list").innerHTML = debugFields.map(([id,label]) => `<div><dt>${label}</dt><dd id="debug-${id}">—</dd></div>`).join("");
+document.querySelector("#debug-list").innerHTML = debugFields.map(([id,label]) => `<div${id.startsWith("depth-") || id === "photo-size" ? ' data-depth-debug' : ''}><dt>${label}</dt><dd id="debug-${id}">—</dd></div>`).join("");
 
 const elements = {
   root: document.documentElement,
@@ -475,14 +475,14 @@ function updateModelUI(info) {
   elements.modelDockName.textContent = model.name;
   elements.modelSettingsState.textContent = model.loaderState;
   elements.modelSettingsName.textContent = model.name;
-  if (model.loaderState === "LOADING MODEL...") {
-    elements.modelSettingsMessage.textContent = "モデルをブラウザ内で読み込んでいます。";
-  } else if (model.loaderState === "MODEL LOAD ERROR") {
-    elements.modelSettingsMessage.textContent = model.errorDetail || "モデルを読み込めませんでした。";
+  if (model.loaderState === "LOADING OBJECT...") {
+    elements.modelSettingsMessage.textContent = "3Dオブジェクトをブラウザ内で読み込んでいます。";
+  } else if (model.loaderState === "OBJECT LOAD ERROR") {
+    elements.modelSettingsMessage.textContent = model.errorDetail || "3Dオブジェクトを読み込めませんでした。";
   } else if (model.loaded) {
     elements.modelSettingsMessage.textContent = "中央配置とカメラフレーミングが完了しました。";
   } else {
-    elements.modelSettingsMessage.textContent = "内蔵のプレースホルダーモデルを表示しています。";
+    elements.modelSettingsMessage.textContent = "端末を傾けて、隠れた側面や上面を覗いてみましょう。";
   }
 
   elements.modelInfo.dimensions.textContent = formatVector(model.dimensions);

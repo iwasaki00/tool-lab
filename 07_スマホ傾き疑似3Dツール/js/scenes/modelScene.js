@@ -3,7 +3,7 @@ const HEAVY_TRIANGLE_THRESHOLD = 500000;
 
 export function createModelScene(THREE, { GLTFLoader, reducedMotion = false, onModelUpdate = () => {} } = {}) {
   const root = new THREE.Group();
-  root.name = "MODEL VIEWER";
+  root.name = "OBJECT";
 
   const environment = new THREE.Group();
   environment.name = "VIEWER_ENVIRONMENT";
@@ -54,9 +54,8 @@ export function createModelScene(THREE, { GLTFLoader, reducedMotion = false, onM
 
   applyLightingPreset("studio");
   applyBackgroundPreset("dark");
-  frameContent(content, { name: "PLACEHOLDER MODEL", loaded: false, loadTime: 0, loaderState: "PLACEHOLDER READY" });
+  frameContent(content, { name: "TILT OBJECT", loaded: false, loadTime: 0, loaderState: "OBJECT READY" });
   emitUpdate();
-  void loadBundledSample();
 
   function emitUpdate(extra = {}) {
     onModelUpdate({ ...getInfo(), ...extra });
@@ -115,18 +114,18 @@ export function createModelScene(THREE, { GLTFLoader, reducedMotion = false, onM
     const startedAt = performance.now();
     if (!file || !file.name?.toLowerCase().endsWith(".glb")) {
       const error = new Error("GLB_FILE_REQUIRED");
-      Object.assign(modelInfo, { loaderState: "MODEL LOAD ERROR", errorCode: error.message, errorDetail: "GLBファイルを選択してください。" });
+      Object.assign(modelInfo, { loaderState: "OBJECT LOAD ERROR", errorCode: error.message, errorDetail: "GLBファイルを選択してください。" });
       emitUpdate();
       throw error;
     }
     if (!file.size) {
       const error = new Error("EMPTY_FILE");
-      Object.assign(modelInfo, { loaderState: "MODEL LOAD ERROR", errorCode: error.message, errorDetail: "ファイルが空です。" });
+      Object.assign(modelInfo, { loaderState: "OBJECT LOAD ERROR", errorCode: error.message, errorDetail: "ファイルが空です。" });
       emitUpdate();
       throw error;
     }
 
-    Object.assign(modelInfo, { loaderState: "LOADING MODEL...", errorCode: "", errorDetail: "", warning: "" });
+    Object.assign(modelInfo, { loaderState: "LOADING OBJECT...", errorCode: "", errorDetail: "", warning: "" });
     emitUpdate();
     const requestId = ++loadRequestId;
     try {
@@ -136,7 +135,7 @@ export function createModelScene(THREE, { GLTFLoader, reducedMotion = false, onM
       const detail = friendlyLoadError(error);
       if (!disposed && requestId === loadRequestId) {
         Object.assign(modelInfo, {
-          loaderState: "MODEL LOAD ERROR",
+          loaderState: "OBJECT LOAD ERROR",
           errorCode: error?.message || "GLB_PARSE_ERROR",
           errorDetail: detail,
           loadTime: performance.now() - startedAt,
@@ -144,28 +143,6 @@ export function createModelScene(THREE, { GLTFLoader, reducedMotion = false, onM
         emitUpdate();
       }
       throw error;
-    }
-  }
-
-  async function loadBundledSample() {
-    const startedAt = performance.now();
-    const requestId = ++loadRequestId;
-    Object.assign(modelInfo, { loaderState: "LOADING MODEL...", name: "SAMPLE VIEWER", errorCode: "", errorDetail: "" });
-    emitUpdate();
-    try {
-      const response = await fetch("./assets/models/sample-viewer.glb");
-      if (!response.ok) throw new Error("SAMPLE_LOAD_ERROR");
-      await parseAndAdopt(await response.arrayBuffer(), "SAMPLE VIEWER", startedAt, requestId);
-    } catch (error) {
-      if (!disposed && requestId === loadRequestId) {
-        Object.assign(modelInfo, {
-          loaderState: "MODEL LOAD ERROR",
-          errorCode: error?.message || "SAMPLE_LOAD_ERROR",
-          errorDetail: "同梱サンプルを読み込めなかったため、プレースホルダーを表示しています。",
-          loadTime: performance.now() - startedAt,
-        });
-        emitUpdate();
-      }
     }
   }
 
@@ -202,7 +179,7 @@ export function createModelScene(THREE, { GLTFLoader, reducedMotion = false, onM
         name,
         loaded: true,
         loadTime: performance.now() - startedAt,
-        loaderState: "MODEL READY",
+        loaderState: "OBJECT READY",
       });
     } catch (error) {
       clips = previousClips;
@@ -218,7 +195,7 @@ export function createModelScene(THREE, { GLTFLoader, reducedMotion = false, onM
     clips = nextClips;
     setupAnimation();
     modelInfo.loadTime = performance.now() - startedAt;
-    modelInfo.loaderState = "MODEL READY";
+    modelInfo.loaderState = "OBJECT READY";
     modelInfo.errorCode = "";
     modelInfo.errorDetail = "";
     emitUpdate();
@@ -367,7 +344,7 @@ export function createModelScene(THREE, { GLTFLoader, reducedMotion = false, onM
   return {
     root,
     config: {
-      label: "MODEL VIEWER",
+      label: "OBJECT",
       background: 0x080d17,
       fog: null,
       shadows: true,
@@ -497,8 +474,8 @@ function vectorToObject(vector) {
 function createEmptyInfo() {
   return {
     loaded: false,
-    name: "PLACEHOLDER MODEL",
-    loaderState: "PLACEHOLDER READY",
+    name: "TILT OBJECT",
+    loaderState: "OBJECT READY",
     dimensions: null,
     center: null,
     sourceCenter: null,

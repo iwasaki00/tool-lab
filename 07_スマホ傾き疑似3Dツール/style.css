@@ -271,7 +271,7 @@ body.has-calibration { overflow: hidden; }
 .scene-transition { position: absolute; z-index: 2; inset: 0; pointer-events: none; background: #050914; opacity: 0; transition: opacity 140ms ease; }
 .window-viewport.is-switching .scene-transition { opacity: .88; }
 .scene-switcher { position: absolute; z-index: 5; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; right: 22px; bottom: 21px; left: 22px; padding: 4px; border: 1px solid rgba(255,255,255,.11); border-radius: 11px; background: rgba(4,10,17,.68); backdrop-filter: blur(12px); }
-.scene-switcher { grid-template-columns: repeat(5, 1fr); }
+.scene-switcher { grid-template-columns: repeat(4, 1fr); }
 .scene-switcher button { min-width: 0; min-height: 30px; padding: 0 5px; border: 0; border-radius: 7px; color: #718093; background: transparent; font: 600 .47rem/1 monospace; letter-spacing: .06em; cursor: pointer; touch-action: manipulation; }
 .scene-switcher button.is-active { color: #061312; background: var(--cyan); box-shadow: 0 0 16px rgba(112,245,220,.23); }
 .scene-switcher button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
@@ -313,6 +313,7 @@ body.has-calibration { overflow: hidden; }
 .depth-check input { accent-color: var(--cyan); }
 .depth-check span { display: grid; gap: 3px; }.depth-check b { font: 600 .58rem monospace; }.depth-check small { color: #718095; font-size: .54rem; line-height: 1.5; }
 .depth-settings-sheet { width: min(100%, 600px); }
+.debug-panel [data-depth-debug] { display: none; }
 .stage__halo { transform: none; }
 .stage::after { bottom: 59px; transform: none; }
 
@@ -326,11 +327,11 @@ body.is-landscape-mobile { overflow: hidden; }
 
 @media (max-width: 680px) {
   .window-viewport { width: min(calc(100vw - 28px), 390px); aspect-ratio: .68; border-radius: 25px; }
-  .stage { min-height: min(146vw, 610px); }
-  .stage__hint { bottom: -2px; }
+  .stage { min-height: 0; gap: 10px; }
+  .stage__hint { position: static; margin-top: 2px; }
   .scene-switcher { right: 17px; bottom: 17px; left: 17px; }
   .scene-switcher button { font-size: .42rem; letter-spacing: .02em; }
-  .model-dock { width: min(calc(100% - 42px), 348px); bottom: 61px; }
+  .model-dock { position: static; width: min(calc(100% - 18px), 348px); margin-top: 0; }
   .depth-dock { bottom: 61px; }
   .depth-dock__actions { grid-template-columns: 1fr 1.12fr .8fr; }
   .animation-settings { grid-template-columns: 1fr auto; }
