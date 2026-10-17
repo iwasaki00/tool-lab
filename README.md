@@ -48,10 +48,10 @@ node 02_学習タイマー/tests/run-tests.mjs
 - `favicon.svg` / `favicon-64.png`: ブラウザ用ファビコン
 - `apple-touch-icon.png`: iPhoneホーム画面用アイコン
 - `assets/game-icons/`: トップメニュー用のゲームアイコン
-- `01_ticket-simulator/`: 乗車券購入シミュレーション
-- `01_ticket-simulator/index.html`: シミュレーション画面
-- `01_ticket-simulator/style.css`: シミュレーション画面スタイル
-- `01_ticket-simulator/script.js`: 日付生成、シミュレーション、CSV出力
+- `01_乗車券購入シミュレータ/`: 乗車券購入シミュレーション
+- `01_乗車券購入シミュレータ/index.html`: シミュレーション画面
+- `01_乗車券購入シミュレータ/style.css`: シミュレーション画面スタイル
+- `01_乗車券購入シミュレータ/script.js`: 日付生成、シミュレーション、CSV出力
 - `02_学習タイマー/`: カメラ連動型・学習タイマー（PWA対応）
 - `02_学習タイマー/js/`: タイマー、カメラ検出、履歴、設定などのモジュール
 - `03_ハモリ練習/`: iPhone向けハモリ練習ツール（マイク音程検出・PWA対応）
