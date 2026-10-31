@@ -10,6 +10,7 @@ const { pathToFileURL } = require('url');
  const page = await context.newPage();
  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
  await page.goto(pathToFileURL(path.resolve('index.html')).href);
+ await page.locator('#tab-samples').click();
  assert.equal(await page.locator('[data-sample]').count(),8);
  const results=[];
  for (const id of ['01','02','03','04','05','06','07','08']) {
@@ -21,7 +22,7 @@ const { pathToFileURL } = require('url');
    const original=require('child_process').execFileSync('git',['show','4aed15af365091b5b09637ea0bfd51e693c5d92e:01_乗車券購入シミュレータ/script.js'],{encoding:'utf8'});
    const currentScript=fs.readFileSync('script.js','utf8');
    const searchBody=text=>text.slice(text.indexOf('function simulate() {'),text.indexOf('function getNextNodeIndex('));
-   assert.equal(searchBody(currentScript),searchBody(original),'route search changed');
+   assert.equal(searchBody(currentScript).replaceAll('\r\n','\n'),searchBody(original).replaceAll('\r\n','\n'),'route search changed');
    let baseline;
    const sandbox={console,Intl,Date,Map,localStorage:{setItem(){}},document:{addEventListener(){},getElementById(id){return values[id]},querySelectorAll(){return []}},capture:r=>baseline=r};
    vm.createContext(sandbox);

@@ -28,6 +28,8 @@ let exclusionPeriods = [];
 let lastResult = null;
 let flowViewMode = "calendar";
 let sampleSession = null;
+let activeSection = "overview";
+let hasDisplayedResult = false;
 const SAMPLE_SESSION_KEY = "ticket-simulator-sample-v110";
 
 document.addEventListener("DOMContentLoaded", init);
@@ -39,23 +41,47 @@ function init() {
   bindEvents();
   generateDateList();
   renderExclusionPeriods();
-  renderRoute();
+  showSection("overview", { scroll: false });
   initSamples();
 }
 
 function bindNavigation() {
-  window.addEventListener("hashchange", renderRoute);
+  document.querySelectorAll("[data-section], [data-section-link]").forEach((button) => {
+    button.addEventListener("click", () => showSection(button.dataset.section || button.dataset.sectionLink, { focus: true }));
+  });
+  document.querySelector(".section-menu").addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    const tabs = [...document.querySelectorAll("[data-section]")];
+    const index = tabs.indexOf(document.activeElement);
+    if (index < 0) return;
+    event.preventDefault();
+    const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    showSection(tabs[next].dataset.section, { focus: true });
+  });
+  document.getElementById("guided-experience").addEventListener("click", () => {
+    applySample(createSamples().find((sample) => sample.id === "05"));
+  });
 }
 
-function renderRoute() {
-  const isTicketSimulator = location.hash !== "#menu";
-  const menu = document.getElementById("top-menu-screen");
-  const simulator = document.getElementById("ticket-simulator-screen");
-  menu.classList.toggle("is-active", !isTicketSimulator);
-  simulator.classList.toggle("is-active", isTicketSimulator);
-  menu.setAttribute("aria-hidden", String(isTicketSimulator));
-  simulator.setAttribute("aria-hidden", String(!isTicketSimulator));
-  window.scrollTo({ top: 0, behavior: "auto" });
+function showSection(section, options = {}) {
+  if (!["overview", "guide", "samples", "calculate"].includes(section)) return;
+  const changed = activeSection !== section;
+  activeSection = section;
+  document.querySelectorAll("[role='tabpanel']").forEach((panel) => { panel.hidden = panel.id !== "section-" + section; });
+  document.querySelectorAll("[data-section]").forEach((tab) => {
+    const selected = tab.dataset.section === section;
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+  });
+  updateViewVisibility();
+  if (options.focus) document.getElementById("tab-" + section).focus({ preventScroll: true });
+  if (changed && options.scroll !== false) window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function updateViewVisibility() {
+  const usesResults = activeSection === "samples" || activeSection === "calculate";
+  document.querySelector(".result-panel").hidden = !usesResults || !hasDisplayedResult;
+  document.getElementById("sample-context").hidden = !usesResults || !sampleSession;
 }
 
 function bindEvents() {
@@ -452,6 +478,11 @@ function getPatternOnlyCost(activeDates, patternId) {
 }
 
 function renderResult(result) {
+  const manualMethod = document.getElementById("manual-result-method");
+  manualMethod.hidden = Boolean(sampleSession) || Boolean(result.error);
+  manualMethod.textContent = sampleSession || result.error ? "" : `自分の条件での最安購入方法：${getPurchaseMethod(result)}`;
+  hasDisplayedResult = true;
+  updateViewVisibility();
   const area = document.getElementById("result-area");
   const csvButton = document.getElementById("download-csv");
   const pdfButton = document.getElementById("download-pdf");
@@ -662,7 +693,10 @@ function scrollToResult() {
   const resultPanel = document.querySelector(".result-panel");
   if (!resultPanel) return;
   window.requestAnimationFrame(() => {
-    resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (resultPanel.hidden) return;
+    document.getElementById("result-title").focus({ preventScroll: true });
+    const target = sampleSession ? document.getElementById("sample-context") : resultPanel;
+    target.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   });
 }
 
@@ -900,7 +934,7 @@ function initSamples() {
     <button class="sample-card" type="button" data-sample="${sample.id}" aria-pressed="false">
       <span class="sample-icon" aria-hidden="true">${sample.icon}</span>
       <strong>${sample.id} ${sample.name}</strong>
-      <span>${sample.highlight}</span><span class="sample-select">選んで計算 →</span>
+      <span>${sample.highlight}</span><span class="sample-select">計算してみる →</span>
     </button>`).join("");
   document.querySelectorAll("[data-sample]").forEach((button) => {
     button.addEventListener("click", () => applySample(samples.find((sample) => sample.id === button.dataset.sample)));
@@ -929,6 +963,7 @@ function persistSampleSession() {
 }
 
 function applySample(sample) {
+  showSection("samples", { scroll: false });
   if (!sampleSession) sampleSession = { version: 1, original: captureInputState() };
   sampleSession.sample = structuredClone(sample);
   sampleSession.modified = false;
@@ -955,6 +990,7 @@ function applySample(sample) {
 
 function restoreOriginalSettings() {
   if (!sampleSession) return;
+  showSection("calculate", { focus: true });
   const original = sampleSession.original;
   original.inputs.forEach((saved) => {
     const input = saved.id ? document.getElementById(saved.id) : [...document.querySelectorAll("input[name='weekday']")].find((item) => item.value === saved.value);
@@ -976,15 +1012,18 @@ function restoreOriginalSettings() {
 }
 
 function updateSampleStatus() {
+  updateViewVisibility();
   const sample = sampleSession?.sample;
   document.getElementById("sample-status").textContent = sample ? `現在のサンプル：${sample.name}${sampleSession.modified ? "（変更済み）" : ""}` : "ご自身の条件、またはサンプルでお試しください。";
   document.getElementById("restore-settings").hidden = !sampleSession;
   document.getElementById("reset-settings").textContent = sampleSession ? "元の設定に戻す" : "初期化";
-  document.getElementById("sample-detail").textContent = sample ? `サンプルの初期条件：${sample.description} 対象期間：${sample.start}〜${sample.end}。片道633円、定期1か月22,980円／3か月65,500円／6か月124,100円（体験用）。${sampleSession.modified ? "現在の条件は下の入力欄・カレンダーをご確認ください。" : ""}` : "";
+  document.getElementById("sample-detail").textContent = sample ? `サンプルの初期条件：${sample.description} 対象期間：${sample.start}〜${sample.end}。片道633円、定期1か月22,980円／3か月65,500円／6か月124,100円（体験用）。${sampleSession.modified ? "現在の条件は「自分で計算」で確認・変更できます。" : ""}` : "";
   document.querySelectorAll("[data-sample]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.sample === sample?.id)));
 }
 
 function clearSimulationResult() {
+  hasDisplayedResult = false;
+  updateViewVisibility();
   lastResult = null;
   document.getElementById("result-area").textContent = "条件を設定して「シミュレート実行」を押してください。";
   document.getElementById("download-csv").disabled = true;

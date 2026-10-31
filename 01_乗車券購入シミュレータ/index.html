@@ -5,105 +5,90 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#f3eee8">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Tool Lab">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>Tool Lab</title>
-    <link rel="stylesheet" href="style.css?v=1.1.0">
+    <meta name="apple-mobile-web-app-title" content="乗車券比較">
+    <title>乗車券購入シミュレーション</title>
+    <link rel="stylesheet" href="style.css?v=1.2.0">
   </head>
   <body>
-    <section class="top-menu-screen" id="top-menu-screen">
-      <main class="menu-page">
-        <section class="menu-hero">
-          <p class="eyebrow">TOOL LAB</p>
-          <h1>iPhone向け実験ツール集</h1>
-          <p>
-            GitHub Pagesで公開しやすい、HTML / CSS / JavaScript製ツールの入口です。
-            乗車券購入シミュレーションをはじめ、日常作業を補助する小さなWebアプリを追加していきます。
-          </p>
+    <header class="app-header">
+      <h1>乗車券購入シミュレーション</h1>
+      <nav class="section-menu" role="tablist" aria-label="表示する内容">
+        <button type="button" id="tab-overview" role="tab" aria-selected="true" aria-controls="section-overview" data-section="overview">概要</button>
+        <button type="button" id="tab-guide" role="tab" aria-selected="false" aria-controls="section-guide" tabindex="-1" data-section="guide">使い方</button>
+        <button type="button" id="tab-samples" role="tab" aria-selected="false" aria-controls="section-samples" tabindex="-1" data-section="samples">サンプル</button>
+        <button type="button" id="tab-calculate" role="tab" aria-selected="false" aria-controls="section-calculate" tabindex="-1" data-section="calculate">自分で計算</button>
+      </nav>
+    </header>
+    <main class="app-main">
+      <div id="section-overview" class="view-content" role="tabpanel" aria-labelledby="tab-overview">
+        <section class="panel intro-hero">
+          <p class="intro-kicker">通勤・通学の交通費を比較</p>
+          <h2>その定期券、<br class="mobile-break">本当に一番安い？</h2>
+          <p class="intro-description">休暇や出勤日数を考えて、普通乗車券と定期券のいちばん安い買い方を調べられます。</p>
+          <ul class="feature-list">
+            <li><span aria-hidden="true">💰</span>普通乗車券と1・3・6か月定期券を比較</li>
+            <li><span aria-hidden="true">📅</span>祝日・休暇・不定期出勤に対応</li>
+            <li><span aria-hidden="true">🧭</span>最安購入方法と購入スケジュールを表示</li>
+          </ul>
+          <div class="intro-actions">
+            <button class="primary-button" type="button" data-section-link="samples">まずはサンプルを試す</button>
+            <button class="ghost-button" type="button" data-section-link="calculate">自分の条件で計算する</button>
+          </div>
+          <div class="guided-experience">
+            <button class="secondary-button" id="guided-experience" type="button">おまかせ体験</button>
+            <span class="note">サンプル選びから計算まで、自動で体験。</span>
+          </div>
         </section>
-
-        <section class="tool-card-grid" aria-label="ツール一覧">
-          <a class="tool-card" href="#ticket-simulator">
-            <span class="tool-card-tag">HTML + CSS + JavaScript</span>
-            <span class="tool-card-title">乗車券購入シミュレーション</span>
-            <span class="tool-card-text">
-              通勤・通学などの日付リストを作成し、乗車券と定期券の最安購入パターンを計算します。
-            </span>
-            <span class="tool-card-button">乗車券購入シミュレーションを開く</span>
-          </a>
-
-          <article class="tool-card is-coming-soon">
-            <span class="tool-card-tag">Planning</span>
-            <span class="tool-card-title">CSV整形ツール</span>
-            <span class="tool-card-text">
-              表データやログを貼り付けて、CSVの列揃え・不要文字削除・簡易変換を行う予定です。
-            </span>
-            <span class="tool-card-button muted">準備中</span>
-          </article>
-
-          <article class="tool-card is-coming-soon">
-            <span class="tool-card-tag">Planning</span>
-            <span class="tool-card-title">日付計算ツール</span>
-            <span class="tool-card-text">
-              営業日、経過日数、月末調整など、業務で使う日付計算をまとめる予定です。
-            </span>
-            <span class="tool-card-button muted">準備中</span>
-          </article>
-
-          <article class="tool-card is-coming-soon">
-            <span class="tool-card-tag">Planning</span>
-            <span class="tool-card-title">テキスト変換ツール</span>
-            <span class="tool-card-text">
-              改行、空白、全角半角、接頭辞・接尾辞の付与などをまとめて処理する予定です。
-            </span>
-            <span class="tool-card-button muted">準備中</span>
-          </article>
+      </div>
+      <div id="section-guide" class="view-content" role="tabpanel" aria-labelledby="tab-guide" hidden>
+        <section class="panel">
+          <h2>3ステップで比較できます</h2>
+          <ol class="guide-steps">
+            <li><span class="step-icon" aria-hidden="true">💰</span><div><span class="step-number">STEP 1</span><h3>金額を設定</h3><p>片道運賃と、定期券の金額を入力します。</p></div></li>
+            <li><span class="step-icon" aria-hidden="true">📅</span><div><span class="step-number">STEP 2</span><h3>通う日を設定</h3><p>対象期間と曜日を選び、必要なら休暇を除きます。</p></div></li>
+            <li><span class="step-icon" aria-hidden="true">🧭</span><div><span class="step-number">STEP 3</span><h3>結果を確認</h3><p>最安金額と、いつ何を買うかを確認します。</p></div></li>
+          </ol>
+          <details class="help-details"><summary>入力・結果の補足</summary>
+            <p>普通乗車券は片道運賃の2倍を1日分として計算します。比較しない券種はチェックを外せます。</p>
+            <p>「詳細設定」で祝日・休暇の除外や、カレンダーの日付ごとの変更ができます。曜日や期間を再反映すると、個別の日付変更は解除されます。</p>
+            <p>結果の購入スケジュールはカレンダーと線表で切り替えられます。CSV出力や、印刷画面からPDF保存もできます。同額の最安プランがある場合は一つを表示します。</p>
+          </details>
+          <div class="intro-actions"><button class="primary-button" type="button" data-section-link="samples">サンプルで試す</button><button class="ghost-button" type="button" data-section-link="calculate">自分で計算する</button></div>
         </section>
-      </main>
-    </section>
-
-    <section class="tool-screen" id="ticket-simulator-screen" aria-hidden="true">
-      <header class="app-header">
-        <a class="back-link" href="../">ツールメニューへ戻る</a>
-        <p class="eyebrow">Ticket Cost Simulator</p>
-        <h1>乗車券購入シミュレーション</h1>
-      </header>
-
-      <main class="app-main">
-      <section class="panel sample-panel" aria-labelledby="sample-title">
-        <p class="eyebrow">v1.1.0 — SAMPLE SIMULATION EXPERIENCE</p>
-        <h2 id="sample-title">サンプルで試してみよう</h2>
-        <p class="note">同じ運賃でも、利用日や休暇で購入方法はどう変わる？ カードを選ぶと条件を設定し、実際に計算します。</p>
-        <p class="note">サンプルは次に迎える8月から6か月間。運賃・休暇は体験用の想定です。最初の選択前の設定は、切り替え・再読み込み後も「元の設定に戻す」で復元できます。</p>
-        <p class="note">2028〜2099年の祝日は現行ルールによる推定です。春分・秋分は正式発表をご確認ください。<a href="https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html" target="_blank" rel="noopener noreferrer">内閣府の祝日情報</a></p>
-        <div id="sample-cards" class="sample-grid"></div>
-        <div class="sample-status-bar">
-          <p id="sample-status" role="status" aria-live="polite">ご自身の条件、またはサンプルでお試しください。</p>
-          <button id="restore-settings" class="ghost-button" type="button" hidden>元の設定に戻す</button>
-        </div>
-        <p id="sample-detail" class="note"></p>
-      </section>
-      <section class="panel" aria-labelledby="cost-title">
+      </div>
+      <div id="section-samples" class="view-content" role="tabpanel" aria-labelledby="tab-samples" hidden>
+        <section class="panel sample-panel" aria-labelledby="sample-title">
+          <h2 id="sample-title">サンプルで試してみよう</h2>
+          <p class="note">気になるカードを選ぶと、条件の設定から計算まで自動で行います。</p>
+          <div id="sample-cards" class="sample-grid"></div>
+          <details class="help-details"><summary>サンプルの条件について</summary>
+            <p>次に迎える8月から6か月間、同じ運賃で比較します。運賃と休暇は体験用の想定です。</p>
+            <p>片道633円、定期1か月22,980円／3か月65,500円／6か月124,100円。</p>
+            <p>最初のサンプル選択前の設定は、切り替え・再読み込み後も「元の設定に戻す」で復元できます。</p>
+          </details>
+        </section>
+      </div>
+      <div id="section-calculate" class="view-content" role="tabpanel" aria-labelledby="tab-calculate" hidden>
+        <section class="panel" aria-labelledby="cost-title">
         <div class="section-head">
-          <h2 id="cost-title">費用設定</h2>
+          <h2 id="cost-title">金額を設定</h2>
           <button class="ghost-button" type="button" id="reset-settings">初期化</button>
         </div>
 
         <div class="cost-grid">
-          <label class="check-card"><input type="checkbox" id="use-rtt" checked><span>往復乗車券を使う</span></label>
-          <label class="field"><span>片道乗車券費用</span><input id="fare-one-way" type="number" min="0" step="10" inputmode="numeric" value="633"></label>
-          <label class="check-card"><input type="checkbox" id="use-cmt1m" checked><span>1ヶ月定期券を使う</span></label>
-          <label class="field"><span>1ヶ月定期券費用</span><input id="fare-cmt1m" type="number" min="0" step="100" inputmode="numeric" value="22980"></label>
-          <label class="check-card"><input type="checkbox" id="use-cmt3m" checked><span>3ヶ月定期券を使う</span></label>
-          <label class="field"><span>3ヶ月定期券費用</span><input id="fare-cmt3m" type="number" min="0" step="100" inputmode="numeric" value="65500"></label>
-          <label class="check-card"><input type="checkbox" id="use-cmt6m" checked><span>6ヶ月定期券を使う</span></label>
-          <label class="field"><span>6ヶ月定期券費用</span><input id="fare-cmt6m" type="number" min="0" step="100" inputmode="numeric" value="124100"></label>
+
+          <label class="field"><span>片道運賃</span><input id="fare-one-way" type="number" min="0" step="10" inputmode="numeric" value="633"></label>
+
+          <label class="field"><span>1か月定期券の金額</span><input id="fare-cmt1m" type="number" min="0" step="100" inputmode="numeric" value="22980"></label>
+
+          <label class="field"><span>3か月定期券の金額</span><input id="fare-cmt3m" type="number" min="0" step="100" inputmode="numeric" value="65500"></label>
+
+          <label class="field"><span>6か月定期券の金額</span><input id="fare-cmt6m" type="number" min="0" step="100" inputmode="numeric" value="124100"></label>
         </div>
       </section>
-
-      <section class="panel" aria-labelledby="date-title">
+        <section class="panel" aria-labelledby="date-title">
         <div class="section-head">
-          <h2 id="date-title">日付設定</h2>
+          <h2 id="date-title">通う日を設定</h2>
           <button class="ghost-button" type="button" id="generate-dates">条件を再反映</button>
         </div>
 
@@ -125,13 +110,17 @@
           </div>
         </fieldset>
 
-        <div class="option-row">
+
+      </section>
+        <details class="panel advanced-settings" id="advanced-settings">
+          <summary>詳細設定 <span>祝日・休暇・日付ごとの変更</span></summary>
+                  <fieldset class="weekday-box"><legend>比較する乗車券</legend><div class="ticket-options"><label class="check-card"><input type="checkbox" id="use-rtt" checked><span>普通乗車券（往復）</span></label><label class="check-card"><input type="checkbox" id="use-cmt1m" checked><span>1か月定期券</span></label><label class="check-card"><input type="checkbox" id="use-cmt3m" checked><span>3か月定期券</span></label><label class="check-card"><input type="checkbox" id="use-cmt6m" checked><span>6か月定期券</span></label></div></fieldset>
+          <div class="option-row">
           <label class="check-card compact"><input type="checkbox" id="exclude-weekend">土日を除く</label>
           <label class="check-card compact"><input type="checkbox" id="exclude-holiday" checked>祝日を除く</label>
         </div>
-      </section>
-
-      <section class="panel" aria-labelledby="exclusion-title">
+          <p class="note">2028〜2099年の祝日は現行ルールによる推定です。春分・秋分は正式発表をご確認ください。<a href="https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html" target="_blank" rel="noopener noreferrer">祝日の情報</a></p>
+          <section class="panel" aria-labelledby="exclusion-title">
         <div class="section-head">
           <h2 id="exclusion-title">除外期間設定</h2>
           <button class="ghost-button" type="button" id="refresh-from-exclusion">条件を再反映</button>
@@ -146,8 +135,7 @@
         <p class="form-error" id="exclusion-error" role="alert"></p>
         <div class="exclusion-list" id="exclusion-list"></div>
       </section>
-
-      <section class="panel" aria-labelledby="calendar-title">
+          <section class="panel" aria-labelledby="calendar-title">
         <div class="section-head">
           <div>
             <h2 id="calendar-title">カレンダー表示</h2>
@@ -157,24 +145,26 @@
         </div>
         <div class="calendar-grid" id="calendar-area"></div>
       </section>
-
-      <div class="action-bar">
-        <button class="primary-button" type="button" id="simulate-button">シミュレート実行</button>
+        </details>
+        <div class="action-bar"><button class="primary-button" type="button" id="simulate-button">シミュレート実行</button></div>
       </div>
-
-      <section class="panel result-panel" aria-labelledby="result-title">
+      <section class="panel sample-context" id="sample-context" aria-label="使用中のサンプル" hidden>
+        <div class="sample-status-bar"><p id="sample-status" role="status" aria-live="polite"></p><button id="restore-settings" class="ghost-button" type="button" hidden>元の設定に戻す</button></div>
+        <details class="help-details"><summary>使用した条件を確認</summary><p id="sample-detail" class="note"></p></details>
+      </section>
+      <section class="panel result-panel" hidden aria-labelledby="result-title">
         <div class="section-head">
-          <h2 id="result-title">結果表示</h2>
+          <h2 id="result-title" tabindex="-1">計算結果</h2>
           <div class="result-actions">
             <button class="ghost-button" type="button" id="download-csv" disabled>CSVダウンロード</button>
             <button class="ghost-button" type="button" id="download-pdf" disabled>PDFダウンロード</button>
           </div>
         </div>
+        <p id="manual-result-method" class="manual-result-method" hidden></p>
         <div id="result-area" class="empty-result">条件を設定して「シミュレート実行」を押してください。</div>
       </section>
-      </main>
-    </section>
-
-    <script src="script.js?v=1.1.0"></script>
+      <footer class="app-footer">乗車券購入シミュレーション <small>v1.2.0</small></footer>
+    </main>
+    <script src="script.js?v=1.2.0"></script>
   </body>
 </html>
