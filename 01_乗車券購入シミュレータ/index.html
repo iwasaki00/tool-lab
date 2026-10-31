@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-title" content="Tool Lab">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Tool Lab</title>
-    <link rel="stylesheet" href="style.css?v=20260615-5">
+    <link rel="stylesheet" href="style.css?v=1.1.0">
   </head>
   <body>
     <section class="top-menu-screen" id="top-menu-screen">
@@ -70,6 +70,19 @@
       </header>
 
       <main class="app-main">
+      <section class="panel sample-panel" aria-labelledby="sample-title">
+        <p class="eyebrow">v1.1.0 — SAMPLE SIMULATION EXPERIENCE</p>
+        <h2 id="sample-title">サンプルで試してみよう</h2>
+        <p class="note">同じ運賃でも、利用日や休暇で購入方法はどう変わる？ カードを選ぶと条件を設定し、実際に計算します。</p>
+        <p class="note">サンプルは次に迎える8月から6か月間。運賃・休暇は体験用の想定です。最初の選択前の設定は、切り替え・再読み込み後も「元の設定に戻す」で復元できます。</p>
+        <p class="note">2028〜2099年の祝日は現行ルールによる推定です。春分・秋分は正式発表をご確認ください。<a href="https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html" target="_blank" rel="noopener noreferrer">内閣府の祝日情報</a></p>
+        <div id="sample-cards" class="sample-grid"></div>
+        <div class="sample-status-bar">
+          <p id="sample-status" role="status" aria-live="polite">ご自身の条件、またはサンプルでお試しください。</p>
+          <button id="restore-settings" class="ghost-button" type="button" hidden>元の設定に戻す</button>
+        </div>
+        <p id="sample-detail" class="note"></p>
+      </section>
       <section class="panel" aria-labelledby="cost-title">
         <div class="section-head">
           <h2 id="cost-title">費用設定</h2>
@@ -162,6 +175,6 @@
       </main>
     </section>
 
-    <script src="script.js?v=20260615-5"></script>
+    <script src="script.js?v=1.1.0"></script>
   </body>
 </html>

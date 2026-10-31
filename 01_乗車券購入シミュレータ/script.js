@@ -27,6 +27,8 @@ let dateNodes = [];
 let exclusionPeriods = [];
 let lastResult = null;
 let flowViewMode = "calendar";
+let sampleSession = null;
+const SAMPLE_SESSION_KEY = "ticket-simulator-sample-v110";
 
 document.addEventListener("DOMContentLoaded", init);
 
@@ -38,6 +40,7 @@ function init() {
   generateDateList();
   renderExclusionPeriods();
   renderRoute();
+  initSamples();
 }
 
 function bindNavigation() {
@@ -69,6 +72,7 @@ function bindEvents() {
 }
 
 function handleSettingChanged(event) {
+  invalidateSimulation();
   if (event.target.classList.contains("date-enabled")) return;
   saveSettings();
   if (event.target.type === "date" || event.target.name === "weekday" || event.target.id.startsWith("exclude-")) {
@@ -77,6 +81,7 @@ function handleSettingChanged(event) {
 }
 
 function regenerateByCurrentConditions() {
+  invalidateSimulation();
   saveSettings(false);
   generateDateList({ keepOverrides: false });
 }
@@ -220,6 +225,7 @@ function addExclusionPeriod() {
     return;
   }
 
+  invalidateSimulation();
   exclusionPeriods.push({ id: String(Date.now()), start, end, reason });
   document.getElementById("exclusion-start").value = "";
   document.getElementById("exclusion-end").value = "";
@@ -229,6 +235,7 @@ function addExclusionPeriod() {
 }
 
 function removeExclusionPeriod(id) {
+  invalidateSimulation();
   exclusionPeriods = exclusionPeriods.filter((period) => period.id !== id);
   renderExclusionPeriods();
   generateDateList({ keepOverrides: false });
@@ -325,6 +332,7 @@ function renderCalendar() {
 function toggleDateValid(dateKey, forcedValue) {
   const node = dateNodes.find((item) => item.date === dateKey);
   if (!node) return;
+  invalidateSimulation();
   node.enabled = typeof forcedValue === "boolean" ? forcedValue : !node.enabled;
   refreshDateViews();
   saveSettings();
@@ -457,6 +465,7 @@ function renderResult(result) {
   csvButton.disabled = false;
   pdfButton.disabled = false;
   area.innerHTML = `
+    ${renderDiscovery(result)}
     <div class="summary-grid">
       ${renderSummaryCard("最安金額", result.bestCost, true)}
       ${renderSummaryCard("乗車券のみ", result.patternOnlyCosts.RTT)}
@@ -766,6 +775,8 @@ function getStoredOverrides() {
 }
 
 function getHolidayName(dateString) {
+  const year = Number(dateString.slice(0, 4));
+  if (year >= 2028 && year <= 2099) return getFutureHolidays(year)[dateString] || "";
   return HOLIDAYS[dateString] || "";
 }
 
@@ -775,6 +786,7 @@ function updateDateSummary() {
 }
 
 function resetSettings() {
+  if (sampleSession) { restoreOriginalSettings(); return; }
   localStorage.removeItem(STORAGE_KEY);
   location.reload();
 }
@@ -829,4 +841,219 @@ function escapeCsvValue(value) {
   if (value === undefined || value === null) return "";
   const text = String(value);
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+// Samples use the existing date generator and simulate() without changing its route search.
+function createSamples(today = new Date()) {
+  const year = today.getFullYear() + (today >= new Date(today.getFullYear(), 7, 1) ? 1 : 0);
+  const start = `${year}-08-01`;
+  const end = `${year + 1}-01-31`;
+  const fares = { "fare-one-way": 633, "fare-cmt1m": 22980, "fare-cmt3m": 65500, "fare-cmt6m": 124100 };
+  const definitions = [
+    ["01", "💼", "毎日通勤する会社員", "平日週5日、祝日を除いて6か月通勤。", "6か月定期券が本当に一番お得？", [1,2,3,4,5], "休暇を1週間追加して、最安プランの変化を見てみましょう。"],
+    ["02", "🎓", "長期休暇のある学生", "平日通学。夏休みと冬休みを除外します。", "夏休み・冬休みで購入方法はどう変わる？", [1,2,3,4,5], "夏休みの終了日を前後させて比較してみましょう。"],
+    ["03", "📅", "週3日出勤", "月・水・金に出勤し、祝日は休み。", "定期券を買うべき境界は？", [1,3,5], "火曜日も有効にして、週4日との違いを見てみましょう。"],
+    ["04", "🏠", "週2日出勤", "火・木に出勤し、祝日は休み。", "定期券を買わない方がお得？", [2,4], "出勤日を週1日増やして、購入方法が変わるか試しましょう。"],
+    ["05", "📊", "月によって出勤日数が変動", "8・9・12・1月は週5日、10・11月は月曜のみ。", "定期券と普通乗車券を組み合わせたら？", [1,2,3,4,5], "出勤の少ない月を1か月に短縮してみましょう。"],
+    ["06", "🧳", "1か月の長期出張", "平日通勤の途中、10月の30日間は利用しません。", "定期券を買う日をずらすと？", [1,2,3,4,5], "出張の開始日を1週間ずらして再計算してみましょう。"],
+    ["07", "🔄", "土日を含む勤務", "4日勤務・2日休みを基本に、追加勤務と休みを設定。", "不規則な勤務でも最安プランを比較できる？", [], "カレンダーで土日の勤務を数日変更してみましょう。"],
+    ["08", "💻", "途中から在宅勤務", "前半3か月は平日週5日、後半3か月は火・木。", "6か月定期券を買う前に確認したいこと", [1,2,3,4,5], "在宅勤務に切り替える時期を早めて比較してみましょう。"]
+  ];
+  return definitions.map(([id, icon, name, description, highlight, weekdays, suggestion]) => {
+    const sample = { id, icon, name, description, highlight, fares: { ...fares }, start, end, weekdays,
+      excludeWeekend: false, excludeHoliday: id !== "07", overrides: {}, exclusions: [], suggestion,
+      explanation: {
+        "01": "平日通勤の有効日は{days}日です。定期券の期間と利用日数を、下の実計算の差額で比較できます。",
+        "02": "夏休みと冬休みを除くと、有効日は{days}日です。休暇をまたぐ定期券と、必要な時期に分けて買う方法を比較できます。",
+        "03": "月・水・金を基本にした有効日は{days}日です。この利用頻度での購入方法と、各券種のみの金額を比較できます。",
+        "04": "火・木を基本にした有効日は{days}日です。定期券の割引率だけでなく、実際の利用日数も購入額に関係します。",
+        "05": "月ごとの利用日数を変えた結果、有効日は{days}日です。購入フローで、利用の多い月と少ない月の券種を確認できます。",
+        "06": "30日間の出張を除いた有効日は{days}日です。出張の前後にいつ何を買うか、購入フローで確認できます。",
+        "07": "土日を含む不規則な有効日は{days}日です。曜日が不規則でも、設定した日付から同じエンジンで最安プランを計算しています。",
+        "08": "後半を週2日に減らした有効日は{days}日です。在宅勤務に切り替わる前後で、購入フローの券種を確認できます。"
+      }[id] };
+    if (id === "02") sample.exclusions = [
+      { id: "summer", start, end: `${year}-08-31`, reason: "夏休み（対象期間内の想定：8/1〜8/31）" },
+      { id: "winter", start: `${year}-12-25`, end: `${year + 1}-01-07`, reason: "冬休み（想定：12/25〜1/7）" }
+    ];
+    if (id === "06") sample.exclusions = [{ id: "trip", start: `${year}-10-01`, end: `${year}-10-30`, reason: "長期出張（30日間）" }];
+    let index = 0;
+    for (let day = parseDate(start); formatDate(day) <= end; day = addDays(day, 1), index++) {
+      const date = formatDate(day);
+      const monthIndex = (day.getFullYear() - year) * 12 + day.getMonth() - 7;
+      const weekday = day.getDay();
+      if (id === "05" && [2,3].includes(monthIndex) && [2,3,4,5].includes(weekday)) sample.overrides[date] = false;
+      if (id === "08" && monthIndex >= 3 && [1,3,5].includes(weekday)) sample.overrides[date] = false;
+      if (id === "07") sample.overrides[date] = index % 6 < 4;
+    }
+    if (id === "07") {
+      sample.overrides[formatDate(addDays(parseDate(start), 4))] = true;
+      sample.overrides[formatDate(addDays(parseDate(start), 12))] = false;
+    }
+    return sample;
+  });
+}
+
+function initSamples() {
+  const samples = createSamples();
+  document.getElementById("sample-cards").innerHTML = samples.map((sample) => `
+    <button class="sample-card" type="button" data-sample="${sample.id}" aria-pressed="false">
+      <span class="sample-icon" aria-hidden="true">${sample.icon}</span>
+      <strong>${sample.id} ${sample.name}</strong>
+      <span>${sample.highlight}</span><span class="sample-select">選んで計算 →</span>
+    </button>`).join("");
+  document.querySelectorAll("[data-sample]").forEach((button) => {
+    button.addEventListener("click", () => applySample(samples.find((sample) => sample.id === button.dataset.sample)));
+  });
+  document.getElementById("restore-settings").addEventListener("click", restoreOriginalSettings);
+  // Input edits invalidate results immediately, including before blur on mobile.
+  document.querySelectorAll("input").forEach((input) => input.addEventListener("input", invalidateSimulation));
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAMPLE_SESSION_KEY) || "null");
+    if (saved?.original && saved?.sample && saved.version === 1) sampleSession = saved;
+  } catch { /* A malformed session must not prevent manual simulation. */ }
+  updateSampleStatus();
+}
+
+function captureInputState() {
+  return {
+    inputs: [...document.querySelectorAll("input:not(.date-enabled)")].map((input) => ({ id: input.id, name: input.name, value: input.value, checked: input.checked })),
+    dates: structuredClone(dateNodes), exclusions: structuredClone(exclusionPeriods),
+    result: structuredClone(lastResult), flowViewMode
+  };
+}
+
+function persistSampleSession() {
+  if (sampleSession) localStorage.setItem(SAMPLE_SESSION_KEY, JSON.stringify(sampleSession));
+  else localStorage.removeItem(SAMPLE_SESSION_KEY);
+}
+
+function applySample(sample) {
+  if (!sampleSession) sampleSession = { version: 1, original: captureInputState() };
+  sampleSession.sample = structuredClone(sample);
+  sampleSession.modified = false;
+  persistSampleSession();
+  Object.entries(sample.fares).forEach(([id, fare]) => { document.getElementById(id).value = fare; });
+  PATTERNS.forEach((pattern) => { document.getElementById(pattern.useId).checked = true; });
+  document.getElementById("start-date").value = sample.start;
+  document.getElementById("end-date").value = sample.end;
+  document.querySelectorAll("input[name='weekday']").forEach((input) => { input.checked = sample.weekdays.includes(Number(input.value)); });
+  document.getElementById("exclude-weekend").checked = sample.excludeWeekend;
+  document.getElementById("exclude-holiday").checked = sample.excludeHoliday;
+  ["exclusion-start", "exclusion-end", "exclusion-reason"].forEach((id) => { document.getElementById(id).value = ""; });
+  document.getElementById("exclusion-error").textContent = "";
+  exclusionPeriods = structuredClone(sample.exclusions);
+  generateDateList({ keepOverrides: false });
+  dateNodes.forEach((node) => {
+    if (Object.prototype.hasOwnProperty.call(sample.overrides, node.date)) node.enabled = sample.overrides[node.date];
+  });
+  refreshDateViews();
+  renderExclusionPeriods();
+  updateSampleStatus();
+  simulate();
+}
+
+function restoreOriginalSettings() {
+  if (!sampleSession) return;
+  const original = sampleSession.original;
+  original.inputs.forEach((saved) => {
+    const input = saved.id ? document.getElementById(saved.id) : [...document.querySelectorAll("input[name='weekday']")].find((item) => item.value === saved.value);
+    if (input) { input.value = saved.value; input.checked = saved.checked; }
+  });
+  dateNodes = structuredClone(original.dates);
+  exclusionPeriods = structuredClone(original.exclusions);
+  lastResult = structuredClone(original.result);
+  flowViewMode = original.flowViewMode;
+  sampleSession = null;
+  persistSampleSession();
+  saveSettings();
+  refreshDateViews();
+  renderExclusionPeriods();
+  document.getElementById("exclusion-error").textContent = "";
+  updateSampleStatus();
+  if (lastResult) renderResult(lastResult);
+  else clearSimulationResult();
+}
+
+function updateSampleStatus() {
+  const sample = sampleSession?.sample;
+  document.getElementById("sample-status").textContent = sample ? `現在のサンプル：${sample.name}${sampleSession.modified ? "（変更済み）" : ""}` : "ご自身の条件、またはサンプルでお試しください。";
+  document.getElementById("restore-settings").hidden = !sampleSession;
+  document.getElementById("reset-settings").textContent = sampleSession ? "元の設定に戻す" : "初期化";
+  document.getElementById("sample-detail").textContent = sample ? `サンプルの初期条件：${sample.description} 対象期間：${sample.start}〜${sample.end}。片道633円、定期1か月22,980円／3か月65,500円／6か月124,100円（体験用）。${sampleSession.modified ? "現在の条件は下の入力欄・カレンダーをご確認ください。" : ""}` : "";
+  document.querySelectorAll("[data-sample]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.sample === sample?.id)));
+}
+
+function clearSimulationResult() {
+  lastResult = null;
+  document.getElementById("result-area").textContent = "条件を設定して「シミュレート実行」を押してください。";
+  document.getElementById("download-csv").disabled = true;
+  document.getElementById("download-pdf").disabled = true;
+}
+
+function invalidateSimulation() {
+  if (sampleSession) {
+    sampleSession.modified = true;
+    persistSampleSession();
+    updateSampleStatus();
+  }
+  clearSimulationResult();
+}
+
+function getPurchaseMethod(result) {
+  return PATTERNS.map((pattern) => {
+    const count = result.flow.filter((step) => step.patternId === pattern.id).length;
+    return count ? `${pattern.id === "RTT" ? "普通乗車券（往復）" : pattern.label} × ${count}${pattern.id === "RTT" ? "日" : "枚"}` : "";
+  }).filter(Boolean).join(" ＋ ");
+}
+
+function renderDiscovery(result) {
+  if (!sampleSession) return "";
+  const method = getPurchaseMethod(result);
+  const onlyOrdinary = result.flow.every((step) => step.patternId === "RTT");
+  const comparisons = getEnabledPatterns().map((pattern) => {
+    const cost = result.patternOnlyCosts[pattern.id];
+    const diff = cost - result.bestCost;
+    return `<li>${pattern.label}のみ：${formatCurrency(cost)}（${diff === 0 ? "同額" : `最安より${formatCurrency(diff)}高い`}）</li>`;
+  }).join("");
+  const passCosts = getEnabledPatterns().filter((p) => p.months > 0).map((p) => result.patternOnlyCosts[p.id]);
+  const ordinaryMessage = onlyOrdinary && passCosts.length ? (passCosts.every((cost) => cost > result.bestCost)
+    ? "この条件では、定期券を買わない方が安い結果でした。" : "普通乗車券のみも最安です。同額の定期券プランがあります。") : "";
+  const sample = sampleSession.sample;
+  const explanation = sample.explanation.replace("{days}", result.activeDates.length).replace("{method}", method);
+  return `<section class="discovery" aria-labelledby="discovery-title">
+    <h3 id="discovery-title">今回の発見${sampleSession.modified ? "（変更後の条件）" : ""}</h3>
+    <p>${sample.name}</p><p><strong>${method}</strong></p>
+    <p class="discovery-price">最安金額 ${formatCurrency(result.bestCost)}</p>
+    <p>${explanation} ${ordinaryMessage}</p>
+    <ul>${comparisons}</ul>
+    <p class="note">各比較額も既存エンジンで算出しています。同額の購入方法が複数ある場合、購入フローはそのうち一つを表示します。</p>
+    <p><strong>次に試すなら：</strong>${sample.suggestion}</p>
+  </section>`;
+}
+
+const futureHolidayCache = new Map();
+function getFutureHolidays(year) {
+  if (futureHolidayCache.has(year)) return futureHolidayCache.get(year);
+  const holidays = {};
+  const fixed = (month, day, name) => { holidays[formatDate(new Date(year, month - 1, day))] = name; };
+  [[1,1,"元日"],[2,11,"建国記念の日"],[2,23,"天皇誕生日"],[4,29,"昭和の日"],[5,3,"憲法記念日"],[5,4,"みどりの日"],[5,5,"こどもの日"],[8,11,"山の日"],[11,3,"文化の日"],[11,23,"勤労感謝の日"]].forEach(([m,d,n]) => fixed(m,d,n));
+  [[1,2,"成人の日"],[7,3,"海の日"],[9,3,"敬老の日"],[10,2,"スポーツの日"]].forEach(([month,n,name]) => {
+    fixed(month, 1 + (8 - new Date(year, month - 1, 1).getDay()) % 7 + (n - 1) * 7, name);
+  });
+  // 2028–2099 estimates. Official equinox holidays are confirmed in the preceding February.
+  fixed(3, Math.floor(20.8431 + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4)), "春分の日（推定）");
+  fixed(9, Math.floor(23.2488 + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4)), "秋分の日（推定）");
+  const nationalDates = Object.keys(holidays).sort();
+  for (let day = new Date(year, 0, 2); day.getFullYear() === year; day = addDays(day, 1)) {
+    const key = formatDate(day);
+    if (!holidays[key] && holidays[formatDate(addDays(day, -1))] && holidays[formatDate(addDays(day, 1))]) holidays[key] = "国民の休日";
+  }
+  nationalDates.filter((date) => parseDate(date).getDay() === 0).forEach((date) => {
+    let next = addDays(parseDate(date), 1);
+    while (holidays[formatDate(next)]) next = addDays(next, 1);
+    holidays[formatDate(next)] = "振替休日";
+  });
+  futureHolidayCache.set(year, holidays);
+  return holidays;
 }

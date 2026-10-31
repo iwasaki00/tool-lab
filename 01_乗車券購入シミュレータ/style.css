@@ -1077,3 +1077,27 @@ tr.is-disabled td {
     line-height: 1.1;
   }
 }
+
+/* v1.1.0 sample experience */
+[hidden] { display: none !important; }
+.sample-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.sample-card { display: flex; flex-direction: column; gap: 9px; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fbfcfc; color: var(--ink); text-align: left; overflow-wrap: anywhere; line-height: 1.6; }
+.sample-card:hover, .sample-card[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); }
+.sample-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.sample-icon { font-size: 25px; }
+.sample-select { margin-top: auto; color: var(--accent-dark); font-weight: 800; font-size: 13px; }
+.sample-status-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.sample-status-bar p { margin: 0; font-weight: 700; }
+.discovery { border: 1px solid var(--accent); background: var(--soft); border-radius: 8px; padding: 16px; margin-bottom: 16px; color: var(--ink); overflow-wrap: anywhere; }
+.discovery h3 { margin: 0; }
+.discovery p, .discovery li { line-height: 1.8; }
+.discovery ul { padding-left: 22px; }
+.discovery-price { font-size: 22px; font-weight: 850; }
+.result-panel { scroll-margin-top: 150px; }
+@media (max-width: 1000px) { .sample-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 430px) {
+  .sample-grid { grid-template-columns: 1fr; gap: 10px; }
+  .sample-card { padding: 12px; }
+  .flow-calendar-grid { grid-template-columns: minmax(0, 1fr); }
+  .discovery { padding: 12px; }
+}
