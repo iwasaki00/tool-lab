@@ -14,7 +14,12 @@ const { pathToFileURL } = require('url');
  assert.equal(await page.locator('[data-sample]').count(),8);
  const results=[];
  for (const id of ['01','02','03','04','05','06','07','08']) {
-   await page.locator(`[data-sample="${id}"]`).click();
+   await page.locator('#tab-samples').click();
+   const card=page.locator('[data-sample="'+id+'"]');
+   if(await card.getAttribute('aria-expanded')!=='true')await card.click();
+   await page.locator('[data-apply-sample="'+id+'"]').click();
+   assert.equal(await page.evaluate(()=>lastResult),null);
+   await page.locator('#simulate-button').click();
    const actual=await page.evaluate(()=>({cost:lastResult.bestCost,method:getPurchaseMethod(lastResult),dates:lastResult.activeDates,flow:lastResult.flow,only:lastResult.patternOnlyCosts,sample:sampleSession.sample,html:document.getElementById('result-area').innerHTML}));
    // Execute the pre-change script in an isolated VM using the same input controls and exact active dates.
    const vm=require('vm');

@@ -58,14 +58,10 @@ function bindNavigation() {
     const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
     showSection(tabs[next].dataset.section, { focus: true });
   });
-  document.getElementById("guided-experience").addEventListener("click", () => {
-    applySample(createSamples().find((sample) => sample.id === "05"));
-  });
 }
 
 function showSection(section, options = {}) {
   if (!["overview", "guide", "samples", "calculate"].includes(section)) return;
-  const changed = activeSection !== section;
   activeSection = section;
   document.querySelectorAll("[role='tabpanel']").forEach((panel) => { panel.hidden = panel.id !== "section-" + section; });
   document.querySelectorAll("[data-section]").forEach((tab) => {
@@ -75,11 +71,11 @@ function showSection(section, options = {}) {
   });
   updateViewVisibility();
   if (options.focus) document.getElementById("tab-" + section).focus({ preventScroll: true });
-  if (changed && options.scroll !== false) window.scrollTo({ top: 0, behavior: "instant" });
+  if (options.scroll !== false) window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 function updateViewVisibility() {
-  const usesResults = activeSection === "samples" || activeSection === "calculate";
+  const usesResults = activeSection === "calculate";
   document.querySelector(".result-panel").hidden = !usesResults || !hasDisplayedResult;
   document.getElementById("sample-context").hidden = !usesResults || !sampleSession;
 }
@@ -91,8 +87,7 @@ function bindEvents() {
   document.getElementById("generate-dates").addEventListener("click", regenerateByCurrentConditions);
   document.getElementById("refresh-from-exclusion").addEventListener("click", regenerateByCurrentConditions);
   document.getElementById("add-exclusion").addEventListener("click", addExclusionPeriod);
-  document.getElementById("simulate-button").addEventListener("click", simulate);
-  document.getElementById("download-csv").addEventListener("click", downloadCsv);
+  document.getElementById("simulate-button").addEventListener("click", executeSimulation);
   document.getElementById("download-pdf").addEventListener("click", downloadPdf);
   document.getElementById("reset-settings").addEventListener("click", resetSettings);
 }
@@ -112,11 +107,15 @@ function regenerateByCurrentConditions() {
   generateDateList({ keepOverrides: false });
 }
 
-function setDefaultDates() {
-  const today = new Date();
-  const todayKey = formatDate(today);
-  document.getElementById("start-date").value = todayKey;
-  document.getElementById("end-date").value = formatDate(addDays(parseDate(addMonthsSafe(todayKey, 6)), -1));
+function getJapanTomorrow(now = new Date()) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now).map((part) => [part.type, part.value]));
+  return formatDate(addDays(parseDate(parts.year + "-" + parts.month + "-" + parts.day), 1));
+}
+
+function setDefaultDates(now = new Date()) {
+  const start = getJapanTomorrow(now);
+  document.getElementById("start-date").value = start;
+  document.getElementById("end-date").value = formatDate(addDays(parseDate(addMonthsSafe(start, 6)), -1));
 }
 
 function loadSettings() {
@@ -478,31 +477,31 @@ function getPatternOnlyCost(activeDates, patternId) {
 }
 
 function renderResult(result) {
+  if (!result.error && !result.context) result.context = captureCalculationContext();
   const manualMethod = document.getElementById("manual-result-method");
   manualMethod.hidden = Boolean(sampleSession) || Boolean(result.error);
   manualMethod.textContent = sampleSession || result.error ? "" : `自分の条件での最安購入方法：${getPurchaseMethod(result)}`;
   hasDisplayedResult = true;
   updateViewVisibility();
   const area = document.getElementById("result-area");
-  const csvButton = document.getElementById("download-csv");
   const pdfButton = document.getElementById("download-pdf");
   if (result.error) {
     area.innerHTML = `<div class="warning">${result.error}</div>`;
-    csvButton.disabled = true;
     pdfButton.disabled = true;
+    document.getElementById("pdf-pattern").disabled = true;
     return;
   }
 
-  csvButton.disabled = false;
   pdfButton.disabled = false;
+  updatePdfChoices(result);
   area.innerHTML = `
     ${renderDiscovery(result)}
     <div class="summary-grid">
       ${renderSummaryCard("最安金額", result.bestCost, true)}
-      ${renderSummaryCard("乗車券のみ", result.patternOnlyCosts.RTT)}
-      ${renderSummaryCard("1ヶ月定期券のみ", result.patternOnlyCosts.CMT1M)}
-      ${renderSummaryCard("3ヶ月定期券のみ", result.patternOnlyCosts.CMT3M)}
-      ${renderSummaryCard("6ヶ月定期券のみ", result.patternOnlyCosts.CMT6M)}
+      ${renderSummaryCard("乗車券のみ", result.patternOnlyCosts.RTT, false, "RTT")}
+      ${renderSummaryCard("1ヶ月定期券のみ", result.patternOnlyCosts.CMT1M, false, "CMT1M")}
+      ${renderSummaryCard("3ヶ月定期券のみ", result.patternOnlyCosts.CMT3M, false, "CMT3M")}
+      ${renderSummaryCard("6ヶ月定期券のみ", result.patternOnlyCosts.CMT6M, false, "CMT6M")}
       ${renderSummaryCard("有効日数", `${result.activeDates.length}日`)}
     </div>
     <div class="flow-head">
@@ -695,96 +694,166 @@ function scrollToResult() {
   window.requestAnimationFrame(() => {
     if (resultPanel.hidden) return;
     document.getElementById("result-title").focus({ preventScroll: true });
-    const target = sampleSession ? document.getElementById("sample-context") : resultPanel;
-    target.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    resultPanel.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   });
 }
 
-function downloadCsv() {
-  if (!lastResult) return;
-  const lines = [
-    ["種別", "値"],
-    ["最安金額", lastResult.bestCost],
-    ["乗車券のみ", lastResult.patternOnlyCosts.RTT],
-    ["1ヶ月定期券のみ", lastResult.patternOnlyCosts.CMT1M],
-    ["3ヶ月定期券のみ", lastResult.patternOnlyCosts.CMT3M],
-    ["6ヶ月定期券のみ", lastResult.patternOnlyCosts.CMT6M],
-    [],
-    ["開始日", "終了日", "購入タイプ"]
-  ];
-  lastResult.flow.forEach((row) => {
-    lines.push([row.startDate, row.endDate, `${row.patternId}:${row.patternLabel}`]);
+function getPlanLabel(id) {
+  if (id === "BEST") return "最安購入方法";
+  if (id === "RTT") return "普通乗車券のみ";
+  return ({ CMT1M: "1か月定期券のみ", CMT3M: "3か月定期券のみ", CMT6M: "6か月定期券のみ" })[id];
+}
+
+function readableDate(date) { return date.replaceAll("-", "/"); }
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+}
+
+function groupDateText(dates) {
+  const groups = new Map();
+  [...dates].sort().forEach((date) => {
+    const month = date.slice(0, 7);
+    if (!groups.has(month)) groups.set(month, []);
+    groups.get(month).push(String(Number(date.slice(8))));
   });
-  const csv = lines.map((row) => row.map(escapeCsvValue).join(",")).join("\r\n");
-  const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `ticket-simulation-${formatDate(new Date())}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  return [...groups].map(([month, days]) => month.replace("-", "/") + "：" + days.join("・") + "日").join(" ／ ");
+}
+
+function snapshotPatternCost(context, pattern) {
+  return context.fares[pattern.fareId] * (pattern.id === "RTT" ? 2 : 1);
+}
+
+function buildPurchasePlans(result) {
+  const context = result.context;
+  if (!context) throw new Error("計算条件が保存されていません。もう一度シミュレート実行してください。");
+  const plans = {};
+  for (const id of ["BEST", ...PATTERNS.map((pattern) => pattern.id)]) {
+    let flow;
+    if (id === "BEST") flow = result.flow;
+    else {
+      const pattern = PATTERNS.find((item) => item.id === id);
+      flow = [];
+      for (let index = 0; index < result.activeDates.length;) {
+        const next = getNextNodeIndex(result.activeDates, index, pattern);
+        flow.push(createFlowStep(result.activeDates, index, next, pattern));
+        index = next;
+      }
+    }
+    const steps = flow.map((step) => {
+      const pattern = PATTERNS.find((item) => item.id === step.patternId);
+      const validUntil = pattern.months > 0 ? formatDate(addDays(parseDate(addMonthsSafe(step.startDate, pattern.months)), -1)) : step.startDate;
+      const dates = result.activeDates.filter((date) => date >= step.startDate && date <= step.endDate);
+      return { patternId: pattern.id, label: pattern.id === "RTT" ? "普通乗車券（往復）" : getPlanLabel(pattern.id).replace("のみ", ""), purchaseDate: step.startDate, validUntil, coveredUntil: step.endDate, dates, cost: snapshotPatternCost(context, pattern) };
+    });
+    const cost = steps.reduce((sum, step) => sum + step.cost, 0);
+    const expected = id === "BEST" ? result.bestCost : result.patternOnlyCosts[id];
+    const coverage = steps.flatMap((step) => step.dates);
+    if (!Number.isSafeInteger(cost) || cost !== expected || coverage.length !== result.activeDates.length || coverage.some((date, index) => date !== result.activeDates[index]) || steps.some((step) => step.dates.length === 0 || step.dates.some((date) => date > step.validUntil))) {
+      throw new Error("購入フローと合計金額の整合性を確認できません。条件を確認して再計算してください。");
+    }
+    plans[id] = { id, label: getPlanLabel(id), cost, steps };
+  }
+  return plans;
+}
+
+function updatePdfChoices(result) {
+  const select = document.getElementById("pdf-pattern");
+  try {
+    buildPurchasePlans(result);
+    select.innerHTML = ["BEST", ...PATTERNS.map((pattern) => pattern.id)].map((id) => `<option value="${id}">${getPlanLabel(id)}：${formatCurrency(id === "BEST" ? result.bestCost : result.patternOnlyCosts[id])}</option>`).join("") + '<option value="ALL">すべてのパターンをまとめて保存</option>';
+    select.disabled = false;
+    document.getElementById("pdf-error").textContent = "";
+  } catch (error) {
+    select.disabled = true;
+    select.innerHTML = "";
+    document.getElementById("download-pdf").disabled = true;
+    document.getElementById("pdf-error").textContent = error.message;
+  }
+}
+
+function createPdfModel(result, selection = "BEST", now = new Date()) {
+  const all = buildPurchasePlans(result);
+  const plans = selection === "ALL" ? Object.values(all) : [all[selection]];
+  if (plans.some((plan) => !plan)) throw new Error("保存する購入パターンを選んでください。");
+  const label = selection === "ALL" ? "すべての購入パターン" : plans[0].label;
+  return { context: structuredClone(result.context), activeDates: [...result.activeDates], plans,
+    createdAt: new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(now) + "（日本時間）",
+    filename: "乗車券_" + label + "_" + result.context.start + "_" + result.context.end + ".pdf" };
+}
+
+function groupOrdinarySteps(steps) {
+  return steps.reduce((rows, step) => {
+    const last = rows[rows.length - 1];
+    if (last?.patternId === "RTT" && step.patternId === "RTT") {
+      last.coveredUntil = step.coveredUntil; last.dates.push(...step.dates); last.cost += step.cost;
+    } else rows.push({ ...step, dates: [...step.dates] });
+    return rows;
+  }, []);
+}
+
+function renderPdfHtml(model) {
+  const context = model.context;
+  const esc = escapeHtml;
+  const weekdays = context.weekdays.length ? context.weekdays.map((day) => WEEKDAY_LABELS[day]).join("・") : "なし（個別日指定）";
+  const exclusionText = context.exclusions.length ? context.exclusions.map((period) => readableDate(period.start) + "〜" + readableDate(period.end) + " " + (period.reason || "除外期間")).join(" ／ ") : "なし";
+  const overrides = [true, false].map((enabled) => {
+    const dates = Object.entries(context.overrides).filter(([, value]) => value === enabled).map(([date]) => date);
+    return dates.length ? `<p>個別${enabled ? "有効" : "無効"}日：${esc(groupDateText(dates))}</p>` : "";
+  }).join("");
+  const conditions = `<div class="conditions"><p><strong>計算対象期間：</strong>${readableDate(context.start)}〜${readableDate(context.end)} ／ 対象利用日数：${model.activeDates.length}日</p>
+    <p>片道運賃：${formatCurrency(context.fares["fare-one-way"])}（往復は2倍） ／ 定期代：1か月 ${formatCurrency(context.fares["fare-cmt1m"])}・3か月 ${formatCurrency(context.fares["fare-cmt3m"])}・6か月 ${formatCurrency(context.fares["fare-cmt6m"])}</p>
+    <p>利用曜日：${esc(weekdays)} ／ 祝日：${context.excludeHoliday ? "除外" : "曜日・個別日設定に従う"} ／ 土日除外：${context.excludeWeekend ? "あり" : "なし"}</p>
+    <p>休暇・除外期間：${esc(exclusionText)}</p>${overrides}
+    <p>最安探索の対象：${context.enabledPatterns.map((id) => esc(getPlanLabel(id).replace("のみ", ""))).join("・")}</p>
+    ${context.sampleName ? `<p>使用サンプル：${esc(context.sampleName)}${context.modified ? "（変更済み）" : ""}</p>` : ""}</div>`;
+  const sections = model.plans.map((plan) => {
+    const rows = groupOrdinarySteps(plan.steps);
+    const ordinaryDates = plan.steps.filter((step) => step.patternId === "RTT").flatMap((step) => step.dates);
+    return `<section class="plan"><h2>${esc(plan.label)}</h2><p class="total">合計購入金額 <strong>${formatCurrency(plan.cost)}</strong></p>
+      <table><colgroup><col style="width:25%"><col style="width:40%"><col style="width:11%"><col style="width:24%"></colgroup><thead><tr><th>購入日・券種</th><th>有効期間・対応期間</th><th class="amount">利用日数</th><th class="amount">購入額</th></tr></thead><tbody>
+      ${rows.map((row) => `<tr><td>${row.patternId === "RTT" ? "利用日ごとに購入" : readableDate(row.purchaseDate)}<br><strong>${esc(row.label)}</strong></td><td>${readableDate(row.purchaseDate)}〜${readableDate(row.patternId === "RTT" ? row.coveredUntil : row.validUntil)}<small>${row.patternId === "RTT" ? "上記期間のうち、下記の対象利用日だけ普通乗車券を購入" : "定期券の有効期間。計算対象の利用は" + readableDate(row.purchaseDate) + "〜" + readableDate(row.coveredUntil)}</small></td><td class="amount">${row.dates.length}日</td><td class="amount">${formatCurrency(row.cost)}</td></tr>`).join("")}
+      </tbody><tfoot><tr><th colspan="3">合計</th><td class="amount">${formatCurrency(plan.cost)}</td></tr></tfoot></table>
+      ${ordinaryDates.length ? `<div class="ordinary-days"><h3>普通乗車券で対応する利用日（${ordinaryDates.length}日）</h3><p>${esc(groupDateText(ordinaryDates))}</p></div>` : ""}
+      </section>`;
+  }).join("");
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(model.filename)}</title>
+    <style>
+      @page { size: A4; margin: 14mm 12mm; }
+      * { box-sizing: border-box; } body { font-family: -apple-system, BlinkMacSystemFont, "Yu Gothic", "Meiryo", sans-serif; margin: 24px; color:#172124; font-size:12px; line-height:1.7; }
+      h1 { font-size:21px; margin:0 0 8px; } h2 { font-size:18px; border-bottom:2px solid #0b766d; padding-bottom:4px; margin:18px 0 8px; break-after:avoid; } h3 { font-size:13px; margin:12px 0 4px; break-after:avoid; }
+      p { margin:6px 0; overflow-wrap:anywhere; } .conditions { border:1px solid #cfdad9; border-radius:6px; padding:10px; font-size:11px; } .conditions p { margin:3px 0; }
+      .total { text-align:right; font-size:15px; break-after:avoid; } .total strong { display:inline-block; margin-left:12px; font-size:22px; color:#075d57; }
+      table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:11px; } th,td { border:1px solid #cfdad9; padding:7px 6px; text-align:left; overflow-wrap:anywhere; vertical-align:top; } th { background:#eef4f3; } .amount { text-align:right; font-variant-numeric:tabular-nums; white-space:normal; } td small { display:block; margin-top:4px; color:#526166; font-size:10px; }
+      thead { display:table-header-group; } tfoot { display:table-row-group; } tr { break-inside:avoid; } .plan + .plan { break-before:page; } .notice,.footnote { color:#526166; font-size:10px; }
+      .print-tools { padding:12px; background:#eef4f3; margin-bottom:16px; } button { padding:10px 16px; font-size:15px; touch-action:manipulation; } .ordinary-days { font-size:11px; }
+      @media print { body { margin:0; } .print-tools { display:none; } } @media(max-width:500px) { body { margin:12px; } th,td { padding:5px 3px; } }
+    </style></head><body><div class="print-tools"><button type="button" onclick="window.print()">印刷・PDFに保存</button><p>印刷画面で「PDFに保存」を選んでください。保存名の候補：${esc(model.filename)}</p></div>
+    <h1>乗車券購入シミュレーション</h1><p>出力日時：${esc(model.createdAt)}</p>${conditions}${sections}
+    <p class="footnote">定期券は記載の購入日に1枚ずつ購入する想定です。有効期限が対象期間を超えても、代金は日割りせず全額計上しています。比較パターンは最初の利用日から同じ券種で順に購入する既存ルールです。普通乗車券は片道運賃の2倍で計算しています。実際の運賃・定期券の発売条件・有効期間は利用する交通機関で確認してください。祝日データの推定と個別日の設定も結果に影響します。同額の最安プランは一つを表示しています。</p>
+    <script>window.addEventListener("load", () => { document.fonts.ready.then(() => setTimeout(() => window.print(), 200)); });<\/script></body></html>`;
 }
 
 function downloadPdf() {
   if (!lastResult) return;
-
-  const lines = lastResult.flow.map((row) => `<tr><td>${row.startDate}</td><td>${row.endDate}</td><td>${row.patternId}：${row.patternLabel}</td></tr>`).join("");
-
-  const html = `
-<!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>乗車券購入シミュレーション結果</title>
-    <style>
-      body { font-family: -apple-system, BlinkMacSystemFont, "Noto Sans JP", sans-serif; color: #172124; margin: 24px; }
-      h1 { font-size: 24px; margin: 0 0 16px; }
-      h2 { font-size: 18px; margin: 24px 0 10px; }
-      .summary { display: grid; gap: 8px; margin-bottom: 12px; }
-      .item { border: 1px solid #dbe3e5; border-radius: 8px; padding: 10px; }
-      .label { color: #66767a; font-size: 12px; font-weight: 700; }
-      .value { display: block; margin-top: 4px; font-size: 18px; font-weight: 800; }
-      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-      th, td { border: 1px solid #dbe3e5; padding: 8px; text-align: left; }
-      th { background: #eef4f3; }
-      @media print { body { margin: 12mm; } }
-    </style>
-  </head>
-  <body>
-    <h1>乗車券購入シミュレーション結果</h1>
-    <div class="summary">
-      <div class="item"><span class="label">最安金額</span><span class="value">${formatCurrency(lastResult.bestCost)}</span></div>
-      <div class="item"><span class="label">乗車券のみ</span><span class="value">${formatCurrency(lastResult.patternOnlyCosts.RTT)}</span></div>
-      <div class="item"><span class="label">1ヶ月定期券のみ</span><span class="value">${formatCurrency(lastResult.patternOnlyCosts.CMT1M)}</span></div>
-      <div class="item"><span class="label">3ヶ月定期券のみ</span><span class="value">${formatCurrency(lastResult.patternOnlyCosts.CMT3M)}</span></div>
-      <div class="item"><span class="label">6ヶ月定期券のみ</span><span class="value">${formatCurrency(lastResult.patternOnlyCosts.CMT6M)}</span></div>
-      <div class="item"><span class="label">有効日数</span><span class="value">${lastResult.activeDates.length}日</span></div>
-    </div>
-    <h2>購入フロー</h2>
-    <table>
-      <thead><tr><th>開始日</th><th>終了日</th><th>購入タイプ</th></tr></thead>
-      <tbody>${lines}</tbody>
-    </table>
-    <script>window.addEventListener("load", () => setTimeout(() => window.print(), 250));<\/script>
-  </body>
-</html>`;
-
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    alert("PDFを作成するにはポップアップを許可してください。");
-    return;
-  }
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
+  const error = document.getElementById("pdf-error");
+  error.textContent = "";
+  try {
+    const model = createPdfModel(lastResult, document.getElementById("pdf-pattern").value);
+    const html = renderPdfHtml(model);
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) { error.textContent = "印刷画面を開けませんでした。このページのポップアップを許可して、もう一度保存ボタンを押してください。"; return; }
+    printWindow.opener = null;
+    printWindow.document.open(); printWindow.document.write(html); printWindow.document.close();
+  } catch (cause) { error.textContent = cause.message; }
 }
 
-function renderSummaryCard(label, value, best = false) {
+
+function renderSummaryCard(label, value, best = false, patternId = "") {
   const display = typeof value === "number" ? formatCurrency(value) : value;
-  return `<div class="summary-card ${best ? "best" : ""}"><span class="summary-label">${label}</span><span class="summary-value">${display}</span></div>`;
+  const referenceOnly = patternId && lastResult?.context && !lastResult.context.enabledPatterns.includes(patternId);
+  const difference = referenceOnly ? '<small class="comparison-difference">参考額（最安探索の対象外）</small>' : typeof value === "number" && !best && lastResult ? `<small class="comparison-difference">${value === lastResult.bestCost ? "最安と同額" : `最安より${formatCurrency(value - lastResult.bestCost)}高い`}</small>` : "";
+  return `<div class="summary-card ${best ? "best" : ""}"><span class="summary-label">${label}</span><span class="summary-value ${typeof value === "number" ? "amount" : ""}">${display}</span>${difference}</div>`;
 }
 
 function getEnabledPatterns() {
@@ -868,14 +937,9 @@ function getPercent(value, total) {
 }
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY", maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 }).format(value) + "円";
 }
 
-function escapeCsvValue(value) {
-  if (value === undefined || value === null) return "";
-  const text = String(value);
-  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
-}
 
 // Samples use the existing date generator and simulate() without changing its route search.
 function createSamples(today = new Date()) {
@@ -931,23 +995,60 @@ function createSamples(today = new Date()) {
 function initSamples() {
   const samples = createSamples();
   document.getElementById("sample-cards").innerHTML = samples.map((sample) => `
-    <button class="sample-card" type="button" data-sample="${sample.id}" aria-pressed="false">
-      <span class="sample-icon" aria-hidden="true">${sample.icon}</span>
-      <strong>${sample.id} ${sample.name}</strong>
-      <span>${sample.highlight}</span><span class="sample-select">計算してみる →</span>
-    </button>`).join("");
+    <article class="sample-item">
+      <button class="sample-card" type="button" data-sample="${sample.id}" aria-expanded="false" aria-controls="sample-conditions-${sample.id}">
+        <span class="sample-icon" aria-hidden="true">${sample.icon}</span><strong>${sample.id} ${sample.name}</strong>
+        <span>${sample.description}</span><span class="sample-chevron" aria-hidden="true">⌄</span>
+      </button>
+      <div class="sample-conditions" id="sample-conditions-${sample.id}" hidden>
+        <p class="sample-highlight">${sample.highlight}</p>${renderSampleConditions(sample)}
+        <button class="primary-button" type="button" data-apply-sample="${sample.id}">この条件でシミュレート</button>
+      </div>
+    </article>`).join("");
   document.querySelectorAll("[data-sample]").forEach((button) => {
-    button.addEventListener("click", () => applySample(samples.find((sample) => sample.id === button.dataset.sample)));
+    button.addEventListener("click", () => {
+      const expand = button.getAttribute("aria-expanded") !== "true";
+      document.querySelectorAll("[data-sample]").forEach((other) => {
+        const selected = other === button && expand;
+        other.setAttribute("aria-expanded", String(selected));
+        document.getElementById(other.getAttribute("aria-controls")).hidden = !selected;
+      });
+      if (expand) window.requestAnimationFrame(() => {
+        const panel = document.getElementById(button.getAttribute("aria-controls"));
+        if (panel.hidden || activeSection !== "samples") return;
+        const rect = panel.getBoundingClientRect();
+        const headerBottom = document.querySelector(".app-header").getBoundingClientRect().bottom;
+        if (rect.bottom > innerHeight) window.scrollBy({ top: Math.max(0, Math.min(rect.bottom - innerHeight + 12, rect.top - headerBottom - 12)), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      });
+    });
   });
+  document.querySelectorAll("[data-apply-sample]").forEach((button) => button.addEventListener("click", () => applySample(samples.find((sample) => sample.id === button.dataset.applySample))));
   document.getElementById("restore-settings").addEventListener("click", restoreOriginalSettings);
-  // Input edits invalidate results immediately, including before blur on mobile.
   document.querySelectorAll("input").forEach((input) => input.addEventListener("input", invalidateSimulation));
   try {
     const saved = JSON.parse(localStorage.getItem(SAMPLE_SESSION_KEY) || "null");
     if (saved?.original && saved?.sample && saved.version === 1) sampleSession = saved;
-  } catch { /* A malformed session must not prevent manual simulation. */ }
+  } catch { /* Keep manual simulation available when session data is malformed. */ }
   updateSampleStatus();
 }
+
+function renderSampleConditions(sample) {
+  const entries = [
+    ["利用開始日", readableDate(sample.start)], ["利用終了日", readableDate(sample.end)],
+    ...PATTERNS.map((pattern) => [pattern.id === "RTT" ? "片道運賃" : getPlanLabel(pattern.id).replace("のみ", "") + "代", formatCurrency(sample.fares[pattern.fareId])]),
+    ["利用曜日", sample.weekdays.length ? sample.weekdays.map((day) => WEEKDAY_LABELS[day]).join("・") : "個別日指定"],
+    ["祝日の扱い", sample.excludeHoliday ? "除外する" : "利用日に含める"],
+    ["土日除外オプション", sample.excludeWeekend ? "除外する" : "除外しない（曜日・個別日設定に従う）"],
+    ["比較する券種", "普通乗車券（往復）・1・3・6か月定期券"]
+  ];
+  if (sample.exclusions.length) entries.push(["休暇・除外期間", sample.exclusions.map((period) => readableDate(period.start) + "〜" + readableDate(period.end) + "：" + period.reason).join(" / ")]);
+  for (const [enabled, label] of [[true, "個別有効日"], [false, "個別無効日"]]) {
+    const dates = Object.entries(sample.overrides).filter(([, value]) => value === enabled).map(([date]) => date);
+    if (dates.length) entries.push([label, groupDateText(dates)]);
+  }
+  return `<dl>${entries.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>`;
+}
+
 
 function captureInputState() {
   return {
@@ -963,8 +1064,10 @@ function persistSampleSession() {
 }
 
 function applySample(sample) {
-  showSection("samples", { scroll: false });
-  if (!sampleSession) sampleSession = { version: 1, original: captureInputState() };
+  const originalBeforeSample = sampleSession ? null : captureInputState();
+  clearSimulationResult();
+  clearValidationErrors();
+  if (!sampleSession) sampleSession = { version: 1, original: originalBeforeSample };
   sampleSession.sample = structuredClone(sample);
   sampleSession.modified = false;
   persistSampleSession();
@@ -984,13 +1087,15 @@ function applySample(sample) {
   });
   refreshDateViews();
   renderExclusionPeriods();
+  saveSettings();
   updateSampleStatus();
-  simulate();
+  showSection("calculate", { focus: true });
 }
 
 function restoreOriginalSettings() {
   if (!sampleSession) return;
   showSection("calculate", { focus: true });
+  clearValidationErrors();
   const original = sampleSession.original;
   original.inputs.forEach((saved) => {
     const input = saved.id ? document.getElementById(saved.id) : [...document.querySelectorAll("input[name='weekday']")].find((item) => item.value === saved.value);
@@ -1014,11 +1119,10 @@ function restoreOriginalSettings() {
 function updateSampleStatus() {
   updateViewVisibility();
   const sample = sampleSession?.sample;
-  document.getElementById("sample-status").textContent = sample ? `現在のサンプル：${sample.name}${sampleSession.modified ? "（変更済み）" : ""}` : "ご自身の条件、またはサンプルでお試しください。";
+  document.getElementById("sample-status").textContent = sample ? (sampleSession.modified ? "サンプルの条件を変更しました：" : "サンプルの条件を設定しました：") + sample.name + (sampleSession.modified ? "（変更済み）" : "") : "";
   document.getElementById("restore-settings").hidden = !sampleSession;
-  document.getElementById("reset-settings").textContent = sampleSession ? "元の設定に戻す" : "初期化";
-  document.getElementById("sample-detail").textContent = sample ? `サンプルの初期条件：${sample.description} 対象期間：${sample.start}〜${sample.end}。片道633円、定期1か月22,980円／3か月65,500円／6か月124,100円（体験用）。${sampleSession.modified ? "現在の条件は「自分で計算」で確認・変更できます。" : ""}` : "";
-  document.querySelectorAll("[data-sample]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.sample === sample?.id)));
+  document.getElementById("reset-settings").textContent = "初期化";
+  document.getElementById("reset-settings").hidden = Boolean(sampleSession);
 }
 
 function clearSimulationResult() {
@@ -1026,11 +1130,14 @@ function clearSimulationResult() {
   updateViewVisibility();
   lastResult = null;
   document.getElementById("result-area").textContent = "条件を設定して「シミュレート実行」を押してください。";
-  document.getElementById("download-csv").disabled = true;
   document.getElementById("download-pdf").disabled = true;
+  document.getElementById("pdf-pattern").disabled = true;
+  document.getElementById("pdf-pattern").innerHTML = "";
+  document.getElementById("pdf-error").textContent = "";
 }
 
 function invalidateSimulation() {
+  clearValidationErrors();
   if (sampleSession) {
     sampleSession.modified = true;
     persistSampleSession();
@@ -1059,7 +1166,8 @@ function renderDiscovery(result) {
   const ordinaryMessage = onlyOrdinary && passCosts.length ? (passCosts.every((cost) => cost > result.bestCost)
     ? "この条件では、定期券を買わない方が安い結果でした。" : "普通乗車券のみも最安です。同額の定期券プランがあります。") : "";
   const sample = sampleSession.sample;
-  const explanation = sample.explanation.replace("{days}", result.activeDates.length).replace("{method}", method);
+  const template = sampleSession.modified ? "変更後の条件での有効日は{days}日です。最安方法と各券種の金額を比較できます。" : sample.explanation;
+  const explanation = template.replace("{days}", result.activeDates.length).replace("{method}", method);
   return `<section class="discovery" aria-labelledby="discovery-title">
     <h3 id="discovery-title">今回の発見${sampleSession.modified ? "（変更後の条件）" : ""}</h3>
     <p>${sample.name}</p><p><strong>${method}</strong></p>
@@ -1095,4 +1203,60 @@ function getFutureHolidays(year) {
   });
   futureHolidayCache.set(year, holidays);
   return holidays;
+}
+
+function clearValidationErrors() {
+  document.querySelectorAll(".input-error:not(#pdf-error)").forEach((element) => { element.textContent = ""; });
+  document.querySelectorAll("input[aria-invalid]").forEach((input) => input.removeAttribute("aria-invalid"));
+}
+
+function executeSimulation() {
+  clearSimulationResult();
+  clearValidationErrors();
+  const errors = [];
+  PATTERNS.forEach((pattern) => {
+    const input = document.getElementById(pattern.fareId);
+    const value = Number(input.value);
+    if (input.value.trim() === "" || !Number.isSafeInteger(value) || value < 0 || !Number.isSafeInteger(value * 2 * Math.max(dateNodes.length, 1))) {
+      document.getElementById(pattern.fareId + "-error").textContent = "0以上の整数の金額を入力してください。無料の場合は0を入力します。";
+      input.setAttribute("aria-invalid", "true");
+      errors.push(input);
+    }
+  });
+  const start = document.getElementById("start-date");
+  const end = document.getElementById("end-date");
+  let dateError = "";
+  if (!start.value || !end.value) dateError = "開始日と終了日を両方入力してください。";
+  else if (start.value > end.value) dateError = "終了日を開始日以降にしてください。";
+  else if (!dateNodes.some((node) => node.enabled)) dateError = "利用日がありません。曜日を選ぶか、詳細設定のカレンダーで利用日を有効にしてください。";
+  if (dateError) {
+    document.getElementById("date-error").textContent = dateError;
+    start.setAttribute("aria-invalid", "true"); end.setAttribute("aria-invalid", "true");
+    errors.push(start);
+  }
+  if (getEnabledPatterns().length === 0) {
+    document.getElementById("pattern-error").textContent = "比較する乗車券を1つ以上選んでください。";
+    document.getElementById("advanced-settings").open = true;
+    errors.push(document.getElementById("use-rtt"));
+  }
+  if (errors.length) {
+    errors[0].focus();
+    errors[0].scrollIntoView({ block: "center", behavior: "auto" });
+    return;
+  }
+  simulate();
+}
+
+function captureCalculationContext() {
+  return {
+    start: document.getElementById("start-date").value,
+    end: document.getElementById("end-date").value,
+    fares: Object.fromEntries(PATTERNS.map((pattern) => [pattern.fareId, Number(document.getElementById(pattern.fareId).value)])),
+    enabledPatterns: getEnabledPatterns().map((pattern) => pattern.id), weekdays: getSelectedWeekdays(),
+    excludeHoliday: document.getElementById("exclude-holiday").checked,
+    excludeWeekend: document.getElementById("exclude-weekend").checked,
+    exclusions: structuredClone(exclusionPeriods),
+    overrides: Object.fromEntries(dateNodes.filter((node) => node.enabled !== node.defaultEnabled).map((node) => [node.date, node.enabled])),
+    sampleName: sampleSession?.sample.name || "", modified: Boolean(sampleSession?.modified)
+  };
 }

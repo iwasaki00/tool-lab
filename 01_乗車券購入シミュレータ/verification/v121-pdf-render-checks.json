@@ -1,0 +1,51 @@
+[
+  {
+    "file": "sample02_BEST.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0
+  },
+  {
+    "file": "sample02_RTT.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0
+  },
+  {
+    "file": "sample02_CMT1M.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0
+  },
+  {
+    "file": "sample02_CMT3M.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0
+  },
+  {
+    "file": "sample02_CMT6M.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0
+  },
+  {
+    "file": "sample06_ALL.pdf",
+    "pages": 7,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 2
+  },
+  {
+    "file": "sample07_RTT.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0
+  }
+]
