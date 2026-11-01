@@ -29,6 +29,7 @@ let lastResult = null;
 let flowViewMode = "calendar";
 let sampleSession = null;
 let activeSection = "overview";
+let fareTextContext = null;
 let hasDisplayedResult = false;
 const SAMPLE_SESSION_KEY = "ticket-simulator-sample-v110";
 
@@ -70,6 +71,7 @@ function showSection(section, options = {}) {
     tab.tabIndex = selected ? 0 : -1;
   });
   updateViewVisibility();
+  if (section === "calculate") fitFareInputs();
   if (options.focus) document.getElementById("tab-" + section).focus({ preventScroll: true });
   if (options.scroll !== false) window.scrollTo({ top: 0, behavior: "instant" });
 }
@@ -90,6 +92,8 @@ function bindEvents() {
   document.getElementById("simulate-button").addEventListener("click", executeSimulation);
   document.getElementById("download-pdf").addEventListener("click", downloadPdf);
   document.getElementById("reset-settings").addEventListener("click", resetSettings);
+  document.querySelectorAll(".cost-grid input").forEach((input) => input.addEventListener("input", fitFareInputs));
+  window.addEventListener("resize", fitFareInputs);
 }
 
 function handleSettingChanged(event) {
@@ -996,32 +1000,34 @@ function initSamples() {
   const samples = createSamples();
   document.getElementById("sample-cards").innerHTML = samples.map((sample) => `
     <article class="sample-item">
-      <button class="sample-card" type="button" data-sample="${sample.id}" aria-expanded="false" aria-controls="sample-conditions-${sample.id}">
+      <button class="sample-card" id="sample-card-${sample.id}" type="button" data-sample="${sample.id}" aria-expanded="false" aria-controls="sample-conditions-${sample.id}">
         <span class="sample-icon" aria-hidden="true">${sample.icon}</span><strong>${sample.id} ${sample.name}</strong>
         <span>${sample.description}</span><span class="sample-chevron" aria-hidden="true">⌄</span>
       </button>
-      <div class="sample-conditions" id="sample-conditions-${sample.id}" hidden>
+      <div class="sample-conditions" id="sample-conditions-${sample.id}" role="region" aria-labelledby="sample-card-${sample.id}" aria-hidden="true" inert><div class="sample-conditions-inner"><div class="sample-conditions-body">
         <p class="sample-highlight">${sample.highlight}</p>${renderSampleConditions(sample)}
-        <button class="primary-button" type="button" data-apply-sample="${sample.id}">この条件でシミュレート</button>
-      </div>
+        <button class="primary-button" type="button" tabindex="-1" data-apply-sample="${sample.id}">この条件でシミュレート</button>
+      </div></div></div>
     </article>`).join("");
   document.querySelectorAll("[data-sample]").forEach((button) => {
     button.addEventListener("click", () => {
       const expand = button.getAttribute("aria-expanded") !== "true";
       document.querySelectorAll("[data-sample]").forEach((other) => {
         const selected = other === button && expand;
+        const panel = document.getElementById(other.getAttribute("aria-controls"));
+        if (!selected && panel.contains(document.activeElement)) button.focus({ preventScroll: true });
         other.setAttribute("aria-expanded", String(selected));
-        document.getElementById(other.getAttribute("aria-controls")).hidden = !selected;
+        panel.setAttribute("aria-hidden", String(!selected));
+        panel.toggleAttribute("inert", !selected);
+        panel.querySelector("[data-apply-sample]").tabIndex = selected ? 0 : -1;
+        panel.classList.toggle("is-open", selected);
       });
-      if (expand) window.requestAnimationFrame(() => {
-        const panel = document.getElementById(button.getAttribute("aria-controls"));
-        if (panel.hidden || activeSection !== "samples") return;
-        const rect = panel.getBoundingClientRect();
-        const headerBottom = document.querySelector(".app-header").getBoundingClientRect().bottom;
-        if (rect.bottom > innerHeight) window.scrollBy({ top: Math.max(0, Math.min(rect.bottom - innerHeight + 12, rect.top - headerBottom - 12)), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-      });
+      if (expand) window.requestAnimationFrame(ensureSampleHeadingVisible);
     });
   });
+  document.querySelectorAll(".sample-conditions").forEach((panel) => panel.addEventListener("transitionend", (event) => {
+    if (event.target === panel && event.propertyName === "grid-template-rows") ensureSampleHeadingVisible();
+  }));
   document.querySelectorAll("[data-apply-sample]").forEach((button) => button.addEventListener("click", () => applySample(samples.find((sample) => sample.id === button.dataset.applySample))));
   document.getElementById("restore-settings").addEventListener("click", restoreOriginalSettings);
   document.querySelectorAll("input").forEach((input) => input.addEventListener("input", invalidateSimulation));
@@ -1032,21 +1038,63 @@ function initSamples() {
   updateSampleStatus();
 }
 
+function compactSampleDateGroups(dates) {
+  const groups = new Map();
+  [...dates].sort().forEach((date) => {
+    const month = date.slice(0, 7);
+    if (!groups.has(month)) groups.set(month, []);
+    groups.get(month).push(Number(date.slice(8)));
+  });
+  return [...groups].map(([month, days]) => {
+    const ranges = [];
+    for (let index = 0; index < days.length;) {
+      const start = days[index];
+      let end = start;
+      while (index + 1 < days.length && days[index + 1] === end + 1) end = days[++index];
+      ranges.push(end === start ? String(start) : `${start}〜${end}`);
+      index++;
+    }
+    return `<span class="exception-month" data-month="${month}">${month.replace("-", "/")}：<span class="exception-days">${ranges.join("・")}</span>日</span>`;
+  }).join("");
+}
+
 function renderSampleConditions(sample) {
-  const entries = [
-    ["利用開始日", readableDate(sample.start)], ["利用終了日", readableDate(sample.end)],
-    ...PATTERNS.map((pattern) => [pattern.id === "RTT" ? "片道運賃" : getPlanLabel(pattern.id).replace("のみ", "") + "代", formatCurrency(sample.fares[pattern.fareId])]),
-    ["利用曜日", sample.weekdays.length ? sample.weekdays.map((day) => WEEKDAY_LABELS[day]).join("・") : "個別日指定"],
-    ["祝日の扱い", sample.excludeHoliday ? "除外する" : "利用日に含める"],
-    ["土日除外オプション", sample.excludeWeekend ? "除外する" : "除外しない（曜日・個別日設定に従う）"],
-    ["比較する券種", "普通乗車券（往復）・1・3・6か月定期券"]
-  ];
-  if (sample.exclusions.length) entries.push(["休暇・除外期間", sample.exclusions.map((period) => readableDate(period.start) + "〜" + readableDate(period.end) + "：" + period.reason).join(" / ")]);
+  const weekdays = sample.weekdays.join(",") === "1,2,3,4,5" ? "月〜金" : sample.weekdays.length ? sample.weekdays.map((day) => WEEKDAY_LABELS[day]).join("・") : "個別日指定";
+  const fares = PATTERNS.map((pattern) => `<div data-preview-fare="${pattern.id}"><dt>${pattern.id === "RTT" ? "片道運賃" : getPlanLabel(pattern.id).replace("定期券のみ", "定期")}</dt><dd>${formatCurrency(sample.fares[pattern.fareId])}</dd></div>`).join("");
+  let exceptions = sample.exclusions.length ? `<ul class="sample-leave">${sample.exclusions.map((period) => `<li><span><time datetime="${period.start}">${readableDate(period.start)}</time> → <time datetime="${period.end}">${readableDate(period.end)}</time></span><span>${escapeHtml(period.reason)}</span></li>`).join("")}</ul>` : "";
   for (const [enabled, label] of [[true, "個別有効日"], [false, "個別無効日"]]) {
     const dates = Object.entries(sample.overrides).filter(([, value]) => value === enabled).map(([date]) => date);
-    if (dates.length) entries.push([label, groupDateText(dates)]);
+    if (dates.length) exceptions += `<div class="sample-date-overrides" data-enabled="${enabled}"><h5>${label}</h5>${compactSampleDateGroups(dates)}</div>`;
   }
-  return `<dl>${entries.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>`;
+  return `<dl class="sample-period"><dt>利用期間</dt><dd><time datetime="${sample.start}" aria-label="利用開始日 ${sample.start}">${readableDate(sample.start)}</time><span aria-hidden="true"> → </span><time datetime="${sample.end}" aria-label="利用終了日 ${sample.end}">${readableDate(sample.end)}</time></dd></dl>
+    <dl class="sample-fares" aria-label="運賃・定期代">${fares}</dl>
+    <ul class="sample-tags" aria-label="通勤条件"><li data-condition="weekdays">${weekdays}</li><li data-condition="holiday">${sample.excludeHoliday ? "祝日除外" : "祝日除外なし"}</li><li data-condition="weekend">${sample.excludeWeekend ? "土日除外" : "土日除外なし"}</li></ul>
+    <p class="sample-comparison">比較：普通乗車券（往復）＋定期1・3・6か月</p>
+    ${exceptions ? `<section class="sample-exceptions"><h4>休暇・例外日</h4>${exceptions}</section>` : ""}`;
+}
+
+function ensureSampleHeadingVisible() {
+  if (activeSection !== "samples") return;
+  const button = document.querySelector('[data-sample][aria-expanded="true"]');
+  if (!button) return;
+  const rect = button.getBoundingClientRect();
+  const top = document.querySelector(".app-header").getBoundingClientRect().bottom + 10;
+  const bottom = window.innerHeight - 10;
+  const offset = rect.top < top ? rect.top - top : rect.bottom > bottom ? rect.bottom - bottom : 0;
+  if (Math.abs(offset) > 1) window.scrollBy({ top: offset, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+function fitFareInputs() {
+  document.querySelectorAll(".cost-grid input").forEach((input) => {
+    if (!input.clientWidth) return;
+    const style = getComputedStyle(input);
+    const width = input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 2;
+    if (!fareTextContext) fareTextContext = document.createElement("canvas").getContext("2d");
+    if (!fareTextContext) return;
+    fareTextContext.font = `${style.fontWeight} 16px ${style.fontFamily}`;
+    const textWidth = fareTextContext.measureText(input.value || "0").width;
+    input.style.fontSize = `${Math.max(10, Math.min(16, 16 * width / Math.max(1, textWidth)))}px`;
+  });
 }
 
 

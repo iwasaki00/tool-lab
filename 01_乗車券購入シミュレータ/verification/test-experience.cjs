@@ -30,16 +30,22 @@ const {loadSample,openManual}=require('./ui-helpers.cjs');
   const summaries=[];
   for(const id of ['01','02','03','04','05','06','07','08']){
    await page.locator('#tab-samples').click();const card=page.locator('[data-sample="'+id+'"]');if(await card.getAttribute('aria-expanded')!=='true')await card.click();
-   const preview=await page.locator('#sample-conditions-'+id).evaluate(e=>({entries:Object.fromEntries([...e.querySelectorAll('dl>div')].map(d=>[d.querySelector('dt').textContent,d.querySelector('dd').textContent])),inputs:e.querySelectorAll('input,select,textarea').length}));
+   const preview=await page.locator('#sample-conditions-'+id).evaluate(e=>({period:[...e.querySelectorAll('.sample-period time')].map(t=>t.dateTime),fares:Object.fromEntries([...e.querySelectorAll('[data-preview-fare]')].map(d=>[d.dataset.previewFare,d.querySelector('dd').textContent])),weekdays:e.querySelector('[data-condition="weekdays"]').textContent,holiday:e.querySelector('[data-condition="holiday"]').textContent,leaves:[...e.querySelectorAll('.sample-leave li')].map(li=>({dates:[...li.querySelectorAll('time')].map(t=>t.dateTime),text:li.textContent})),overrides:[...e.querySelectorAll('.sample-date-overrides')].map(d=>({enabled:d.dataset.enabled,months:[...d.querySelectorAll('.exception-month')].map(m=>({month:m.dataset.month,text:m.querySelector('.exception-days').textContent}))})),inputs:e.querySelectorAll('input,select,textarea').length}));
    assert.equal(preview.inputs,0);
    const sample=await page.evaluate(id=>createSamples().find(s=>s.id===id),id);
-   assert.equal(preview.entries['利用開始日'],sample.start.replaceAll('-','/'));assert.equal(preview.entries['利用終了日'],sample.end.replaceAll('-','/'));
-   for(const [label,key]of [['片道運賃','fare-one-way'],['1か月定期券代','fare-cmt1m'],['3か月定期券代','fare-cmt3m'],['6か月定期券代','fare-cmt6m']])assert.equal(preview.entries[label],sample.fares[key].toLocaleString('ja-JP')+'円');
-   assert.equal(preview.entries['祝日の扱い'],sample.excludeHoliday?'除外する':'利用日に含める');
-   const weekdayLabels=['日','月','火','水','木','金','土'];assert.equal(preview.entries['利用曜日'],sample.weekdays.length?sample.weekdays.map(d=>weekdayLabels[d]).join('・'):'個別日指定');
-   for(const p of sample.exclusions){assert.ok(preview.entries['休暇・除外期間'].includes(p.start.replaceAll('-','/')));assert.ok(preview.entries['休暇・除外期間'].includes(p.reason))}
-   function grouped(dates){const groups={};dates.sort().forEach(d=>{(groups[d.slice(0,7)]??=[]).push(String(+d.slice(8)))});return Object.entries(groups).map(([m,days])=>m.replace('-','/')+'：'+days.join('・')+'日').join(' ／ ')}
-   for(const [enabled,label]of [[true,'個別有効日'],[false,'個別無効日']]){const ds=Object.entries(sample.overrides).filter(([,v])=>v===enabled).map(([d])=>d);if(ds.length)assert.equal(preview.entries[label],grouped(ds))}
+   assert.deepEqual(preview.period,[sample.start,sample.end]);
+   for(const [id,key]of [['RTT','fare-one-way'],['CMT1M','fare-cmt1m'],['CMT3M','fare-cmt3m'],['CMT6M','fare-cmt6m']])assert.equal(preview.fares[id],sample.fares[key].toLocaleString('ja-JP')+'円');
+   const weekdayLabels=['日','月','火','水','木','金','土'];
+   assert.equal(preview.weekdays,sample.weekdays.join(',')==='1,2,3,4,5'?'月〜金':sample.weekdays.length?sample.weekdays.map(d=>weekdayLabels[d]).join('・'):'個別日指定');
+   assert.equal(preview.holiday,sample.excludeHoliday?'祝日除外':'祝日除外なし');
+   assert.deepEqual(preview.leaves.map(p=>p.dates),sample.exclusions.map(p=>[p.start,p.end]));
+   sample.exclusions.forEach((p,n)=>assert.ok(preview.leaves[n].text.includes(p.reason)));
+   for(const enabled of [true,false]){
+    const expected=Object.entries(sample.overrides).filter(([,v])=>v===enabled).map(([date])=>date).sort();
+    const section=preview.overrides.find(s=>s.enabled===String(enabled));const actual=[];
+    for(const group of section?.months||[])for(const range of group.text.split('・')){const [start,end]=range.split('〜').map(Number);for(let day=start;day<=(end??start);day++)actual.push(group.month+'-'+String(day).padStart(2,'0'))}
+    assert.deepEqual(actual,expected);
+   }
    await page.locator('[data-apply-sample="'+id+'"]').click();assert.equal(await page.evaluate(()=>lastResult),null);await page.locator('#simulate-button').click();
    const result=await page.evaluate(()=>lastResult);const plans=await page.evaluate(()=>buildPurchasePlans(lastResult));
    assert.equal(Object.keys(plans).length,5);
@@ -53,7 +59,7 @@ const {loadSample,openManual}=require('./ui-helpers.cjs');
    const tampered=await page.evaluate(()=>{const copy=structuredClone(lastResult);copy.patternOnlyCosts.CMT3M++;try{buildPurchasePlans(copy);return false}catch{return true}});assert.equal(tampered,true);
    summaries.push({id,bestCost:result.bestCost,plans:Object.values(plans).map(p=>({id:p.id,label:p.label,cost:p.cost,purchases:p.steps.length,ordinaryDays:p.steps.filter(s=>s.patternId==='RTT').length}))});
   }
-  fs.writeFileSync('verification/v121-plan-checks.json',JSON.stringify(summaries,null,2));
+  fs.writeFileSync('verification/v122-plan-checks.json',JSON.stringify(summaries,null,2));
   // Popup failure is recoverable beside the export controls.
   await page.evaluate(()=>{const saved=window.open;window.open=()=>null;downloadPdf();window.open=saved});assert.ok((await page.locator('#pdf-error').textContent()).includes('ポップアップ'));
   const exported=await page.evaluate(()=>{const saved=window.open;let html='';window.open=()=>({document:{open(){},write(t){html=t},close(){}}});document.getElementById('pdf-pattern').value='CMT3M';downloadPdf();window.open=saved;return html});assert.ok(exported.includes('3か月定期券のみ'));assert.ok(exported.includes('日本時間'));

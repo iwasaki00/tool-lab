@@ -1,0 +1,12 @@
+# Text policy applies only to this simulator folder and its descendants.
+* text=auto
+.gitattributes text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.cjs text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.py text eol=lf
+*.png -text
+*.pdf -text

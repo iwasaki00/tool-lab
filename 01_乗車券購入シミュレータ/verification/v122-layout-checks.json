@@ -1,0 +1,73 @@
+{
+  "before": {
+    "cost": 613.75,
+    "dates": 381,
+    "manual": 1164.34375,
+    "samples": {
+      "01": 683.328125,
+      "02": 784.609375,
+      "07": 1173.109375
+    }
+  },
+  "after": {
+    "cost": 312.375,
+    "dates": 239,
+    "manual": 701.375,
+    "samples": {
+      "01": 325.171875,
+      "02": 434.546875,
+      "07": 614.484375
+    }
+  },
+  "dimensions": [
+    {
+      "width": 1280,
+      "dateWidths": [
+        541,
+        541
+      ]
+    },
+    {
+      "width": 768,
+      "dateWidths": [
+        353,
+        353
+      ]
+    },
+    {
+      "width": 740,
+      "dateWidths": [
+        343,
+        343
+      ]
+    },
+    {
+      "width": 390,
+      "dateWidths": [
+        170,
+        170
+      ]
+    },
+    {
+      "width": 375,
+      "dateWidths": [
+        162.5,
+        162.5
+      ]
+    },
+    {
+      "width": 320,
+      "dateWidths": [
+        135,
+        135
+      ]
+    }
+  ],
+  "animation": {
+    "height": 187.46875,
+    "opacity": 0.576558,
+    "duration": "0.25s, 0.25s, 0s"
+  },
+  "lineEndings": "LF",
+  "preserved": "engine, samples, PDF generators, state restore"
+}

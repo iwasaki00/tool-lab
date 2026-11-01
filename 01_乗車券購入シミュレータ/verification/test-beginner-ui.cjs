@@ -88,17 +88,17 @@ const {loadSample,openManual}=require('./ui-helpers.cjs');
     const overflow=await page.evaluate(()=>({body:document.documentElement.scrollWidth>innerWidth,items:[...document.querySelectorAll('button,input,select,summary,.panel,.sample-item,.sample-conditions')].filter(e=>e.getClientRects().length&&(e.getBoundingClientRect().right>innerWidth+1||e.getBoundingClientRect().left< -1||e.scrollWidth>e.clientWidth+2)).map(e=>e.id||e.className)}));
     assert.deepEqual(overflow,{body:false,items:[]},`${section} width=${width}`);
     for(const tab of await page.locator('[role="tab"]').all())assert.ok((await tab.boundingBox()).height>=44);
-    if(width===1280||width===390)await page.screenshot({path:`verification/v121-${width}-${section}.png`,fullPage:true});
+    if(width===1280||width===390)await page.screenshot({path:`verification/v122-${width}-${section}.png`,fullPage:true});
    }
   }
   const touch=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});
   const mobile=await touch.newPage();mobile.on('pageerror',e=>errors.push(e.message));await mobile.goto(pathToFileURL(path.resolve('index.html')).href);
   await mobile.locator('#tab-samples').tap();await mobile.locator('[data-sample="06"]').tap();
-  assert.equal(await mobile.evaluate(()=>lastResult),null);await mobile.screenshot({path:'verification/v121-iphone-preview.png'});
+  assert.equal(await mobile.evaluate(()=>lastResult),null);await mobile.screenshot({path:'verification/v122-iphone-preview.png'});
   await mobile.locator('[data-apply-sample="06"]').tap();assert.equal(await mobile.evaluate(()=>activeSection),'calculate');
-  await mobile.screenshot({path:'verification/v121-iphone-loaded.png'});
+  await mobile.screenshot({path:'verification/v122-iphone-loaded.png'});
   await mobile.locator('#simulate-button').tap();await mobile.waitForFunction(()=>{const r=document.getElementById('result-title').getBoundingClientRect();return r.top>=document.querySelector('.app-header').getBoundingClientRect().bottom&&r.top<innerHeight});
-  await mobile.screenshot({path:'verification/v121-iphone-result.png'});
+  await mobile.screenshot({path:'verification/v122-iphone-result.png'});
   await mobile.locator('#tab-calculate').tap();await mobile.locator('#fare-one-way').fill('710');await mobile.locator('#fare-one-way').dispatchEvent('change');
   assert.equal(await mobile.locator('.result-panel').isVisible(),false);assert.equal(await mobile.locator('#download-pdf').isDisabled(),true);
   assert.ok((await mobile.locator('#sample-status').textContent()).includes('変更済み'));await mobile.locator('#restore-settings').tap();

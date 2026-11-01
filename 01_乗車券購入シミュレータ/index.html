@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="乗車券比較">
     <title>乗車券購入シミュレーション</title>
-    <link rel="stylesheet" href="style.css?v=1.2.1">
+    <link rel="stylesheet" href="style.css?v=1.2.2">
   </head>
   <body>
     <header class="app-header">
@@ -49,7 +49,7 @@
             <p>「詳細設定」で祝日・休暇の除外や、カレンダーの日付ごとの変更ができます。曜日や期間を再反映すると、個別の日付変更は解除されます。</p>
             <p>結果の購入スケジュールはカレンダーと線表で切り替えられます。購入パターンを選んで、印刷画面からPDF保存もできます。同額の最安プランがある場合は一つを表示します。</p>
           </details>
-          <div class="intro-actions"><button class="primary-button" type="button" data-section-link="samples">サンプルで試す</button><button class="ghost-button" type="button" data-section-link="calculate">シミュレート実行する</button></div>
+          <div class="intro-actions"><button class="primary-button" type="button" data-section-link="samples">サンプルで試す</button><button class="ghost-button" type="button" data-section-link="calculate">シミュレート実行へ</button></div>
         </section>
       </div>
       <div id="section-samples" class="view-content" role="tabpanel" aria-labelledby="tab-samples" hidden>
@@ -75,22 +75,23 @@
           <button class="ghost-button" type="button" id="reset-settings">初期化</button>
         </div>
 
+        <p class="note fare-input-note" id="fare-input-note">片道運賃と定期券1枚分の金額を入力してください。片道運賃は往復で2倍になります。</p>
         <details class="fare-help"><summary>運賃・定期代を調べる</summary><p class="note">片道運賃と1・3・6か月定期代を調べて入力してください。</p><div class="external-links"><a href="https://www.jorudan.co.jp/norikae/teiki.html" target="_blank" rel="noopener noreferrer">ジョルダン 定期代検索 ↗<span class="note">（外部サイト・新しいタブ）</span></a><a href="https://transit.yahoo.co.jp/" target="_blank" rel="noopener noreferrer">Yahoo!路線情報 ↗<span class="note">（外部サイト・新しいタブ）</span></a></div></details>
         <div class="cost-grid">
 
-          <label class="field"><span>片道運賃</span><input id="fare-one-way" type="number" min="0" step="1" inputmode="numeric" value="633" aria-describedby="fare-one-way-hint fare-one-way-error"><small class="field-hint" id="fare-one-way-hint">片道1回分。1日の往復費用はこの金額の2倍です。</small><span class="input-error" id="fare-one-way-error" role="alert"></span></label>
+          <label class="field"><span>片道運賃</span><input id="fare-one-way" type="number" min="0" step="1" inputmode="numeric" value="633" aria-describedby="fare-input-note fare-one-way-error"><span class="input-error" id="fare-one-way-error" role="alert"></span></label>
 
-          <label class="field"><span>1か月定期券の金額</span><input id="fare-cmt1m" type="number" min="0" step="1" inputmode="numeric" value="22980" aria-describedby="fare-cmt1m-hint fare-cmt1m-error"><small class="field-hint" id="fare-cmt1m-hint">1か月定期券1枚分の金額。</small><span class="input-error" id="fare-cmt1m-error" role="alert"></span></label>
+          <label class="field"><span>1か月定期</span><input id="fare-cmt1m" type="number" min="0" step="1" inputmode="numeric" value="22980" aria-describedby="fare-input-note fare-cmt1m-error"><span class="input-error" id="fare-cmt1m-error" role="alert"></span></label>
 
-          <label class="field"><span>3か月定期券の金額</span><input id="fare-cmt3m" type="number" min="0" step="1" inputmode="numeric" value="65500" aria-describedby="fare-cmt3m-hint fare-cmt3m-error"><small class="field-hint" id="fare-cmt3m-hint">3か月定期券1枚分の金額。</small><span class="input-error" id="fare-cmt3m-error" role="alert"></span></label>
+          <label class="field"><span>3か月定期</span><input id="fare-cmt3m" type="number" min="0" step="1" inputmode="numeric" value="65500" aria-describedby="fare-input-note fare-cmt3m-error"><span class="input-error" id="fare-cmt3m-error" role="alert"></span></label>
 
-          <label class="field"><span>6か月定期券の金額</span><input id="fare-cmt6m" type="number" min="0" step="1" inputmode="numeric" value="124100" aria-describedby="fare-cmt6m-hint fare-cmt6m-error"><small class="field-hint" id="fare-cmt6m-hint">6か月定期券1枚分の金額。</small><span class="input-error" id="fare-cmt6m-error" role="alert"></span></label>
+          <label class="field"><span>6か月定期</span><input id="fare-cmt6m" type="number" min="0" step="1" inputmode="numeric" value="124100" aria-describedby="fare-input-note fare-cmt6m-error"><span class="input-error" id="fare-cmt6m-error" role="alert"></span></label>
         </div>
       </section>
         <section class="panel" aria-labelledby="date-title">
         <div class="section-head">
           <h2 id="date-title">通う日を設定</h2>
-          <button class="ghost-button" type="button" id="generate-dates">条件を再反映</button>
+          <button class="ghost-button" type="button" id="generate-dates">日付条件を反映</button>
         </div>
 
         <div class="date-settings">
@@ -116,7 +117,7 @@
       </section>
         <details class="panel advanced-settings" id="advanced-settings">
           <summary>詳細設定 <span>祝日・休暇・日付ごとの変更</span></summary>
-                  <fieldset class="weekday-box"><legend>比較する乗車券</legend><div class="ticket-options"><label class="check-card"><input type="checkbox" id="use-rtt" checked><span>普通乗車券（往復）</span></label><label class="check-card"><input type="checkbox" id="use-cmt1m" checked><span>1か月定期券</span></label><label class="check-card"><input type="checkbox" id="use-cmt3m" checked><span>3か月定期券</span></label><label class="check-card"><input type="checkbox" id="use-cmt6m" checked><span>6か月定期券</span></label></div></fieldset>
+                  <fieldset class="weekday-box"><legend>比較する乗車券</legend><div class="ticket-options"><label class="check-card"><input type="checkbox" id="use-rtt" checked><span>普通乗車券</span></label><label class="check-card"><input type="checkbox" id="use-cmt1m" checked><span>1か月定期券</span></label><label class="check-card"><input type="checkbox" id="use-cmt3m" checked><span>3か月定期券</span></label><label class="check-card"><input type="checkbox" id="use-cmt6m" checked><span>6か月定期券</span></label></div></fieldset>
           <p class="input-error" id="pattern-error" role="alert"></p>
           <div class="option-row">
           <label class="check-card compact"><input type="checkbox" id="exclude-weekend">土日を除く</label>
@@ -125,8 +126,8 @@
           <p class="note">2028〜2099年の祝日は現行ルールによる推定です。春分・秋分は正式発表をご確認ください。<a href="https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html" target="_blank" rel="noopener noreferrer">祝日の情報</a></p>
           <section class="panel" aria-labelledby="exclusion-title">
         <div class="section-head">
-          <h2 id="exclusion-title">除外期間設定</h2>
-          <button class="ghost-button" type="button" id="refresh-from-exclusion">条件を再反映</button>
+          <h2 id="exclusion-title">休暇・除外期間</h2>
+          <button class="ghost-button" type="button" id="refresh-from-exclusion">日付条件を反映</button>
         </div>
 
         <div class="exclusion-form">
@@ -143,7 +144,7 @@
           <div>
             <h2 id="calendar-title">カレンダー表示</h2>
             <p class="note" id="date-summary">有効日 0 日</p>
-            <p class="note">日付をタップすると有効/無効を切り替えます。</p>
+            <p class="note">日付をタップすると有効／無効を切り替えます。日付条件を反映すると個別変更は解除されます。</p>
           </div>
         </div>
         <div class="calendar-grid" id="calendar-area"></div>
@@ -161,8 +162,8 @@
         <p id="manual-result-method" class="manual-result-method" hidden></p>
         <div id="result-area" class="empty-result">条件を設定して「シミュレート実行」を押してください。</div>
       </section>
-      <footer class="app-footer">乗車券購入シミュレーション <small>v1.2.1</small></footer>
+      <footer class="app-footer">乗車券購入シミュレーション <small>v1.2.2</small></footer>
     </main>
-    <script src="script.js?v=1.2.1"></script>
+    <script src="script.js?v=1.2.2"></script>
   </body>
 </html>
