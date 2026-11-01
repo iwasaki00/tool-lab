@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="乗車券比較">
     <title>乗車券購入シミュレーション</title>
-    <link rel="stylesheet" href="style.css?v=1.2.2">
+    <link rel="stylesheet" href="style.css?v=1.2.3">
   </head>
   <body>
     <header class="app-header">
@@ -56,17 +56,19 @@
         <section class="panel sample-panel" aria-labelledby="sample-title">
           <h2 id="sample-title">サンプルで試してみよう</h2>
           <p class="note">カードで条件を確認し、「この条件でシミュレート」で実行画面へ進みます。</p>
+          <p class="sample-route-banner"><strong>共通区間：横浜 ⇔ 東京</strong><span>JR東海道線・大人IC運賃。学生サンプルのみ大学生用通学定期代。</span></p>
           <div id="sample-cards" class="sample-grid"></div>
           <details class="help-details"><summary>サンプルの条件について</summary>
-            <p>次に迎える8月から6か月間、同じ運賃で比較します。運賃と休暇は体験用の想定です。</p>
-            <p>片道633円、定期1か月22,980円／3か月65,500円／6か月124,100円。</p>
+            <p>次に迎える8月から6か月間、同じ区間で比較します。勤務・通学日と休暇は体験用の想定です。</p>
+            <p>2026年3月14日改定後の運賃を使用します。普通乗車券は全サンプルで大人IC片道528円、往復1,056円。定期代は各カードで確認できます。</p>
+            <p>参照：<a href="https://www.jreast.co.jp/2026unchin-kaitei/" target="_blank" rel="noopener noreferrer">JR東日本 運賃改定</a> ／ <a href="https://ekitan.com/rail-company/2/pass/sf-3260/st-2590" target="_blank" rel="noopener noreferrer">駅探 横浜〜東京の定期代</a></p>
             <p>最初のサンプル選択前の設定は、切り替え・再読み込み後も「元の設定に戻す」で復元できます。</p>
           </details>
         </section>
       </div>
       <div id="section-calculate" class="view-content" role="tabpanel" aria-labelledby="tab-calculate" hidden>
         <aside class="sample-notice" id="sample-context" hidden aria-label="サンプルの読み込み案内">
-          <div><p id="sample-status" role="status" aria-live="polite"></p><p class="note" id="sample-guidance">金額・期間・利用曜日などを確認してから、下の「シミュレート実行」を押してください。</p></div>
+          <div><p id="sample-status" role="status" aria-live="polite"></p><div id="sample-route-context"></div><p class="note" id="sample-guidance">金額・期間・利用曜日などを確認してから、下の「シミュレート実行」を押してください。</p></div>
           <button id="restore-settings" class="ghost-button" type="button" hidden>元の設定に戻す</button>
         </aside>
         <section class="panel" aria-labelledby="cost-title">
@@ -162,8 +164,8 @@
         <p id="manual-result-method" class="manual-result-method" hidden></p>
         <div id="result-area" class="empty-result">条件を設定して「シミュレート実行」を押してください。</div>
       </section>
-      <footer class="app-footer">乗車券購入シミュレーション <small>v1.2.2</small></footer>
+      <footer class="app-footer">乗車券購入シミュレーション <small>v1.2.3</small></footer>
     </main>
-    <script src="script.js?v=1.2.2"></script>
+    <script src="script.js?v=1.2.3"></script>
   </body>
 </html>

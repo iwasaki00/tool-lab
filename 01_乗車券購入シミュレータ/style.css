@@ -1068,3 +1068,14 @@ input[type="date"]::-webkit-calendar-picker-indicator { width:18px; height:20px;
 @media(prefers-reduced-motion:reduce) {
   .sample-conditions, .sample-chevron { transition:none; }
 }
+
+/* Real-route sample metadata stays separate from manual defaults and saved input values. */
+.sample-route-banner { display:grid; gap:3px; margin:10px 0 0; padding:9px 10px; border-radius:6px; background:var(--soft); line-height:1.6; overflow-wrap:anywhere; }
+.sample-route-banner strong { font-size:14px; color:var(--accent-dark); }
+.sample-route-banner span { font-size:12px; color:var(--muted); }
+.sample-route-info { display:flex; flex-wrap:wrap; gap:2px 12px; margin:0 0 4px; font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.sample-fare-basis, .sample-student-notice { margin:0 0 8px; font-size:11px; line-height:1.6; }
+#sample-route-context { margin:4px 0; }
+#sample-route-context .sample-student-notice { margin-top:4px; }
+.discovery .sample-route-info { margin:8px 0 0; }
+.discovery .sample-fare-basis, .discovery .sample-student-notice { margin:4px 0; }

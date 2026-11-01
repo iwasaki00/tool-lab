@@ -1,0 +1,330 @@
+[
+  {
+    "id": "01",
+    "bestCost": 79650,
+    "plans": [
+      {
+        "id": "BEST",
+        "label": "最安購入方法",
+        "cost": 79650,
+        "purchases": 1,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "RTT",
+        "label": "普通乗車券のみ",
+        "cost": 130944,
+        "purchases": 124,
+        "ordinaryDays": 124
+      },
+      {
+        "id": "CMT1M",
+        "label": "1か月定期券のみ",
+        "cost": 93600,
+        "purchases": 6,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT3M",
+        "label": "3か月定期券のみ",
+        "cost": 88920,
+        "purchases": 2,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT6M",
+        "label": "6か月定期券のみ",
+        "cost": 79650,
+        "purchases": 1,
+        "ordinaryDays": 0
+      }
+    ]
+  },
+  {
+    "id": "02",
+    "bestCost": 41450,
+    "plans": [
+      {
+        "id": "BEST",
+        "label": "最安購入方法",
+        "cost": 41450,
+        "purchases": 3,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "RTT",
+        "label": "普通乗車券のみ",
+        "cost": 98208,
+        "purchases": 93,
+        "ordinaryDays": 93
+      },
+      {
+        "id": "CMT1M",
+        "label": "1か月定期券のみ",
+        "cost": 42750,
+        "purchases": 5,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT3M",
+        "label": "3か月定期券のみ",
+        "cost": 48700,
+        "purchases": 2,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT6M",
+        "label": "6か月定期券のみ",
+        "cost": 46160,
+        "purchases": 1,
+        "ordinaryDays": 0
+      }
+    ]
+  },
+  {
+    "id": "03",
+    "bestCost": 78144,
+    "plans": [
+      {
+        "id": "BEST",
+        "label": "最安購入方法",
+        "cost": 78144,
+        "purchases": 74,
+        "ordinaryDays": 74
+      },
+      {
+        "id": "RTT",
+        "label": "普通乗車券のみ",
+        "cost": 78144,
+        "purchases": 74,
+        "ordinaryDays": 74
+      },
+      {
+        "id": "CMT1M",
+        "label": "1か月定期券のみ",
+        "cost": 93600,
+        "purchases": 6,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT3M",
+        "label": "3か月定期券のみ",
+        "cost": 88920,
+        "purchases": 2,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT6M",
+        "label": "6か月定期券のみ",
+        "cost": 79650,
+        "purchases": 1,
+        "ordinaryDays": 0
+      }
+    ]
+  },
+  {
+    "id": "04",
+    "bestCost": 52800,
+    "plans": [
+      {
+        "id": "BEST",
+        "label": "最安購入方法",
+        "cost": 52800,
+        "purchases": 50,
+        "ordinaryDays": 50
+      },
+      {
+        "id": "RTT",
+        "label": "普通乗車券のみ",
+        "cost": 52800,
+        "purchases": 50,
+        "ordinaryDays": 50
+      },
+      {
+        "id": "CMT1M",
+        "label": "1か月定期券のみ",
+        "cost": 93600,
+        "purchases": 6,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT3M",
+        "label": "3か月定期券のみ",
+        "cost": 88920,
+        "purchases": 2,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT6M",
+        "label": "6か月定期券のみ",
+        "cost": 79650,
+        "purchases": 1,
+        "ordinaryDays": 0
+      }
+    ]
+  },
+  {
+    "id": "05",
+    "bestCost": 70848,
+    "plans": [
+      {
+        "id": "BEST",
+        "label": "最安購入方法",
+        "cost": 70848,
+        "purchases": 12,
+        "ordinaryDays": 8
+      },
+      {
+        "id": "RTT",
+        "label": "普通乗車券のみ",
+        "cost": 97152,
+        "purchases": 92,
+        "ordinaryDays": 92
+      },
+      {
+        "id": "CMT1M",
+        "label": "1か月定期券のみ",
+        "cost": 93600,
+        "purchases": 6,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT3M",
+        "label": "3か月定期券のみ",
+        "cost": 88920,
+        "purchases": 2,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT6M",
+        "label": "6か月定期券のみ",
+        "cost": 79650,
+        "purchases": 1,
+        "ordinaryDays": 0
+      }
+    ]
+  },
+  {
+    "id": "06",
+    "bestCost": 75660,
+    "plans": [
+      {
+        "id": "BEST",
+        "label": "最安購入方法",
+        "cost": 75660,
+        "purchases": 3,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "RTT",
+        "label": "普通乗車券のみ",
+        "cost": 109824,
+        "purchases": 104,
+        "ordinaryDays": 104
+      },
+      {
+        "id": "CMT1M",
+        "label": "1か月定期券のみ",
+        "cost": 78000,
+        "purchases": 5,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT3M",
+        "label": "3か月定期券のみ",
+        "cost": 88920,
+        "purchases": 2,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT6M",
+        "label": "6か月定期券のみ",
+        "cost": 79650,
+        "purchases": 1,
+        "ordinaryDays": 0
+      }
+    ]
+  },
+  {
+    "id": "07",
+    "bestCost": 79650,
+    "plans": [
+      {
+        "id": "BEST",
+        "label": "最安購入方法",
+        "cost": 79650,
+        "purchases": 1,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "RTT",
+        "label": "普通乗車券のみ",
+        "cost": 130944,
+        "purchases": 124,
+        "ordinaryDays": 124
+      },
+      {
+        "id": "CMT1M",
+        "label": "1か月定期券のみ",
+        "cost": 93600,
+        "purchases": 6,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT3M",
+        "label": "3か月定期券のみ",
+        "cost": 88920,
+        "purchases": 2,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT6M",
+        "label": "6か月定期券のみ",
+        "cost": 79650,
+        "purchases": 1,
+        "ordinaryDays": 0
+      }
+    ]
+  },
+  {
+    "id": "08",
+    "bestCost": 70860,
+    "plans": [
+      {
+        "id": "BEST",
+        "label": "最安購入方法",
+        "cost": 70860,
+        "purchases": 26,
+        "ordinaryDays": 25
+      },
+      {
+        "id": "RTT",
+        "label": "普通乗車券のみ",
+        "cost": 90816,
+        "purchases": 86,
+        "ordinaryDays": 86
+      },
+      {
+        "id": "CMT1M",
+        "label": "1か月定期券のみ",
+        "cost": 93600,
+        "purchases": 6,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT3M",
+        "label": "3か月定期券のみ",
+        "cost": 88920,
+        "purchases": 2,
+        "ordinaryDays": 0
+      },
+      {
+        "id": "CMT6M",
+        "label": "6か月定期券のみ",
+        "cost": 79650,
+        "purchases": 1,
+        "ordinaryDays": 0
+      }
+    ]
+  }
+]

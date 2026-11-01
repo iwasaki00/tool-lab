@@ -1,4 +1,4 @@
-﻿const {chromium}=require('playwright');
+const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('fs');
 const path=require('path');
@@ -59,7 +59,7 @@ const {loadSample,openManual}=require('./ui-helpers.cjs');
    const tampered=await page.evaluate(()=>{const copy=structuredClone(lastResult);copy.patternOnlyCosts.CMT3M++;try{buildPurchasePlans(copy);return false}catch{return true}});assert.equal(tampered,true);
    summaries.push({id,bestCost:result.bestCost,plans:Object.values(plans).map(p=>({id:p.id,label:p.label,cost:p.cost,purchases:p.steps.length,ordinaryDays:p.steps.filter(s=>s.patternId==='RTT').length}))});
   }
-  fs.writeFileSync('verification/v122-plan-checks.json',JSON.stringify(summaries,null,2));
+  fs.writeFileSync('verification/v123-plan-checks.json',JSON.stringify(summaries,null,2));
   // Popup failure is recoverable beside the export controls.
   await page.evaluate(()=>{const saved=window.open;window.open=()=>null;downloadPdf();window.open=saved});assert.ok((await page.locator('#pdf-error').textContent()).includes('ポップアップ'));
   const exported=await page.evaluate(()=>{const saved=window.open;let html='';window.open=()=>({document:{open(){},write(t){html=t},close(){}}});document.getElementById('pdf-pattern').value='CMT3M';downloadPdf();window.open=saved;return html});assert.ok(exported.includes('3か月定期券のみ'));assert.ok(exported.includes('日本時間'));

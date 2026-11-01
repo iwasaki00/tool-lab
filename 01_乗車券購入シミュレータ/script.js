@@ -32,6 +32,13 @@ let activeSection = "overview";
 let fareTextContext = null;
 let hasDisplayedResult = false;
 const SAMPLE_SESSION_KEY = "ticket-simulator-sample-v110";
+// User-supplied fares after JR East's 2026-03-14 revision; no network lookup at runtime.
+const SAMPLE_ROUTE = Object.freeze({ section: "横浜 ⇔ 東京", line: "JR東海道線", fareBasis: "大人IC運賃", revision: "2026-03-14" });
+const SAMPLE_FARE_MASTERS = Object.freeze({
+  commute: Object.freeze({ passType: "通勤", fares: Object.freeze({ "fare-one-way": 528, "fare-cmt1m": 15600, "fare-cmt3m": 44460, "fare-cmt6m": 79650 }) }),
+  university: Object.freeze({ passType: "通学（大学）", fares: Object.freeze({ "fare-one-way": 528, "fare-cmt1m": 8550, "fare-cmt3m": 24350, "fare-cmt6m": 46160 }) })
+});
+const UNIVERSITY_PASS_NOTICE = "横浜駅が自宅最寄り駅、東京駅が大学最寄り駅の大学生を想定しています。実際の通学定期券購入には、学校が証明した通学区間などの条件があります。";
 
 document.addEventListener("DOMContentLoaded", init);
 
@@ -805,7 +812,7 @@ function renderPdfHtml(model) {
     const dates = Object.entries(context.overrides).filter(([, value]) => value === enabled).map(([date]) => date);
     return dates.length ? `<p>個別${enabled ? "有効" : "無効"}日：${esc(groupDateText(dates))}</p>` : "";
   }).join("");
-  const conditions = `<div class="conditions"><p><strong>計算対象期間：</strong>${readableDate(context.start)}〜${readableDate(context.end)} ／ 対象利用日数：${model.activeDates.length}日</p>
+  const conditions = `<div class="conditions">${renderSampleJourney(context.journey, context.modified)}<p><strong>計算対象期間：</strong>${readableDate(context.start)}〜${readableDate(context.end)} ／ 対象利用日数：${model.activeDates.length}日</p>
     <p>片道運賃：${formatCurrency(context.fares["fare-one-way"])}（往復は2倍） ／ 定期代：1か月 ${formatCurrency(context.fares["fare-cmt1m"])}・3か月 ${formatCurrency(context.fares["fare-cmt3m"])}・6か月 ${formatCurrency(context.fares["fare-cmt6m"])}</p>
     <p>利用曜日：${esc(weekdays)} ／ 祝日：${context.excludeHoliday ? "除外" : "曜日・個別日設定に従う"} ／ 土日除外：${context.excludeWeekend ? "あり" : "なし"}</p>
     <p>休暇・除外期間：${esc(exclusionText)}</p>${overrides}
@@ -950,11 +957,10 @@ function createSamples(today = new Date()) {
   const year = today.getFullYear() + (today >= new Date(today.getFullYear(), 7, 1) ? 1 : 0);
   const start = `${year}-08-01`;
   const end = `${year + 1}-01-31`;
-  const fares = { "fare-one-way": 633, "fare-cmt1m": 22980, "fare-cmt3m": 65500, "fare-cmt6m": 124100 };
   const definitions = [
     ["01", "💼", "毎日通勤する会社員", "平日週5日、祝日を除いて6か月通勤。", "6か月定期券が本当に一番お得？", [1,2,3,4,5], "休暇を1週間追加して、最安プランの変化を見てみましょう。"],
-    ["02", "🎓", "長期休暇のある学生", "平日通学。夏休みと冬休みを除外します。", "夏休み・冬休みで購入方法はどう変わる？", [1,2,3,4,5], "夏休みの終了日を前後させて比較してみましょう。"],
-    ["03", "📅", "週3日出勤", "月・水・金に出勤し、祝日は休み。", "定期券を買うべき境界は？", [1,3,5], "火曜日も有効にして、週4日との違いを見てみましょう。"],
+    ["02", "🎓", "長期休暇のある大学生", "大学生の平日通学。夏休みと冬休みを除外。", "長期休暇を挟むと購入方法はどう変わる？", [1,2,3,4,5], "夏休みの終了日を前後させて比較してみましょう。"],
+    ["03", "📅", "週3日出勤", "月・水・金に出勤し、祝日は休み。", "週3日なら定期券は必要？", [1,3,5], "火曜日も有効にして、週4日との違いを見てみましょう。"],
     ["04", "🏠", "週2日出勤", "火・木に出勤し、祝日は休み。", "定期券を買わない方がお得？", [2,4], "出勤日を週1日増やして、購入方法が変わるか試しましょう。"],
     ["05", "📊", "月によって出勤日数が変動", "8・9・12・1月は週5日、10・11月は月曜のみ。", "定期券と普通乗車券を組み合わせたら？", [1,2,3,4,5], "出勤の少ない月を1か月に短縮してみましょう。"],
     ["06", "🧳", "1か月の長期出張", "平日通勤の途中、10月の30日間は利用しません。", "定期券を買う日をずらすと？", [1,2,3,4,5], "出張の開始日を1週間ずらして再計算してみましょう。"],
@@ -962,11 +968,13 @@ function createSamples(today = new Date()) {
     ["08", "💻", "途中から在宅勤務", "前半3か月は平日週5日、後半3か月は火・木。", "6か月定期券を買う前に確認したいこと", [1,2,3,4,5], "在宅勤務に切り替える時期を早めて比較してみましょう。"]
   ];
   return definitions.map(([id, icon, name, description, highlight, weekdays, suggestion]) => {
-    const sample = { id, icon, name, description, highlight, fares: { ...fares }, start, end, weekdays,
+    const master = SAMPLE_FARE_MASTERS[id === "02" ? "university" : "commute"];
+    const sample = { id, icon, name, description, highlight, fares: { ...master.fares },
+      journey: { ...SAMPLE_ROUTE, passType: master.passType, notice: id === "02" ? UNIVERSITY_PASS_NOTICE : "" }, start, end, weekdays,
       excludeWeekend: false, excludeHoliday: id !== "07", overrides: {}, exclusions: [], suggestion,
       explanation: {
         "01": "平日通勤の有効日は{days}日です。定期券の期間と利用日数を、下の実計算の差額で比較できます。",
-        "02": "夏休みと冬休みを除くと、有効日は{days}日です。休暇をまたぐ定期券と、必要な時期に分けて買う方法を比較できます。",
+        "02": "大学生用通学定期代で、夏休みと冬休みを除くと有効日は{days}日です。購入フローで定期券の買い分け方を確認し、6か月定期券のみの金額と比較できます。",
         "03": "月・水・金を基本にした有効日は{days}日です。この利用頻度での購入方法と、各券種のみの金額を比較できます。",
         "04": "火・木を基本にした有効日は{days}日です。定期券の割引率だけでなく、実際の利用日数も購入額に関係します。",
         "05": "月ごとの利用日数を変えた結果、有効日は{days}日です。購入フローで、利用の多い月と少ない月の券種を確認できます。",
@@ -1058,6 +1066,14 @@ function compactSampleDateGroups(dates) {
   }).join("");
 }
 
+function renderSampleJourney(journey, modified = false) {
+  if (!journey) return ""; // Old saved sessions retain their original fares without new route claims.
+  const esc = escapeHtml;
+  return `<p class="sample-route-info"><span data-sample-route>${modified ? "元サンプルの利用区間" : "利用区間"}：${esc(journey.section)}（${esc(journey.line)}）</span><span data-sample-pass>${modified ? "元の定期券種別" : "定期券種別"}：${esc(journey.passType)}</span></p>
+    <p class="note sample-fare-basis">${esc(journey.fareBasis)}・${readableDate(journey.revision)}改定後${modified ? "のサンプルから変更済み。計算には現在の入力金額を使用しています。" : "の運賃。"}</p>
+    ${journey.notice ? `<p class="note sample-student-notice">${esc(journey.notice)}</p>` : ""}`;
+}
+
 function renderSampleConditions(sample) {
   const weekdays = sample.weekdays.join(",") === "1,2,3,4,5" ? "月〜金" : sample.weekdays.length ? sample.weekdays.map((day) => WEEKDAY_LABELS[day]).join("・") : "個別日指定";
   const fares = PATTERNS.map((pattern) => `<div data-preview-fare="${pattern.id}"><dt>${pattern.id === "RTT" ? "片道運賃" : getPlanLabel(pattern.id).replace("定期券のみ", "定期")}</dt><dd>${formatCurrency(sample.fares[pattern.fareId])}</dd></div>`).join("");
@@ -1066,7 +1082,7 @@ function renderSampleConditions(sample) {
     const dates = Object.entries(sample.overrides).filter(([, value]) => value === enabled).map(([date]) => date);
     if (dates.length) exceptions += `<div class="sample-date-overrides" data-enabled="${enabled}"><h5>${label}</h5>${compactSampleDateGroups(dates)}</div>`;
   }
-  return `<dl class="sample-period"><dt>利用期間</dt><dd><time datetime="${sample.start}" aria-label="利用開始日 ${sample.start}">${readableDate(sample.start)}</time><span aria-hidden="true"> → </span><time datetime="${sample.end}" aria-label="利用終了日 ${sample.end}">${readableDate(sample.end)}</time></dd></dl>
+  return `${renderSampleJourney(sample.journey)}<dl class="sample-period"><dt>利用期間</dt><dd><time datetime="${sample.start}" aria-label="利用開始日 ${sample.start}">${readableDate(sample.start)}</time><span aria-hidden="true"> → </span><time datetime="${sample.end}" aria-label="利用終了日 ${sample.end}">${readableDate(sample.end)}</time></dd></dl>
     <dl class="sample-fares" aria-label="運賃・定期代">${fares}</dl>
     <ul class="sample-tags" aria-label="通勤条件"><li data-condition="weekdays">${weekdays}</li><li data-condition="holiday">${sample.excludeHoliday ? "祝日除外" : "祝日除外なし"}</li><li data-condition="weekend">${sample.excludeWeekend ? "土日除外" : "土日除外なし"}</li></ul>
     <p class="sample-comparison">比較：普通乗車券（往復）＋定期1・3・6か月</p>
@@ -1167,6 +1183,7 @@ function restoreOriginalSettings() {
 function updateSampleStatus() {
   updateViewVisibility();
   const sample = sampleSession?.sample;
+  document.getElementById("sample-route-context").innerHTML = renderSampleJourney(sample?.journey, Boolean(sampleSession?.modified));
   document.getElementById("sample-status").textContent = sample ? (sampleSession.modified ? "サンプルの条件を変更しました：" : "サンプルの条件を設定しました：") + sample.name + (sampleSession.modified ? "（変更済み）" : "") : "";
   document.getElementById("restore-settings").hidden = !sampleSession;
   document.getElementById("reset-settings").textContent = "初期化";
@@ -1218,7 +1235,7 @@ function renderDiscovery(result) {
   const explanation = template.replace("{days}", result.activeDates.length).replace("{method}", method);
   return `<section class="discovery" aria-labelledby="discovery-title">
     <h3 id="discovery-title">今回の発見${sampleSession.modified ? "（変更後の条件）" : ""}</h3>
-    <p>${sample.name}</p><p><strong>${method}</strong></p>
+    <p>${sample.name}</p>${renderSampleJourney(result.context?.journey, result.context?.modified)}<p><strong>${method}</strong></p>
     <p class="discovery-price">最安金額 ${formatCurrency(result.bestCost)}</p>
     <p>${explanation} ${ordinaryMessage}</p>
     <ul>${comparisons}</ul>
@@ -1305,6 +1322,7 @@ function captureCalculationContext() {
     excludeWeekend: document.getElementById("exclude-weekend").checked,
     exclusions: structuredClone(exclusionPeriods),
     overrides: Object.fromEntries(dateNodes.filter((node) => node.enabled !== node.defaultEnabled).map((node) => [node.date, node.enabled])),
-    sampleName: sampleSession?.sample.name || "", modified: Boolean(sampleSession?.modified)
+    sampleName: sampleSession?.sample.name || "", modified: Boolean(sampleSession?.modified),
+    journey: structuredClone(sampleSession?.sample.journey || null)
   };
 }

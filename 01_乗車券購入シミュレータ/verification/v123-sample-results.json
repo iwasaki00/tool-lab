@@ -1,0 +1,1320 @@
+[
+  {
+    "id": "01",
+    "cost": 79650,
+    "method": "6ヶ月定期券 × 1枚",
+    "days": 124,
+    "start": "2027-08-01",
+    "end": "2028-01-31",
+    "only": {
+      "RTT": 130944,
+      "CMT1M": 93600,
+      "CMT3M": 88920,
+      "CMT6M": 79650
+    },
+    "flow": [
+      {
+        "date": "2027-08-02",
+        "startDate": "2027-08-02",
+        "endDate": "2028-01-31",
+        "patternId": "CMT6M",
+        "patternLabel": "6ヶ月定期券"
+      }
+    ]
+  },
+  {
+    "id": "02",
+    "cost": 41450,
+    "method": "1ヶ月定期券 × 2枚 ＋ 3ヶ月定期券 × 1枚",
+    "days": 93,
+    "start": "2027-08-01",
+    "end": "2028-01-31",
+    "only": {
+      "RTT": 98208,
+      "CMT1M": 42750,
+      "CMT3M": 48700,
+      "CMT6M": 46160
+    },
+    "flow": [
+      {
+        "date": "2027-09-01",
+        "startDate": "2027-09-01",
+        "endDate": "2027-09-30",
+        "patternId": "CMT1M",
+        "patternLabel": "1ヶ月定期券"
+      },
+      {
+        "date": "2027-10-01",
+        "startDate": "2027-10-01",
+        "endDate": "2027-10-29",
+        "patternId": "CMT1M",
+        "patternLabel": "1ヶ月定期券"
+      },
+      {
+        "date": "2027-11-01",
+        "startDate": "2027-11-01",
+        "endDate": "2028-01-31",
+        "patternId": "CMT3M",
+        "patternLabel": "3ヶ月定期券"
+      }
+    ]
+  },
+  {
+    "id": "03",
+    "cost": 78144,
+    "method": "普通乗車券（往復） × 74日",
+    "days": 74,
+    "start": "2027-08-01",
+    "end": "2028-01-31",
+    "only": {
+      "RTT": 78144,
+      "CMT1M": 93600,
+      "CMT3M": 88920,
+      "CMT6M": 79650
+    },
+    "flow": [
+      {
+        "date": "2027-08-02",
+        "startDate": "2027-08-02",
+        "endDate": "2027-08-02",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-04",
+        "startDate": "2027-08-04",
+        "endDate": "2027-08-04",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-06",
+        "startDate": "2027-08-06",
+        "endDate": "2027-08-06",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-09",
+        "startDate": "2027-08-09",
+        "endDate": "2027-08-09",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-13",
+        "startDate": "2027-08-13",
+        "endDate": "2027-08-13",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-16",
+        "startDate": "2027-08-16",
+        "endDate": "2027-08-16",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-18",
+        "startDate": "2027-08-18",
+        "endDate": "2027-08-18",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-20",
+        "startDate": "2027-08-20",
+        "endDate": "2027-08-20",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-23",
+        "startDate": "2027-08-23",
+        "endDate": "2027-08-23",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-25",
+        "startDate": "2027-08-25",
+        "endDate": "2027-08-25",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-27",
+        "startDate": "2027-08-27",
+        "endDate": "2027-08-27",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-30",
+        "startDate": "2027-08-30",
+        "endDate": "2027-08-30",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-01",
+        "startDate": "2027-09-01",
+        "endDate": "2027-09-01",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-03",
+        "startDate": "2027-09-03",
+        "endDate": "2027-09-03",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-06",
+        "startDate": "2027-09-06",
+        "endDate": "2027-09-06",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-08",
+        "startDate": "2027-09-08",
+        "endDate": "2027-09-08",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-10",
+        "startDate": "2027-09-10",
+        "endDate": "2027-09-10",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-13",
+        "startDate": "2027-09-13",
+        "endDate": "2027-09-13",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-15",
+        "startDate": "2027-09-15",
+        "endDate": "2027-09-15",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-17",
+        "startDate": "2027-09-17",
+        "endDate": "2027-09-17",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-22",
+        "startDate": "2027-09-22",
+        "endDate": "2027-09-22",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-24",
+        "startDate": "2027-09-24",
+        "endDate": "2027-09-24",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-27",
+        "startDate": "2027-09-27",
+        "endDate": "2027-09-27",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-29",
+        "startDate": "2027-09-29",
+        "endDate": "2027-09-29",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-01",
+        "startDate": "2027-10-01",
+        "endDate": "2027-10-01",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-04",
+        "startDate": "2027-10-04",
+        "endDate": "2027-10-04",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-06",
+        "startDate": "2027-10-06",
+        "endDate": "2027-10-06",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-08",
+        "startDate": "2027-10-08",
+        "endDate": "2027-10-08",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-13",
+        "startDate": "2027-10-13",
+        "endDate": "2027-10-13",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-15",
+        "startDate": "2027-10-15",
+        "endDate": "2027-10-15",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-18",
+        "startDate": "2027-10-18",
+        "endDate": "2027-10-18",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-20",
+        "startDate": "2027-10-20",
+        "endDate": "2027-10-20",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-22",
+        "startDate": "2027-10-22",
+        "endDate": "2027-10-22",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-25",
+        "startDate": "2027-10-25",
+        "endDate": "2027-10-25",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-27",
+        "startDate": "2027-10-27",
+        "endDate": "2027-10-27",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-29",
+        "startDate": "2027-10-29",
+        "endDate": "2027-10-29",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-01",
+        "startDate": "2027-11-01",
+        "endDate": "2027-11-01",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-05",
+        "startDate": "2027-11-05",
+        "endDate": "2027-11-05",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-08",
+        "startDate": "2027-11-08",
+        "endDate": "2027-11-08",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-10",
+        "startDate": "2027-11-10",
+        "endDate": "2027-11-10",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-12",
+        "startDate": "2027-11-12",
+        "endDate": "2027-11-12",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-15",
+        "startDate": "2027-11-15",
+        "endDate": "2027-11-15",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-17",
+        "startDate": "2027-11-17",
+        "endDate": "2027-11-17",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-19",
+        "startDate": "2027-11-19",
+        "endDate": "2027-11-19",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-22",
+        "startDate": "2027-11-22",
+        "endDate": "2027-11-22",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-24",
+        "startDate": "2027-11-24",
+        "endDate": "2027-11-24",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-26",
+        "startDate": "2027-11-26",
+        "endDate": "2027-11-26",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-29",
+        "startDate": "2027-11-29",
+        "endDate": "2027-11-29",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-01",
+        "startDate": "2027-12-01",
+        "endDate": "2027-12-01",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-03",
+        "startDate": "2027-12-03",
+        "endDate": "2027-12-03",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-06",
+        "startDate": "2027-12-06",
+        "endDate": "2027-12-06",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-08",
+        "startDate": "2027-12-08",
+        "endDate": "2027-12-08",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-10",
+        "startDate": "2027-12-10",
+        "endDate": "2027-12-10",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-13",
+        "startDate": "2027-12-13",
+        "endDate": "2027-12-13",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-15",
+        "startDate": "2027-12-15",
+        "endDate": "2027-12-15",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-17",
+        "startDate": "2027-12-17",
+        "endDate": "2027-12-17",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-20",
+        "startDate": "2027-12-20",
+        "endDate": "2027-12-20",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-22",
+        "startDate": "2027-12-22",
+        "endDate": "2027-12-22",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-24",
+        "startDate": "2027-12-24",
+        "endDate": "2027-12-24",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-27",
+        "startDate": "2027-12-27",
+        "endDate": "2027-12-27",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-29",
+        "startDate": "2027-12-29",
+        "endDate": "2027-12-29",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-31",
+        "startDate": "2027-12-31",
+        "endDate": "2027-12-31",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-03",
+        "startDate": "2028-01-03",
+        "endDate": "2028-01-03",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-05",
+        "startDate": "2028-01-05",
+        "endDate": "2028-01-05",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-07",
+        "startDate": "2028-01-07",
+        "endDate": "2028-01-07",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-12",
+        "startDate": "2028-01-12",
+        "endDate": "2028-01-12",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-14",
+        "startDate": "2028-01-14",
+        "endDate": "2028-01-14",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-17",
+        "startDate": "2028-01-17",
+        "endDate": "2028-01-17",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-19",
+        "startDate": "2028-01-19",
+        "endDate": "2028-01-19",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-21",
+        "startDate": "2028-01-21",
+        "endDate": "2028-01-21",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-24",
+        "startDate": "2028-01-24",
+        "endDate": "2028-01-24",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-26",
+        "startDate": "2028-01-26",
+        "endDate": "2028-01-26",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-28",
+        "startDate": "2028-01-28",
+        "endDate": "2028-01-28",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-31",
+        "startDate": "2028-01-31",
+        "endDate": "2028-01-31",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      }
+    ]
+  },
+  {
+    "id": "04",
+    "cost": 52800,
+    "method": "普通乗車券（往復） × 50日",
+    "days": 50,
+    "start": "2027-08-01",
+    "end": "2028-01-31",
+    "only": {
+      "RTT": 52800,
+      "CMT1M": 93600,
+      "CMT3M": 88920,
+      "CMT6M": 79650
+    },
+    "flow": [
+      {
+        "date": "2027-08-03",
+        "startDate": "2027-08-03",
+        "endDate": "2027-08-03",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-05",
+        "startDate": "2027-08-05",
+        "endDate": "2027-08-05",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-10",
+        "startDate": "2027-08-10",
+        "endDate": "2027-08-10",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-12",
+        "startDate": "2027-08-12",
+        "endDate": "2027-08-12",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-17",
+        "startDate": "2027-08-17",
+        "endDate": "2027-08-17",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-19",
+        "startDate": "2027-08-19",
+        "endDate": "2027-08-19",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-24",
+        "startDate": "2027-08-24",
+        "endDate": "2027-08-24",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-26",
+        "startDate": "2027-08-26",
+        "endDate": "2027-08-26",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-31",
+        "startDate": "2027-08-31",
+        "endDate": "2027-08-31",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-02",
+        "startDate": "2027-09-02",
+        "endDate": "2027-09-02",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-07",
+        "startDate": "2027-09-07",
+        "endDate": "2027-09-07",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-09",
+        "startDate": "2027-09-09",
+        "endDate": "2027-09-09",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-14",
+        "startDate": "2027-09-14",
+        "endDate": "2027-09-14",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-16",
+        "startDate": "2027-09-16",
+        "endDate": "2027-09-16",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-21",
+        "startDate": "2027-09-21",
+        "endDate": "2027-09-21",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-28",
+        "startDate": "2027-09-28",
+        "endDate": "2027-09-28",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-09-30",
+        "startDate": "2027-09-30",
+        "endDate": "2027-09-30",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-05",
+        "startDate": "2027-10-05",
+        "endDate": "2027-10-05",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-07",
+        "startDate": "2027-10-07",
+        "endDate": "2027-10-07",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-12",
+        "startDate": "2027-10-12",
+        "endDate": "2027-10-12",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-14",
+        "startDate": "2027-10-14",
+        "endDate": "2027-10-14",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-19",
+        "startDate": "2027-10-19",
+        "endDate": "2027-10-19",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-21",
+        "startDate": "2027-10-21",
+        "endDate": "2027-10-21",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-26",
+        "startDate": "2027-10-26",
+        "endDate": "2027-10-26",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-28",
+        "startDate": "2027-10-28",
+        "endDate": "2027-10-28",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-02",
+        "startDate": "2027-11-02",
+        "endDate": "2027-11-02",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-04",
+        "startDate": "2027-11-04",
+        "endDate": "2027-11-04",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-09",
+        "startDate": "2027-11-09",
+        "endDate": "2027-11-09",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-11",
+        "startDate": "2027-11-11",
+        "endDate": "2027-11-11",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-16",
+        "startDate": "2027-11-16",
+        "endDate": "2027-11-16",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-18",
+        "startDate": "2027-11-18",
+        "endDate": "2027-11-18",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-25",
+        "startDate": "2027-11-25",
+        "endDate": "2027-11-25",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-30",
+        "startDate": "2027-11-30",
+        "endDate": "2027-11-30",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-02",
+        "startDate": "2027-12-02",
+        "endDate": "2027-12-02",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-07",
+        "startDate": "2027-12-07",
+        "endDate": "2027-12-07",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-09",
+        "startDate": "2027-12-09",
+        "endDate": "2027-12-09",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-14",
+        "startDate": "2027-12-14",
+        "endDate": "2027-12-14",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-16",
+        "startDate": "2027-12-16",
+        "endDate": "2027-12-16",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-21",
+        "startDate": "2027-12-21",
+        "endDate": "2027-12-21",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-23",
+        "startDate": "2027-12-23",
+        "endDate": "2027-12-23",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-28",
+        "startDate": "2027-12-28",
+        "endDate": "2027-12-28",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-30",
+        "startDate": "2027-12-30",
+        "endDate": "2027-12-30",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-04",
+        "startDate": "2028-01-04",
+        "endDate": "2028-01-04",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-06",
+        "startDate": "2028-01-06",
+        "endDate": "2028-01-06",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-11",
+        "startDate": "2028-01-11",
+        "endDate": "2028-01-11",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-13",
+        "startDate": "2028-01-13",
+        "endDate": "2028-01-13",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-18",
+        "startDate": "2028-01-18",
+        "endDate": "2028-01-18",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-20",
+        "startDate": "2028-01-20",
+        "endDate": "2028-01-20",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-25",
+        "startDate": "2028-01-25",
+        "endDate": "2028-01-25",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-27",
+        "startDate": "2028-01-27",
+        "endDate": "2028-01-27",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      }
+    ]
+  },
+  {
+    "id": "05",
+    "cost": 70848,
+    "method": "普通乗車券（往復） × 8日 ＋ 1ヶ月定期券 × 4枚",
+    "days": 92,
+    "start": "2027-08-01",
+    "end": "2028-01-31",
+    "only": {
+      "RTT": 97152,
+      "CMT1M": 93600,
+      "CMT3M": 88920,
+      "CMT6M": 79650
+    },
+    "flow": [
+      {
+        "date": "2027-08-02",
+        "startDate": "2027-08-02",
+        "endDate": "2027-09-01",
+        "patternId": "CMT1M",
+        "patternLabel": "1ヶ月定期券"
+      },
+      {
+        "date": "2027-09-02",
+        "startDate": "2027-09-02",
+        "endDate": "2027-09-30",
+        "patternId": "CMT1M",
+        "patternLabel": "1ヶ月定期券"
+      },
+      {
+        "date": "2027-10-04",
+        "startDate": "2027-10-04",
+        "endDate": "2027-10-04",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-18",
+        "startDate": "2027-10-18",
+        "endDate": "2027-10-18",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-10-25",
+        "startDate": "2027-10-25",
+        "endDate": "2027-10-25",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-01",
+        "startDate": "2027-11-01",
+        "endDate": "2027-11-01",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-08",
+        "startDate": "2027-11-08",
+        "endDate": "2027-11-08",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-15",
+        "startDate": "2027-11-15",
+        "endDate": "2027-11-15",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-22",
+        "startDate": "2027-11-22",
+        "endDate": "2027-11-22",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-29",
+        "startDate": "2027-11-29",
+        "endDate": "2027-11-29",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-01",
+        "startDate": "2027-12-01",
+        "endDate": "2027-12-31",
+        "patternId": "CMT1M",
+        "patternLabel": "1ヶ月定期券"
+      },
+      {
+        "date": "2028-01-03",
+        "startDate": "2028-01-03",
+        "endDate": "2028-01-31",
+        "patternId": "CMT1M",
+        "patternLabel": "1ヶ月定期券"
+      }
+    ]
+  },
+  {
+    "id": "06",
+    "cost": 75660,
+    "method": "1ヶ月定期券 × 2枚 ＋ 3ヶ月定期券 × 1枚",
+    "days": 104,
+    "start": "2027-08-01",
+    "end": "2028-01-31",
+    "only": {
+      "RTT": 109824,
+      "CMT1M": 78000,
+      "CMT3M": 88920,
+      "CMT6M": 79650
+    },
+    "flow": [
+      {
+        "date": "2027-08-02",
+        "startDate": "2027-08-02",
+        "endDate": "2027-09-01",
+        "patternId": "CMT1M",
+        "patternLabel": "1ヶ月定期券"
+      },
+      {
+        "date": "2027-09-02",
+        "startDate": "2027-09-02",
+        "endDate": "2027-09-30",
+        "patternId": "CMT1M",
+        "patternLabel": "1ヶ月定期券"
+      },
+      {
+        "date": "2027-11-01",
+        "startDate": "2027-11-01",
+        "endDate": "2028-01-31",
+        "patternId": "CMT3M",
+        "patternLabel": "3ヶ月定期券"
+      }
+    ]
+  },
+  {
+    "id": "07",
+    "cost": 79650,
+    "method": "6ヶ月定期券 × 1枚",
+    "days": 124,
+    "start": "2027-08-01",
+    "end": "2028-01-31",
+    "only": {
+      "RTT": 130944,
+      "CMT1M": 93600,
+      "CMT3M": 88920,
+      "CMT6M": 79650
+    },
+    "flow": [
+      {
+        "date": "2027-08-01",
+        "startDate": "2027-08-01",
+        "endDate": "2028-01-31",
+        "patternId": "CMT6M",
+        "patternLabel": "6ヶ月定期券"
+      }
+    ]
+  },
+  {
+    "id": "08",
+    "cost": 70860,
+    "method": "普通乗車券（往復） × 25日 ＋ 3ヶ月定期券 × 1枚",
+    "days": 86,
+    "start": "2027-08-01",
+    "end": "2028-01-31",
+    "only": {
+      "RTT": 90816,
+      "CMT1M": 93600,
+      "CMT3M": 88920,
+      "CMT6M": 79650
+    },
+    "flow": [
+      {
+        "date": "2027-08-02",
+        "startDate": "2027-08-02",
+        "endDate": "2027-08-02",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-08-03",
+        "startDate": "2027-08-03",
+        "endDate": "2027-11-02",
+        "patternId": "CMT3M",
+        "patternLabel": "3ヶ月定期券"
+      },
+      {
+        "date": "2027-11-04",
+        "startDate": "2027-11-04",
+        "endDate": "2027-11-04",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-09",
+        "startDate": "2027-11-09",
+        "endDate": "2027-11-09",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-11",
+        "startDate": "2027-11-11",
+        "endDate": "2027-11-11",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-16",
+        "startDate": "2027-11-16",
+        "endDate": "2027-11-16",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-18",
+        "startDate": "2027-11-18",
+        "endDate": "2027-11-18",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-25",
+        "startDate": "2027-11-25",
+        "endDate": "2027-11-25",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-11-30",
+        "startDate": "2027-11-30",
+        "endDate": "2027-11-30",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-02",
+        "startDate": "2027-12-02",
+        "endDate": "2027-12-02",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-07",
+        "startDate": "2027-12-07",
+        "endDate": "2027-12-07",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-09",
+        "startDate": "2027-12-09",
+        "endDate": "2027-12-09",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-14",
+        "startDate": "2027-12-14",
+        "endDate": "2027-12-14",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-16",
+        "startDate": "2027-12-16",
+        "endDate": "2027-12-16",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-21",
+        "startDate": "2027-12-21",
+        "endDate": "2027-12-21",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-23",
+        "startDate": "2027-12-23",
+        "endDate": "2027-12-23",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-28",
+        "startDate": "2027-12-28",
+        "endDate": "2027-12-28",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2027-12-30",
+        "startDate": "2027-12-30",
+        "endDate": "2027-12-30",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-04",
+        "startDate": "2028-01-04",
+        "endDate": "2028-01-04",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-06",
+        "startDate": "2028-01-06",
+        "endDate": "2028-01-06",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-11",
+        "startDate": "2028-01-11",
+        "endDate": "2028-01-11",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-13",
+        "startDate": "2028-01-13",
+        "endDate": "2028-01-13",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-18",
+        "startDate": "2028-01-18",
+        "endDate": "2028-01-18",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-20",
+        "startDate": "2028-01-20",
+        "endDate": "2028-01-20",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-25",
+        "startDate": "2028-01-25",
+        "endDate": "2028-01-25",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      },
+      {
+        "date": "2028-01-27",
+        "startDate": "2028-01-27",
+        "endDate": "2028-01-27",
+        "patternId": "RTT",
+        "patternLabel": "往復乗車券"
+      }
+    ]
+  }
+]

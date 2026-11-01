@@ -67,14 +67,14 @@ const {pathToFileURL}=require('url');const {loadSample,openManual}=require('./ui
    const overflow=await compact.evaluate(()=>({document:document.documentElement.scrollWidth>innerWidth,elements:[...document.querySelectorAll('input,button,select,.sample-fares,.sample-item,.panel')].filter(e=>e.getClientRects().length&&(e.getBoundingClientRect().left< -1||e.getBoundingClientRect().right>innerWidth+1||e.scrollWidth>e.clientWidth+2)).map(e=>e.id||e.className)}));
    assert.deepEqual(overflow,{document:false,elements:[]},'overflow at '+width);
    dimensions.push({width,dateWidths:dates.map(d=>d.width)});
-   if(width===1280||width===320||width===390){await compact.evaluate(()=>window.scrollTo(0,0));await compact.screenshot({path:`verification/v122-${width}-compact-inputs.png`,fullPage:true})}
+   if(width===1280||width===320||width===390){await compact.evaluate(()=>window.scrollTo(0,0));await compact.screenshot({path:`verification/v123-${width}-compact-inputs.png`,fullPage:true})}
   }
   await compact.setViewportSize({width:390,height:844});await openManual(compact,true);
   for(const [start,end]of [['2028-02-05','2028-02-07'],['2028-02-12','2028-02-13']]){await compact.locator('#exclusion-start').fill(start);await compact.locator('#exclusion-end').fill(end);await compact.locator('#exclusion-reason').fill('test holiday');await compact.locator('#add-exclusion').click()}
   assert.equal(await compact.locator('[data-remove-exclusion]').count(),2);await compact.locator('[data-remove-exclusion]').first().click();assert.equal(await compact.locator('[data-remove-exclusion]').count(),1);
   await compact.locator('.calendar-day[data-date="2028-02-12"]').click();assert.equal(await compact.evaluate(()=>dateNodes.find(n=>n.date==='2028-02-12').enabled),true);
   assert.equal(await compact.locator('#generate-dates').textContent(),'日付条件を反映');assert.equal(await compact.locator('#refresh-from-exclusion').textContent(),'日付条件を反映');await compact.locator('#refresh-from-exclusion').click();assert.equal(await compact.evaluate(()=>dateNodes.find(n=>n.date==='2028-02-12').enabled),false);
-  await compact.locator('#tab-samples').click();await compact.locator('[data-sample="01"]').click();await compact.evaluate(()=>window.scrollTo(0,0));await compact.screenshot({path:'verification/v122-390-compact-sample.png',fullPage:true});
+  await compact.locator('#tab-samples').click();await compact.locator('[data-sample="01"]').click();await compact.evaluate(()=>window.scrollTo(0,0));await compact.screenshot({path:'verification/v123-390-compact-sample.png',fullPage:true});
   // Native print popup is exercised without changing or generating PDF binaries for this UI-only release.
   await loadSample(compact,'02');await compact.locator('#simulate-button').click();await reduced.addInitScript(()=>{window.print=()=>{}});
   const plans=await compact.evaluate(()=>buildPurchasePlans(lastResult));
@@ -82,12 +82,12 @@ const {pathToFileURL}=require('url');const {loadSample,openManual}=require('./ui
    await compact.locator('#pdf-pattern').selectOption(id);const pending=compact.waitForEvent('popup');await compact.locator('#download-pdf').click();const popup=await pending;await popup.waitForLoadState('load');
    assert.equal(await popup.locator('.plan').count(),1);assert.equal(await popup.locator('.plan h2').textContent(),plans[id].label);
    const amounts=await popup.locator('tbody tr td:last-child').allTextContents();assert.equal(amounts.reduce((sum,s)=>sum+Number(s.replace(/[^0-9]/g,'')),0),plans[id].cost);
-   if(id==='BEST')await popup.screenshot({path:'verification/v122-pdf-popup.png',fullPage:true});await popup.close();
+   if(id==='BEST')await popup.screenshot({path:'verification/v123-pdf-popup.png',fullPage:true});await popup.close();
   }
   const current=fs.readFileSync('script.js','utf8').replaceAll('\r\n','\n');const original=cp.execFileSync('git',['show','20f4987:'+path.basename(process.cwd())+'/script.js'],{encoding:'utf8'}).replaceAll('\r\n','\n');
-  for(const [start,end]of [['function simulate() {','function getNextNodeIndex('],['function getPlanLabel(','function renderSummaryCard('],['function createSamples(','function initSamples('],['function applySample(','function restoreOriginalSettings('],['function restoreOriginalSettings(','function updateSampleStatus(']])assert.equal(current.slice(current.indexOf(start),current.indexOf(end,current.indexOf(start)+1)),original.slice(original.indexOf(start),original.indexOf(end,original.indexOf(start)+1)),start+' must be preserved');
+  for(const [start,end]of [['function simulate() {','function getNextNodeIndex('],['function getNextNodeIndex(','function renderResult('],['function getPlanLabel(','function renderPdfHtml('],['function applySample(','function restoreOriginalSettings('],['function restoreOriginalSettings(','function updateSampleStatus(']])assert.equal(current.slice(current.indexOf(start),current.indexOf(end,current.indexOf(start)+1)),original.slice(original.indexOf(start),original.indexOf(end,original.indexOf(start)+1)),start+' must be preserved');
   const targets=['index.html','script.js','style.css','.gitattributes','verification/test-beginner-ui.cjs','verification/test-experience.cjs','verification/test-compact-ui.cjs'];for(const file of targets)assert.ok(!fs.readFileSync(file).includes(13),file+' must use LF');
-  fs.writeFileSync('verification/v122-layout-checks.json',JSON.stringify({before:baseline,after,dimensions,animation:during,lineEndings:'LF',preserved:'engine, samples, PDF generators, state restore'},null,2));
-  assert.deepEqual(errors,[]);console.log('PASS v1.2.2: reversible 250ms animation, rapid switches, conditional scrolling, reduced motion, 4/2-column inputs, date pairs, long values, advanced settings, all 5 PDF popups, LF');console.log(JSON.stringify({before:baseline,after},null,2));
+  fs.writeFileSync('verification/v123-layout-checks.json',JSON.stringify({before:baseline,after,dimensions,animation:during,lineEndings:'LF',preserved:'engine, PDF plan generation, state restore'},null,2));
+  assert.deepEqual(errors,[]);console.log('PASS v1.2.3 compact regression: reversible 250ms animation, rapid switches, conditional scrolling, reduced motion, 4/2-column inputs, date pairs, long values, advanced settings, all 5 PDF popups, LF');console.log(JSON.stringify({before:baseline,after},null,2));
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
