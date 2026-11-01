@@ -1079,3 +1079,27 @@ input[type="date"]::-webkit-calendar-picker-indicator { width:18px; height:20px;
 #sample-route-context .sample-student-notice { margin-top:4px; }
 .discovery .sample-route-info { margin:8px 0 0; }
 .discovery .sample-fare-basis, .discovery .sample-student-notice { margin:4px 0; }
+
+/* v1.2.4: date edits remain mounted while their calendar is collapsed. */
+.calendar-panel { padding:0; }
+.calendar-heading { margin:0; font-size:17px; }
+#calendar-toggle { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; padding:12px; min-height:64px; border:0; border-radius:8px; text-align:left; background:transparent; color:var(--ink); touch-action:manipulation; user-select:none; }
+#calendar-toggle > span:first-child { display:grid; gap:4px; min-width:0; }
+#calendar-toggle #date-summary { font-size:12px; font-weight:400; }
+#calendar-toggle:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
+.calendar-toggle-action { display:flex; align-items:center; gap:4px; flex-shrink:0; font-size:12px; color:var(--accent-dark); }
+.calendar-chevron { display:inline-block; transition:transform 220ms ease; }
+#calendar-toggle[aria-expanded="true"] .calendar-chevron { transform:rotate(180deg); }
+.calendar-collapse { display:grid; grid-template-rows:0fr; opacity:0; visibility:hidden; transition:grid-template-rows 220ms ease,opacity 220ms ease,visibility 0s linear 220ms; }
+.calendar-collapse.is-open { grid-template-rows:1fr; opacity:1; visibility:visible; transition-delay:0s; }
+.calendar-collapse-inner { min-height:0; overflow:hidden; }
+.calendar-collapse-body { padding:0 12px 12px; }
+.calendar-collapse-body > .note { margin:0 0 10px; }
+.pdf-actions { grid-template-columns:minmax(0,1fr); align-items:stretch; padding:12px; border:1px solid var(--line); border-radius:8px; background:#f8fbfa; }
+.pdf-actions h3 { margin:0; font-size:16px; line-height:1.6; }
+.pdf-buttons { display:grid; gap:10px; }
+.pdf-buttons button { width:100%; min-height:48px; padding:12px 10px; font-size:14px; line-height:1.6; white-space:normal; overflow-wrap:anywhere; }
+.pdf-save-help { font-size:13px; }
+.pdf-save-help summary { min-height:36px; padding:6px 0; color:var(--accent-dark); cursor:pointer; }
+.pdf-save-help p { margin:6px 0 0; }
+@media(prefers-reduced-motion:reduce) { .calendar-collapse,.calendar-chevron { transition:none; } }

@@ -57,7 +57,7 @@ const { pathToFileURL } = require('url');
    results.push({id,cost:actual.cost,method:actual.method,days:actual.dates.length,start:actual.sample.start,end:actual.sample.end,only:actual.only,flow:actual.flow});
  }
  assert.ok(new Set(results.map(r=>[...new Set(r.flow.map(s=>s.patternId))].sort().join('+'))).size>=3);
- fs.writeFileSync('verification/v123-sample-results.json',JSON.stringify(results,null,2));
+ fs.writeFileSync('verification/v124-sample-results.json',JSON.stringify(results,null,2));
  console.log(JSON.stringify(results.map(({flow,...x})=>x),null,2));
  assert.deepEqual(errors,[]);
  await browser.close();

@@ -56,11 +56,11 @@ const {loadSample}=require('./ui-helpers.cjs');
     await page.locator('#tab-samples').click();const card=page.locator('[data-sample="'+id+'"]');if(await card.getAttribute('aria-expanded')!=='true')await card.click();
     const overflow=await page.evaluate(()=>({document:document.documentElement.scrollWidth>innerWidth,items:[...document.querySelectorAll('.sample-item,.sample-route-banner,.sample-route-info,.sample-student-notice,[data-sample-pass],[data-sample-route]')].filter(e=>e.getClientRects().length&&(e.getBoundingClientRect().right>innerWidth+1||e.getBoundingClientRect().left< -1||e.scrollWidth>e.clientWidth+2)).map(e=>e.id||e.className)}));assert.deepEqual(overflow,{document:false,items:[]},width+' sample '+id);
    }
-   if(width===1280||width===390||width===320){const card=page.locator('[data-sample="02"]');await card.click();await page.screenshot({path:'verification/v123-'+width+'-student-preview.png',fullPage:true});await page.locator('[data-apply-sample="02"]').click();await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'verification/v123-'+width+'-student-loaded.png',fullPage:true});await page.locator('#simulate-button').click();await page.evaluate(()=>document.querySelector('.result-panel').scrollIntoView());await page.screenshot({path:'verification/v123-'+width+'-student-result.png'});}
+   if(width===1280||width===390||width===320){const card=page.locator('[data-sample="02"]');await card.click();await page.screenshot({path:'verification/v124-'+width+'-student-preview.png',fullPage:true});await page.locator('[data-apply-sample="02"]').click();await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'verification/v124-'+width+'-student-loaded.png',fullPage:true});await page.locator('#simulate-button').click();await page.evaluate(()=>document.querySelector('.result-panel').scrollIntoView());await page.screenshot({path:'verification/v124-'+width+'-student-result.png'});}
    layouts.push({width,all8PreviewsFit:true});
   }
   assert.deepEqual(external,[]);assert.deepEqual(errors,[]);
-  fs.writeFileSync('verification/v123-route-results.json',JSON.stringify({results,studentComparison,layouts,externalRequests:external},null,2)+'\n');
-  console.log('PASS v1.2.3: 8 real-route samples, both fare masters, 1056/day, unchanged schedules, 5 methods, all 40 PDF models, legacy/manual preservation, 5 widths, no external requests');
+  fs.writeFileSync('verification/v124-route-results.json',JSON.stringify({results,studentComparison,layouts,externalRequests:external},null,2)+'\n');
+  console.log('PASS v1.2.4 route regression: 8 real-route samples, both fare masters, 1056/day, unchanged schedules, 5 methods, all 40 PDF models, legacy/manual preservation, 5 widths, no external requests');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

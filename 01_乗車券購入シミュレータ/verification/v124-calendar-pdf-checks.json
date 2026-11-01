@@ -1,0 +1,160 @@
+{
+  "before": {
+    "width": 390,
+    "viewportHeight": 844,
+    "calendarHeight": 2391.1875,
+    "calendarPanelHeight": 2512.1875,
+    "headingToButton": 2526.1875,
+    "additionalScroll": 1852.34375,
+    "months": 6
+  },
+  "after": {
+    "width": 390,
+    "viewportHeight": 844,
+    "calendarHeight": 0,
+    "calendarPanelHeight": 96,
+    "headingToButton": 98,
+    "additionalScroll": 0,
+    "months": 6
+  },
+  "resultChecks": [
+    {
+      "id": "01",
+      "cost": 79650,
+      "unchangedPlans": true,
+      "exportUsesSnapshot": true
+    },
+    {
+      "id": "02",
+      "cost": 41450,
+      "unchangedPlans": true,
+      "exportUsesSnapshot": true
+    },
+    {
+      "id": "03",
+      "cost": 78144,
+      "unchangedPlans": true,
+      "exportUsesSnapshot": true
+    },
+    {
+      "id": "04",
+      "cost": 52800,
+      "unchangedPlans": true,
+      "exportUsesSnapshot": true
+    },
+    {
+      "id": "05",
+      "cost": 70848,
+      "unchangedPlans": true,
+      "exportUsesSnapshot": true
+    },
+    {
+      "id": "06",
+      "cost": 75660,
+      "unchangedPlans": true,
+      "exportUsesSnapshot": true
+    },
+    {
+      "id": "07",
+      "cost": 79650,
+      "unchangedPlans": true,
+      "exportUsesSnapshot": true
+    },
+    {
+      "id": "08",
+      "cost": 70860,
+      "unchangedPlans": true,
+      "exportUsesSnapshot": true
+    }
+  ],
+  "outputs": [
+    {
+      "filename": "ux_CMT3M.pdf",
+      "selection": "CMT3M",
+      "plans": [
+        {
+          "id": "CMT3M",
+          "label": "3か月定期券のみ",
+          "cost": 88920,
+          "steps": 2
+        }
+      ],
+      "simulatedAt": "2026/11/01 10:00:06（日本時間）"
+    },
+    {
+      "filename": "ux_ALL.pdf",
+      "selection": "ALL",
+      "plans": [
+        {
+          "id": "BEST",
+          "label": "最安購入方法",
+          "cost": 79650,
+          "steps": 1
+        },
+        {
+          "id": "RTT",
+          "label": "普通乗車券のみ",
+          "cost": 130944,
+          "steps": 124
+        },
+        {
+          "id": "CMT1M",
+          "label": "1か月定期券のみ",
+          "cost": 93600,
+          "steps": 6
+        },
+        {
+          "id": "CMT3M",
+          "label": "3か月定期券のみ",
+          "cost": 88920,
+          "steps": 2
+        },
+        {
+          "id": "CMT6M",
+          "label": "6か月定期券のみ",
+          "cost": 79650,
+          "steps": 1
+        }
+      ],
+      "simulatedAt": "2026/11/01 10:00:06（日本時間）"
+    }
+  ],
+  "layouts": [
+    {
+      "width": 320,
+      "calendarFits": true,
+      "pdfButtonsStacked": true
+    },
+    {
+      "width": 375,
+      "calendarFits": true,
+      "pdfButtonsStacked": true
+    },
+    {
+      "width": 390,
+      "calendarFits": true,
+      "pdfButtonsStacked": true
+    },
+    {
+      "width": 740,
+      "calendarFits": true,
+      "pdfButtonsStacked": true
+    },
+    {
+      "width": 768,
+      "calendarFits": true,
+      "pdfButtonsStacked": true
+    },
+    {
+      "width": 1280,
+      "calendarFits": true,
+      "pdfButtonsStacked": true
+    }
+  ],
+  "animation": {
+    "height": 1919,
+    "opacity": 0.753797,
+    "duration": "0.22s, 0.22s, 0s"
+  },
+  "javascriptErrors": []
+}

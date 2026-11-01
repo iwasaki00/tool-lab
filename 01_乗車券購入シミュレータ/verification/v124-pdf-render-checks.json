@@ -1,0 +1,130 @@
+[
+  {
+    "file": "sample02_BEST.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample02_RTT.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample02_CMT1M.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample02_CMT3M.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample02_CMT6M.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample01_BEST.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample03_BEST.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample04_BEST.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample05_BEST.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample06_BEST.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample07_BEST.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample08_BEST.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "sample06_ALL.pdf",
+    "pages": 8,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 2,
+    "first_detail_page": 2
+  },
+  {
+    "file": "sample07_RTT.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "ux_CMT3M.pdf",
+    "pages": 1,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": null
+  },
+  {
+    "file": "ux_ALL.pdf",
+    "pages": 6,
+    "japanese_text": true,
+    "within_page": true,
+    "continued_table_headers": 0,
+    "first_detail_page": 2
+  }
+]

@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="乗車券比較">
     <title>乗車券購入シミュレーション</title>
-    <link rel="stylesheet" href="style.css?v=1.2.3">
+    <link rel="stylesheet" href="style.css?v=1.2.4">
   </head>
   <body>
     <header class="app-header">
@@ -141,16 +141,16 @@
         <p class="form-error" id="exclusion-error" role="alert"></p>
         <div class="exclusion-list" id="exclusion-list"></div>
       </section>
-          <section class="panel" aria-labelledby="calendar-title">
-        <div class="section-head">
-          <div>
-            <h2 id="calendar-title">カレンダー表示</h2>
-            <p class="note" id="date-summary">有効日 0 日</p>
-            <p class="note">日付をタップすると有効／無効を切り替えます。日付条件を反映すると個別変更は解除されます。</p>
-          </div>
-        </div>
-        <div class="calendar-grid" id="calendar-area"></div>
-      </section>
+          <section class="panel calendar-panel" aria-labelledby="calendar-title">
+            <h2 class="calendar-heading"><button type="button" id="calendar-toggle" aria-expanded="false" aria-controls="calendar-content">
+              <span><span id="calendar-title">カレンダー表示</span><span class="note" id="date-summary" aria-live="polite">有効日：0日 / 全0日</span></span>
+              <span class="calendar-toggle-action"><span class="calendar-chevron" aria-hidden="true">▼</span><span id="calendar-toggle-label">表示する</span></span>
+            </button></h2>
+            <div class="calendar-collapse" id="calendar-content" role="region" aria-labelledby="calendar-title" aria-hidden="true" inert><div class="calendar-collapse-inner"><div class="calendar-collapse-body">
+              <p class="note">日付をタップすると有効／無効を切り替えます。日付条件を反映すると個別変更は解除されます。</p>
+              <div class="calendar-grid" id="calendar-area"></div>
+            </div></div></div>
+          </section>
         </details>
         <div class="action-bar"><button class="primary-button" type="button" id="simulate-button">シミュレート実行</button></div>
       </div>
@@ -160,12 +160,22 @@
           <h2 id="result-title" tabindex="-1">計算結果</h2>
 
         </div>
-        <div class="pdf-actions"><label class="field"><span>PDFで保存</span><select id="pdf-pattern" aria-label="PDFの保存対象" disabled></select></label><button class="ghost-button" type="button" id="download-pdf" disabled>選んだパターンを保存</button><p class="note">新しい画面で印刷を開き、PDFとして保存できます。</p><p id="pdf-error" class="input-error" role="alert"></p></div>
+        <section class="pdf-actions" aria-labelledby="pdf-title">
+          <h3 id="pdf-title">シミュレーション結果をPDF保存</h3>
+          <label class="field"><span>保存する購入パターン</span><select id="pdf-pattern" aria-label="保存する購入パターン" aria-describedby="pdf-help" disabled></select></label>
+          <div class="pdf-buttons">
+            <button class="ghost-button" type="button" id="download-pdf" disabled>選択した購入パターンをPDF保存</button>
+            <button class="ghost-button" type="button" id="download-all-pdf" disabled>全購入パターンをまとめてPDF保存</button>
+          </div>
+          <p class="note" id="pdf-help">別画面で印刷を開きます。Windows Chromeは送信先で「PDFに保存」を選びます。</p>
+          <details class="pdf-save-help"><summary>iPhoneでの保存方法</summary><p class="note">印刷プレビューを2本指で広げ、共有ボタンから「ファイルに保存」を選びます。印刷が開かない場合は、別画面の「印刷・PDFに保存」を押してください。</p></details>
+          <p id="pdf-error" class="input-error" role="alert"></p>
+        </section>
         <p id="manual-result-method" class="manual-result-method" hidden></p>
         <div id="result-area" class="empty-result">条件を設定して「シミュレート実行」を押してください。</div>
       </section>
-      <footer class="app-footer">乗車券購入シミュレーション <small>v1.2.3</small></footer>
+      <footer class="app-footer">乗車券購入シミュレーション <small>v1.2.4</small></footer>
     </main>
-    <script src="script.js?v=1.2.3"></script>
+    <script src="script.js?v=1.2.4"></script>
   </body>
 </html>

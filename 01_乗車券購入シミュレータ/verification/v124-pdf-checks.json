@@ -1,0 +1,1106 @@
+[
+  {
+    "filename": "sample02_BEST.pdf",
+    "sample": "02",
+    "selection": "BEST",
+    "title": "乗車券_最安購入方法_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "最安購入方法",
+        "cost": 41450,
+        "steps": 3
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 8550,
+        "fare-cmt3m": 24350,
+        "fare-cmt6m": 46160
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [
+        {
+          "id": "summer",
+          "start": "2027-08-01",
+          "end": "2027-08-31",
+          "reason": "夏休み（対象期間内の想定：8/1〜8/31）"
+        },
+        {
+          "id": "winter",
+          "start": "2027-12-25",
+          "end": "2028-01-07",
+          "reason": "冬休み（想定：12/25〜1/7）"
+        }
+      ],
+      "overrides": {},
+      "sampleName": "長期休暇のある大学生",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通学（大学）",
+        "notice": "横浜駅が自宅最寄り駅、東京駅が大学最寄り駅の大学生を想定しています。実際の通学定期券購入には、学校が証明した通学区間などの条件があります。"
+      }
+    }
+  },
+  {
+    "filename": "sample02_RTT.pdf",
+    "sample": "02",
+    "selection": "RTT",
+    "title": "乗車券_普通乗車券のみ_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "普通乗車券のみ",
+        "cost": 98208,
+        "steps": 93
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 8550,
+        "fare-cmt3m": 24350,
+        "fare-cmt6m": 46160
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [
+        {
+          "id": "summer",
+          "start": "2027-08-01",
+          "end": "2027-08-31",
+          "reason": "夏休み（対象期間内の想定：8/1〜8/31）"
+        },
+        {
+          "id": "winter",
+          "start": "2027-12-25",
+          "end": "2028-01-07",
+          "reason": "冬休み（想定：12/25〜1/7）"
+        }
+      ],
+      "overrides": {},
+      "sampleName": "長期休暇のある大学生",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通学（大学）",
+        "notice": "横浜駅が自宅最寄り駅、東京駅が大学最寄り駅の大学生を想定しています。実際の通学定期券購入には、学校が証明した通学区間などの条件があります。"
+      }
+    }
+  },
+  {
+    "filename": "sample02_CMT1M.pdf",
+    "sample": "02",
+    "selection": "CMT1M",
+    "title": "乗車券_1か月定期券のみ_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "1か月定期券のみ",
+        "cost": 42750,
+        "steps": 5
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 8550,
+        "fare-cmt3m": 24350,
+        "fare-cmt6m": 46160
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [
+        {
+          "id": "summer",
+          "start": "2027-08-01",
+          "end": "2027-08-31",
+          "reason": "夏休み（対象期間内の想定：8/1〜8/31）"
+        },
+        {
+          "id": "winter",
+          "start": "2027-12-25",
+          "end": "2028-01-07",
+          "reason": "冬休み（想定：12/25〜1/7）"
+        }
+      ],
+      "overrides": {},
+      "sampleName": "長期休暇のある大学生",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通学（大学）",
+        "notice": "横浜駅が自宅最寄り駅、東京駅が大学最寄り駅の大学生を想定しています。実際の通学定期券購入には、学校が証明した通学区間などの条件があります。"
+      }
+    }
+  },
+  {
+    "filename": "sample02_CMT3M.pdf",
+    "sample": "02",
+    "selection": "CMT3M",
+    "title": "乗車券_3か月定期券のみ_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "3か月定期券のみ",
+        "cost": 48700,
+        "steps": 2
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 8550,
+        "fare-cmt3m": 24350,
+        "fare-cmt6m": 46160
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [
+        {
+          "id": "summer",
+          "start": "2027-08-01",
+          "end": "2027-08-31",
+          "reason": "夏休み（対象期間内の想定：8/1〜8/31）"
+        },
+        {
+          "id": "winter",
+          "start": "2027-12-25",
+          "end": "2028-01-07",
+          "reason": "冬休み（想定：12/25〜1/7）"
+        }
+      ],
+      "overrides": {},
+      "sampleName": "長期休暇のある大学生",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通学（大学）",
+        "notice": "横浜駅が自宅最寄り駅、東京駅が大学最寄り駅の大学生を想定しています。実際の通学定期券購入には、学校が証明した通学区間などの条件があります。"
+      }
+    }
+  },
+  {
+    "filename": "sample02_CMT6M.pdf",
+    "sample": "02",
+    "selection": "CMT6M",
+    "title": "乗車券_6か月定期券のみ_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "6か月定期券のみ",
+        "cost": 46160,
+        "steps": 1
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 8550,
+        "fare-cmt3m": 24350,
+        "fare-cmt6m": 46160
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [
+        {
+          "id": "summer",
+          "start": "2027-08-01",
+          "end": "2027-08-31",
+          "reason": "夏休み（対象期間内の想定：8/1〜8/31）"
+        },
+        {
+          "id": "winter",
+          "start": "2027-12-25",
+          "end": "2028-01-07",
+          "reason": "冬休み（想定：12/25〜1/7）"
+        }
+      ],
+      "overrides": {},
+      "sampleName": "長期休暇のある大学生",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通学（大学）",
+        "notice": "横浜駅が自宅最寄り駅、東京駅が大学最寄り駅の大学生を想定しています。実際の通学定期券購入には、学校が証明した通学区間などの条件があります。"
+      }
+    }
+  },
+  {
+    "filename": "sample01_BEST.pdf",
+    "sample": "01",
+    "selection": "BEST",
+    "title": "乗車券_最安購入方法_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "最安購入方法",
+        "cost": 79650,
+        "steps": 1
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 15600,
+        "fare-cmt3m": 44460,
+        "fare-cmt6m": 79650
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [],
+      "overrides": {},
+      "sampleName": "毎日通勤する会社員",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通勤",
+        "notice": ""
+      }
+    }
+  },
+  {
+    "filename": "sample03_BEST.pdf",
+    "sample": "03",
+    "selection": "BEST",
+    "title": "乗車券_最安購入方法_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "最安購入方法",
+        "cost": 78144,
+        "steps": 74
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 15600,
+        "fare-cmt3m": 44460,
+        "fare-cmt6m": 79650
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        1,
+        3,
+        5
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [],
+      "overrides": {},
+      "sampleName": "週3日出勤",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通勤",
+        "notice": ""
+      }
+    }
+  },
+  {
+    "filename": "sample04_BEST.pdf",
+    "sample": "04",
+    "selection": "BEST",
+    "title": "乗車券_最安購入方法_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "最安購入方法",
+        "cost": 52800,
+        "steps": 50
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 15600,
+        "fare-cmt3m": 44460,
+        "fare-cmt6m": 79650
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        2,
+        4
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [],
+      "overrides": {},
+      "sampleName": "週2日出勤",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通勤",
+        "notice": ""
+      }
+    }
+  },
+  {
+    "filename": "sample05_BEST.pdf",
+    "sample": "05",
+    "selection": "BEST",
+    "title": "乗車券_最安購入方法_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "最安購入方法",
+        "cost": 70848,
+        "steps": 12
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 15600,
+        "fare-cmt3m": 44460,
+        "fare-cmt6m": 79650
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [],
+      "overrides": {
+        "2027-10-01": false,
+        "2027-10-05": false,
+        "2027-10-06": false,
+        "2027-10-07": false,
+        "2027-10-08": false,
+        "2027-10-12": false,
+        "2027-10-13": false,
+        "2027-10-14": false,
+        "2027-10-15": false,
+        "2027-10-19": false,
+        "2027-10-20": false,
+        "2027-10-21": false,
+        "2027-10-22": false,
+        "2027-10-26": false,
+        "2027-10-27": false,
+        "2027-10-28": false,
+        "2027-10-29": false,
+        "2027-11-02": false,
+        "2027-11-04": false,
+        "2027-11-05": false,
+        "2027-11-09": false,
+        "2027-11-10": false,
+        "2027-11-11": false,
+        "2027-11-12": false,
+        "2027-11-16": false,
+        "2027-11-17": false,
+        "2027-11-18": false,
+        "2027-11-19": false,
+        "2027-11-24": false,
+        "2027-11-25": false,
+        "2027-11-26": false,
+        "2027-11-30": false
+      },
+      "sampleName": "月によって出勤日数が変動",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通勤",
+        "notice": ""
+      }
+    }
+  },
+  {
+    "filename": "sample06_BEST.pdf",
+    "sample": "06",
+    "selection": "BEST",
+    "title": "乗車券_最安購入方法_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "最安購入方法",
+        "cost": 75660,
+        "steps": 3
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 15600,
+        "fare-cmt3m": 44460,
+        "fare-cmt6m": 79650
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [
+        {
+          "id": "trip",
+          "start": "2027-10-01",
+          "end": "2027-10-30",
+          "reason": "長期出張（30日間）"
+        }
+      ],
+      "overrides": {},
+      "sampleName": "1か月の長期出張",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通勤",
+        "notice": ""
+      }
+    }
+  },
+  {
+    "filename": "sample07_BEST.pdf",
+    "sample": "07",
+    "selection": "BEST",
+    "title": "乗車券_最安購入方法_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "最安購入方法",
+        "cost": 79650,
+        "steps": 1
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 15600,
+        "fare-cmt3m": 44460,
+        "fare-cmt6m": 79650
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [],
+      "excludeHoliday": false,
+      "excludeWeekend": false,
+      "exclusions": [],
+      "overrides": {
+        "2027-08-01": true,
+        "2027-08-02": true,
+        "2027-08-03": true,
+        "2027-08-04": true,
+        "2027-08-05": true,
+        "2027-08-07": true,
+        "2027-08-08": true,
+        "2027-08-09": true,
+        "2027-08-10": true,
+        "2027-08-14": true,
+        "2027-08-15": true,
+        "2027-08-16": true,
+        "2027-08-19": true,
+        "2027-08-20": true,
+        "2027-08-21": true,
+        "2027-08-22": true,
+        "2027-08-25": true,
+        "2027-08-26": true,
+        "2027-08-27": true,
+        "2027-08-28": true,
+        "2027-08-31": true,
+        "2027-09-01": true,
+        "2027-09-02": true,
+        "2027-09-03": true,
+        "2027-09-06": true,
+        "2027-09-07": true,
+        "2027-09-08": true,
+        "2027-09-09": true,
+        "2027-09-12": true,
+        "2027-09-13": true,
+        "2027-09-14": true,
+        "2027-09-15": true,
+        "2027-09-18": true,
+        "2027-09-19": true,
+        "2027-09-20": true,
+        "2027-09-21": true,
+        "2027-09-24": true,
+        "2027-09-25": true,
+        "2027-09-26": true,
+        "2027-09-27": true,
+        "2027-09-30": true,
+        "2027-10-01": true,
+        "2027-10-02": true,
+        "2027-10-03": true,
+        "2027-10-06": true,
+        "2027-10-07": true,
+        "2027-10-08": true,
+        "2027-10-09": true,
+        "2027-10-12": true,
+        "2027-10-13": true,
+        "2027-10-14": true,
+        "2027-10-15": true,
+        "2027-10-18": true,
+        "2027-10-19": true,
+        "2027-10-20": true,
+        "2027-10-21": true,
+        "2027-10-24": true,
+        "2027-10-25": true,
+        "2027-10-26": true,
+        "2027-10-27": true,
+        "2027-10-30": true,
+        "2027-10-31": true,
+        "2027-11-01": true,
+        "2027-11-02": true,
+        "2027-11-05": true,
+        "2027-11-06": true,
+        "2027-11-07": true,
+        "2027-11-08": true,
+        "2027-11-11": true,
+        "2027-11-12": true,
+        "2027-11-13": true,
+        "2027-11-14": true,
+        "2027-11-17": true,
+        "2027-11-18": true,
+        "2027-11-19": true,
+        "2027-11-20": true,
+        "2027-11-23": true,
+        "2027-11-24": true,
+        "2027-11-25": true,
+        "2027-11-26": true,
+        "2027-11-29": true,
+        "2027-11-30": true,
+        "2027-12-01": true,
+        "2027-12-02": true,
+        "2027-12-05": true,
+        "2027-12-06": true,
+        "2027-12-07": true,
+        "2027-12-08": true,
+        "2027-12-11": true,
+        "2027-12-12": true,
+        "2027-12-13": true,
+        "2027-12-14": true,
+        "2027-12-17": true,
+        "2027-12-18": true,
+        "2027-12-19": true,
+        "2027-12-20": true,
+        "2027-12-23": true,
+        "2027-12-24": true,
+        "2027-12-25": true,
+        "2027-12-26": true,
+        "2027-12-29": true,
+        "2027-12-30": true,
+        "2027-12-31": true,
+        "2028-01-01": true,
+        "2028-01-04": true,
+        "2028-01-05": true,
+        "2028-01-06": true,
+        "2028-01-07": true,
+        "2028-01-10": true,
+        "2028-01-11": true,
+        "2028-01-12": true,
+        "2028-01-13": true,
+        "2028-01-16": true,
+        "2028-01-17": true,
+        "2028-01-18": true,
+        "2028-01-19": true,
+        "2028-01-22": true,
+        "2028-01-23": true,
+        "2028-01-24": true,
+        "2028-01-25": true,
+        "2028-01-28": true,
+        "2028-01-29": true,
+        "2028-01-30": true,
+        "2028-01-31": true
+      },
+      "sampleName": "土日を含む勤務",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通勤",
+        "notice": ""
+      }
+    }
+  },
+  {
+    "filename": "sample08_BEST.pdf",
+    "sample": "08",
+    "selection": "BEST",
+    "title": "乗車券_最安購入方法_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "最安購入方法",
+        "cost": 70860,
+        "steps": 26
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 15600,
+        "fare-cmt3m": 44460,
+        "fare-cmt6m": 79650
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [],
+      "overrides": {
+        "2027-11-01": false,
+        "2027-11-05": false,
+        "2027-11-08": false,
+        "2027-11-10": false,
+        "2027-11-12": false,
+        "2027-11-15": false,
+        "2027-11-17": false,
+        "2027-11-19": false,
+        "2027-11-22": false,
+        "2027-11-24": false,
+        "2027-11-26": false,
+        "2027-11-29": false,
+        "2027-12-01": false,
+        "2027-12-03": false,
+        "2027-12-06": false,
+        "2027-12-08": false,
+        "2027-12-10": false,
+        "2027-12-13": false,
+        "2027-12-15": false,
+        "2027-12-17": false,
+        "2027-12-20": false,
+        "2027-12-22": false,
+        "2027-12-24": false,
+        "2027-12-27": false,
+        "2027-12-29": false,
+        "2027-12-31": false,
+        "2028-01-03": false,
+        "2028-01-05": false,
+        "2028-01-07": false,
+        "2028-01-12": false,
+        "2028-01-14": false,
+        "2028-01-17": false,
+        "2028-01-19": false,
+        "2028-01-21": false,
+        "2028-01-24": false,
+        "2028-01-26": false,
+        "2028-01-28": false,
+        "2028-01-31": false
+      },
+      "sampleName": "途中から在宅勤務",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通勤",
+        "notice": ""
+      }
+    }
+  },
+  {
+    "filename": "sample06_ALL.pdf",
+    "sample": "06",
+    "selection": "ALL",
+    "title": "乗車券_すべての購入パターン_2027-08-01_2030-01-31.pdf",
+    "plans": [
+      {
+        "label": "最安購入方法",
+        "cost": 394260,
+        "steps": 7
+      },
+      {
+        "label": "普通乗車券のみ",
+        "cost": 632544,
+        "steps": 599
+      },
+      {
+        "label": "1か月定期券のみ",
+        "cost": 452400,
+        "steps": 29
+      },
+      {
+        "label": "3か月定期券のみ",
+        "cost": 444600,
+        "steps": 10
+      },
+      {
+        "label": "6か月定期券のみ",
+        "cost": 398250,
+        "steps": 5
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2030-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 15600,
+        "fare-cmt3m": 44460,
+        "fare-cmt6m": 79650
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "excludeHoliday": true,
+      "excludeWeekend": false,
+      "exclusions": [
+        {
+          "id": "trip",
+          "start": "2027-10-01",
+          "end": "2027-10-30",
+          "reason": "長期出張（30日間）"
+        }
+      ],
+      "overrides": {},
+      "sampleName": "1か月の長期出張",
+      "modified": true,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通勤",
+        "notice": ""
+      }
+    }
+  },
+  {
+    "filename": "sample07_RTT.pdf",
+    "sample": "07",
+    "selection": "RTT",
+    "title": "乗車券_普通乗車券のみ_2027-08-01_2028-01-31.pdf",
+    "plans": [
+      {
+        "label": "普通乗車券のみ",
+        "cost": 130944,
+        "steps": 124
+      }
+    ],
+    "condition": {
+      "start": "2027-08-01",
+      "end": "2028-01-31",
+      "fares": {
+        "fare-one-way": 528,
+        "fare-cmt1m": 15600,
+        "fare-cmt3m": 44460,
+        "fare-cmt6m": 79650
+      },
+      "enabledPatterns": [
+        "RTT",
+        "CMT1M",
+        "CMT3M",
+        "CMT6M"
+      ],
+      "weekdays": [],
+      "excludeHoliday": false,
+      "excludeWeekend": false,
+      "exclusions": [],
+      "overrides": {
+        "2027-08-01": true,
+        "2027-08-02": true,
+        "2027-08-03": true,
+        "2027-08-04": true,
+        "2027-08-05": true,
+        "2027-08-07": true,
+        "2027-08-08": true,
+        "2027-08-09": true,
+        "2027-08-10": true,
+        "2027-08-14": true,
+        "2027-08-15": true,
+        "2027-08-16": true,
+        "2027-08-19": true,
+        "2027-08-20": true,
+        "2027-08-21": true,
+        "2027-08-22": true,
+        "2027-08-25": true,
+        "2027-08-26": true,
+        "2027-08-27": true,
+        "2027-08-28": true,
+        "2027-08-31": true,
+        "2027-09-01": true,
+        "2027-09-02": true,
+        "2027-09-03": true,
+        "2027-09-06": true,
+        "2027-09-07": true,
+        "2027-09-08": true,
+        "2027-09-09": true,
+        "2027-09-12": true,
+        "2027-09-13": true,
+        "2027-09-14": true,
+        "2027-09-15": true,
+        "2027-09-18": true,
+        "2027-09-19": true,
+        "2027-09-20": true,
+        "2027-09-21": true,
+        "2027-09-24": true,
+        "2027-09-25": true,
+        "2027-09-26": true,
+        "2027-09-27": true,
+        "2027-09-30": true,
+        "2027-10-01": true,
+        "2027-10-02": true,
+        "2027-10-03": true,
+        "2027-10-06": true,
+        "2027-10-07": true,
+        "2027-10-08": true,
+        "2027-10-09": true,
+        "2027-10-12": true,
+        "2027-10-13": true,
+        "2027-10-14": true,
+        "2027-10-15": true,
+        "2027-10-18": true,
+        "2027-10-19": true,
+        "2027-10-20": true,
+        "2027-10-21": true,
+        "2027-10-24": true,
+        "2027-10-25": true,
+        "2027-10-26": true,
+        "2027-10-27": true,
+        "2027-10-30": true,
+        "2027-10-31": true,
+        "2027-11-01": true,
+        "2027-11-02": true,
+        "2027-11-05": true,
+        "2027-11-06": true,
+        "2027-11-07": true,
+        "2027-11-08": true,
+        "2027-11-11": true,
+        "2027-11-12": true,
+        "2027-11-13": true,
+        "2027-11-14": true,
+        "2027-11-17": true,
+        "2027-11-18": true,
+        "2027-11-19": true,
+        "2027-11-20": true,
+        "2027-11-23": true,
+        "2027-11-24": true,
+        "2027-11-25": true,
+        "2027-11-26": true,
+        "2027-11-29": true,
+        "2027-11-30": true,
+        "2027-12-01": true,
+        "2027-12-02": true,
+        "2027-12-05": true,
+        "2027-12-06": true,
+        "2027-12-07": true,
+        "2027-12-08": true,
+        "2027-12-11": true,
+        "2027-12-12": true,
+        "2027-12-13": true,
+        "2027-12-14": true,
+        "2027-12-17": true,
+        "2027-12-18": true,
+        "2027-12-19": true,
+        "2027-12-20": true,
+        "2027-12-23": true,
+        "2027-12-24": true,
+        "2027-12-25": true,
+        "2027-12-26": true,
+        "2027-12-29": true,
+        "2027-12-30": true,
+        "2027-12-31": true,
+        "2028-01-01": true,
+        "2028-01-04": true,
+        "2028-01-05": true,
+        "2028-01-06": true,
+        "2028-01-07": true,
+        "2028-01-10": true,
+        "2028-01-11": true,
+        "2028-01-12": true,
+        "2028-01-13": true,
+        "2028-01-16": true,
+        "2028-01-17": true,
+        "2028-01-18": true,
+        "2028-01-19": true,
+        "2028-01-22": true,
+        "2028-01-23": true,
+        "2028-01-24": true,
+        "2028-01-25": true,
+        "2028-01-28": true,
+        "2028-01-29": true,
+        "2028-01-30": true,
+        "2028-01-31": true
+      },
+      "sampleName": "土日を含む勤務",
+      "modified": false,
+      "journey": {
+        "section": "横浜 ⇔ 東京",
+        "line": "JR東海道線",
+        "fareBasis": "大人IC運賃",
+        "revision": "2026-03-14",
+        "passType": "通勤",
+        "notice": ""
+      }
+    }
+  }
+]
