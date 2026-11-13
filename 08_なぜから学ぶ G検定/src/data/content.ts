@@ -61,11 +61,17 @@ export const scenes: Scene[] = [
   eyebrow,
   prompt,
 }));
+export const prologueScene: Scene = {
+  id: "L003-P00",
+  title: "プロローグ",
+  eyebrow: "出荷前の工場",
+  prompt: "出荷まで、あと1時間。",
+};
 export const lesson: Lesson = {
   id: "L003",
   title: "AIはどうやって学習するのか？",
   courseId: course.id,
-  sceneIds: scenes.map((s) => s.id),
+  sceneIds: [prologueScene.id, ...scenes.map((s) => s.id)],
   syllabusIds: ["SY-ML"],
 };
 export const concepts: Concept[] = [

@@ -13,6 +13,8 @@ const open = async (page: Page) => {
   await page.goto("/");
   await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
   await saved(page);
+  await page.getByRole("button", { name: "AIの仕分けを見てみる" }).click();
+  await saved(page);
 };
 async function snapshot(page: Page) {
   return await page.evaluate(async () => {
@@ -53,7 +55,7 @@ test("390×844：回答や選択なしで最初の発見、挿絵とボタンが
   expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(844);
   expect(await page.evaluate(() => scrollY)).toBe(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.1/intro-before-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.2/intro-before-${test.info().project.name}.png`,
     fullPage: true,
   });
   const positionBefore = await page
@@ -78,7 +80,7 @@ test("390×844：回答や選択なしで最初の発見、挿絵とボタンが
   ).toBeVisible();
   expect((await snapshot(page)).attempts).toHaveLength(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.1/intro-after-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.2/intro-after-${test.info().project.name}.png`,
     fullPage: true,
   });
   await page.getByRole("button", { name: "分類を続けて試す →" }).click();
@@ -156,7 +158,7 @@ test("v0.1.0の途中データをその場から再開し、導入再訪と旧JS
     page.getByRole("button", { name: "続きから学ぶ" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "導入をもう一度見る" }),
+    page.getByRole("button", { name: "最初から学ぶ" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "続きから学ぶ" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
@@ -170,7 +172,11 @@ test("v0.1.0の途中データをその場から再開し、導入再訪と旧JS
   expect(data.attempts).toEqual(legacy.attempts);
   expect(data.reviews).toEqual(legacy.reviews);
   await page.getByRole("button", { name: "← 戻る・途中終了" }).click();
-  await page.getByRole("button", { name: "導入をもう一度見る" }).click();
+  await page.getByRole("button", { name: "最初から学ぶ" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "出荷まで、あと1時間。",
+  );
+  await page.getByRole("button", { name: "AIの仕分けを見てみる" }).click();
   await expect(
     page.getByRole("button", { name: "検査済みの箱を見本に加える" }),
   ).toBeVisible();
@@ -265,7 +271,7 @@ test("320pxと文字200%相当で横溢れ・挿絵やボタンの重なりが�
     .click();
   await check();
   await page.screenshot({
-    path: `docs/screenshots/v0.1.1/intro-large-text-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.2/intro-large-text-${test.info().project.name}.png`,
     fullPage: true,
   });
 });

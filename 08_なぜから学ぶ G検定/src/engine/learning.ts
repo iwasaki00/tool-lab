@@ -1,6 +1,7 @@
 import type {
   Backup,
   LearningProgress,
+  LessonCompletion,
   QuestionAttempt,
   ReviewState,
 } from "../types";
@@ -17,6 +18,7 @@ export const newProgress = (): LearningProgress => ({
   predictions: [-1, -1, -1],
   started: false,
   storySampleAdded: false,
+  introStage: "prologue",
   challenge: null,
   challengeLabelled: true,
 });
@@ -89,6 +91,8 @@ export function validateBackup(input: unknown): Backup {
   const p = input.progress,
     s = input.settings;
   if (
+    (p.introStage !== undefined &&
+      !["prologue", "sorting"].includes(p.introStage as string)) ||
     p.id !== "progress-L003" ||
     p.lessonId !== "L003" ||
     !int(p.scene, 8) ||
@@ -154,6 +158,23 @@ export function validateBackup(input: unknown): Backup {
     )
   )
     return fail();
+  if (input.completions !== undefined) {
+    if (!Array.isArray(input.completions) || input.completions.length > 100000)
+      return fail();
+    const completionIds = new Set();
+    for (const c of input.completions) {
+      if (
+        !record(c) ||
+        !str(c.lessonId) ||
+        !str(c.sessionId) ||
+        c.id !== `completion-${c.lessonId}-${c.sessionId}` ||
+        completionIds.has(c.id) ||
+        !date(c.recordedAt)
+      )
+        return fail();
+      completionIds.add(c.id);
+    }
+  }
   // Return a detached, validated snapshot; UI never mutates the imported object.
   return structuredClone(input) as unknown as Backup;
 }
@@ -185,8 +206,15 @@ export function mergeBackups(current: Backup, incoming: Backup): Backup {
     const old = reviews.get(r.id);
     if (!old || r.updatedAt > old.updatedAt) reviews.set(r.id, r);
   }
+  const completions = combineCompletions([
+    ...completionRecords(a),
+    ...completionRecords(b),
+  ]);
   return validateBackup({
     ...a,
+    ...(completions.length || a.completions || b.completions
+      ? { completions }
+      : {}),
     exportedAt: new Date().toISOString(),
     attempts: [...attempts.values()].sort((x, y) =>
       x.answeredAt.localeCompare(y.answeredAt),
@@ -208,6 +236,54 @@ export function hasLearningRecord(b: Backup): boolean {
     p.visited.length > 1 ||
     p.completed ||
     p.predictions.some((v) => v !== -1) ||
-    b.attempts.length > 0
+    b.attempts.length > 0 ||
+    (b.completions?.length ?? 0) > 0
   );
+}
+
+function combineCompletions(items: LessonCompletion[]): LessonCompletion[] {
+  const unique = new Map<string, LessonCompletion>();
+  for (const c of items) {
+    const old = unique.get(c.id);
+    if (!old || c.recordedAt < old.recordedAt) unique.set(c.id, c);
+  }
+  return [...unique.values()].sort((a, b) =>
+    a.recordedAt.localeCompare(b.recordedAt),
+  );
+}
+export function completionRecords(b: Backup): LessonCompletion[] {
+  const records = b.completions ?? [];
+  if (!b.progress.completed) return records;
+  const p = b.progress,
+    id = `completion-${p.lessonId}-${p.sessionId}`;
+  return records.some((c) => c.id === id)
+    ? records
+    : [
+        ...records,
+        {
+          id,
+          lessonId: p.lessonId,
+          sessionId: p.sessionId,
+          recordedAt: p.updatedAt,
+        },
+      ];
+}
+export function restartLesson(b: Backup): Backup {
+  return {
+    ...b,
+    completions: completionRecords(b),
+    progress: { ...newProgress(), started: true },
+  };
+}
+export function completeLesson(b: Backup): Backup {
+  if (!storyVisited(b.progress)) throw Error("本編を最後まで確認してください");
+  const next = {
+    ...b,
+    progress: {
+      ...b.progress,
+      completed: true,
+      updatedAt: new Date().toISOString(),
+    },
+  };
+  return { ...next, completions: completionRecords(next) };
 }

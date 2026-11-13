@@ -4,6 +4,7 @@ import {
   course,
   lesson,
   scenes,
+  prologueScene,
   questions,
   comparisons,
   syllabus,
@@ -16,6 +17,9 @@ import {
   mergeBackups,
   hasLearningRecord,
   storyVisited,
+  restartLesson,
+  completeLesson,
+  completionRecords,
 } from "./engine/learning";
 import { loadState, saveState } from "./engine/storage";
 import {
@@ -25,6 +29,7 @@ import {
 } from "./components/Simulations";
 import { KnowledgeMap, Quiz } from "./components/Learning";
 import { ShippingStory } from "./components/ShippingStory";
+import { ShippingPrologue } from "./components/ShippingPrologue";
 const nav = [
   ["⌂", "ホーム"],
   ["▤", "コース"],
@@ -89,12 +94,16 @@ export default function App() {
     };
   }, []);
   const p = snapshot.progress;
+  const isPrologue = p.scene === 0 && p.introStage === "prologue";
+  const pastCompletions = completionRecords(snapshot).filter(
+    (c) => c.lessonId === "L003",
+  );
   useEffect(() => {
     if (inLesson) {
       heading.current?.focus();
       window.scrollTo({ top: 0, behavior: "instant" });
     }
-  }, [inLesson, p.scene]);
+  }, [inLesson, p.scene, p.introStage]);
   function commit(next: Backup) {
     if (!ready) return;
     ref.current = next;
@@ -124,6 +133,9 @@ export default function App() {
     const current = ref.current;
     commit({
       ...current,
+      ...(current.progress.completed
+        ? { completions: completionRecords(current) }
+        : {}),
       progress: {
         ...current.progress,
         ...change,
@@ -131,7 +143,7 @@ export default function App() {
       },
     });
   }
-  function enter(scene?: number, restartIntro = false) {
+  function enter(scene?: number) {
     setOrigin(tab);
     const current = ref.current.progress;
     updateProgress({
@@ -139,8 +151,12 @@ export default function App() {
       ...(scene === undefined
         ? {}
         : { scene, visited: [...new Set([...current.visited, scene])] }),
-      ...(restartIntro ? { storySampleAdded: false } : {}),
     });
+    setInLesson(true);
+  }
+  function startOver() {
+    commit(restartLesson(ref.current));
+    setOrigin(tab);
     setInLesson(true);
   }
   function move(scene: number) {
@@ -241,12 +257,18 @@ export default function App() {
   const due = snapshot.reviews.filter((r) => Date.parse(r.dueAt) <= Date.now());
   const startQuiz = () => {
     const current = ref.current;
-    updateProgress({
-      scene: 7,
-      questionIndex: 0,
-      sessionId: crypto.randomUUID(),
-      completed: false,
-      visited: [...new Set([...current.progress.visited, 7])],
+    commit({
+      ...current,
+      completions: completionRecords(current),
+      progress: {
+        ...current.progress,
+        scene: 7,
+        questionIndex: 0,
+        sessionId: crypto.randomUUID(),
+        completed: false,
+        visited: [...new Set([...current.progress.visited, 7])],
+        updatedAt: new Date().toISOString(),
+      },
     });
     setOrigin(tab);
     setInLesson(true);
@@ -311,6 +333,12 @@ export default function App() {
   const sceneBody = () => {
     switch (p.scene) {
       case 0:
+        if (isPrologue)
+          return (
+            <ShippingPrologue
+              onContinue={() => updateProgress({ introStage: "sorting" })}
+            />
+          );
         return (
           <ShippingStory
             sampleAdded={!!p.storySampleAdded}
@@ -443,7 +471,7 @@ export default function App() {
                 <button
                   className="primary"
                   disabled={!storyVisited(p)}
-                  onClick={() => updateProgress({ completed: true })}
+                  onClick={() => commit(completeLesson(ref.current))}
                 >
                   レッスンを最後まで学習したと記録
                 </button>
@@ -500,7 +528,7 @@ export default function App() {
               <br />
               理解のはじまり。
             </p>
-            <small>v0.1.1 · この端末に保存</small>
+            <small>v0.1.2 · この端末に保存</small>
           </div>
         </aside>
       )}
@@ -590,7 +618,7 @@ export default function App() {
               </div>
             )}
             <h1 ref={heading} tabIndex={-1}>
-              {scenes[p.scene].prompt}
+              {isPrologue ? prologueScene.prompt : scenes[p.scene].prompt}
             </h1>
             <section className="card scene-body">{sceneBody()}</section>
             {p.scene !== 0 && (
@@ -680,9 +708,9 @@ export default function App() {
                       最初の発見を。
                     </h2>
                     <p>
-                      検査では合格だった箱が、不良品レーンへ。
+                      出荷まであと1時間。仕分けを待つ箱が山積みに。
                       <br />
-                      検査員といっしょに、見本をひとつ加えてみよう。
+                      検査員といっしょに、AIの仕分けを見てみよう。
                     </p>
                     <div className="hero-bottom">
                       <button className="cream" onClick={() => enter()}>
@@ -693,11 +721,8 @@ export default function App() {
                       </button>
                       <span>回答なしで始められる · 試験問題は任意</span>
                       {hasLearningRecord(snapshot) && (
-                        <button
-                          className="hero-revisit"
-                          onClick={() => enter(0, true)}
-                        >
-                          導入をもう一度見る
+                        <button className="hero-revisit" onClick={startOver}>
+                          最初から学ぶ
                         </button>
                       )}
                     </div>
@@ -868,6 +893,21 @@ export default function App() {
                     </strong>
                   </article>
                 </div>
+                <section className="card completion-history">
+                  <h2>これまでの完了記録</h2>
+                  {pastCompletions.length ? (
+                    <ul>
+                      {pastCompletions.map((c) => (
+                        <li key={c.id}>
+                          L003 完了 ·{" "}
+                          {new Date(c.recordedAt).toLocaleString("ja-JP")}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>完了した記録はまだありません。</p>
+                  )}
+                </section>
                 <section className="card">
                   <h2>復習の候補</h2>
                   <p className="muted">
@@ -964,7 +1004,7 @@ export default function App() {
               </>
             )}
             <footer className="page-footer">
-              <span>WHY LEARN G · v0.1.1</span>
+              <span>WHY LEARN G · v0.1.2</span>
               <details>
                 <summary>教材の参照情報</summary>
                 <p>

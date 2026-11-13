@@ -4,6 +4,7 @@ import { questions } from "../src/data/content";
 const openLesson = async (page: Page) => {
   await page.goto("/");
   await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
+  await page.getByRole("button", { name: "AIの仕分けを見てみる" }).click();
   await page
     .getByRole("button", { name: "検査済みの箱を見本に加える" })
     .click();
@@ -293,6 +294,7 @@ test("320px幅の5画面と9場面に横溢れがない", async ({ page }) => {
     fullPage: true,
   });
   await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
+  await page.getByRole("button", { name: "AIの仕分けを見てみる" }).click();
   await page
     .getByRole("button", { name: "検査済みの箱を見本に加える" })
     .click();

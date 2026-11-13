@@ -42,3 +42,11 @@ DB名 `why-learn-g`、DB版1、object store `state`、キー `snapshot`。履歴
 - 進行へ任意の `started` / `storySampleAdded` を追加。旧データの欠落時は未操作として描画する。旧 `predictions` は表示しないが削除しない。DB版1とバックアップ形式版1を継続する。
 - 完了記録は演習以外の8場面の閲覧で可能。12問の回答履歴と復習管理は従来通り独立して保存する。
 - `tests/fixtures/` に新フィールドを含まない旧形式の保存例と、既存12問の基準データを保持し、互換性と内容不変を検証する。
+
+## v0.1.2：プロローグ・再開始・完了の履歴
+
+- `ShippingIllustration.tsx`で検査員・箱・コンベアを共用し、プロローグでは出荷口・時計・待ち箱、仕分けでは人とAIの判定を表示する。`ShippingPrologue.tsx`は短い説明とボタンを配置する。
+- 新しい `L003-P00` をレッスンの場面一覧の先頭へ追加。既存の `scenes` 配列9件の添字・IDは変更しない。進行の任意フィールド `introStage` によって、scene=0内のプロローグ／仕分けを区別する。新規・再開始はprologue、旧データの未設定時はsortingと解釈し、保存位置を移動しない。
+- `restartLesson`は現在のL003進行だけをnewProgressで初期化し、新しいセッションIDを発行する。スナップショットの他フィールドは維持する。
+- `LessonCompletion`と任意の `completions` 配列を追加。旧 completed=true は再開始・進行変更・新規演習の前に完了記録へ退避する。旧版に正確な完了日時がないため、旧進行のupdatedAtを記録日時として継承する。新規の完了は完了操作の日時を記録する。
+- 完了IDはlessonIdとsessionIdから安定して生成。JSON統合時はIDで重複を排除して完了記録を残す。再開始・復元・履歴更新は従来のIndexedDBトランザクションで保存する。

@@ -1,0 +1,43 @@
+{
+  "formatVersion": 1,
+  "exportedAt": "2026-11-13T10:00:00.000Z",
+  "attempts": [
+    {
+      "id": "legacy-attempt-001",
+      "questionId": "L003-Q01",
+      "version": 1,
+      "selected": 0,
+      "correct": true,
+      "answeredAt": "2026-11-13T09:30:00.000Z",
+      "sessionId": "legacy-session-001"
+    }
+  ],
+  "progress": {
+    "id": "progress-L003",
+    "lessonId": "L003",
+    "scene": 0,
+    "questionIndex": 0,
+    "completed": false,
+    "visited": [0],
+    "updatedAt": "2026-11-13T09:35:00.000Z",
+    "sessionId": "legacy-session-001",
+    "predictions": [0, 1, 2],
+    "challenge": null,
+    "challengeLabelled": true,
+    "started": true,
+    "storySampleAdded": true
+  },
+  "reviews": [
+    {
+      "id": "review-L003-Q01",
+      "questionId": "L003-Q01",
+      "dueAt": "2026-11-16T09:30:00.000Z",
+      "reason": "correct",
+      "updatedAt": "2026-11-13T09:30:00.000Z"
+    }
+  ],
+  "settings": {
+    "id": "settings",
+    "speed": 2
+  }
+}

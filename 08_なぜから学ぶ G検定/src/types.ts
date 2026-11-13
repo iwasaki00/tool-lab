@@ -66,6 +66,7 @@ export interface LearningProgress {
   predictions: number[];
   started?: boolean;
   storySampleAdded?: boolean;
+  introStage?: "prologue" | "sorting";
   challenge: number | null;
   challengeLabelled: boolean;
 }
@@ -80,7 +81,14 @@ export interface Settings {
   id: "settings";
   speed: number;
 }
+export interface LessonCompletion {
+  id: string;
+  lessonId: string;
+  sessionId: string;
+  recordedAt: string;
+}
 export interface Backup {
+  completions?: LessonCompletion[];
   formatVersion: 1;
   exportedAt: string;
   attempts: QuestionAttempt[];

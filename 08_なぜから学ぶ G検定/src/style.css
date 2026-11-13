@@ -1532,3 +1532,49 @@ select {
     min-width: 0;
   }
 }
+.shipping-verdicts {
+  display: flex;
+  gap: 6px 14px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #345c48;
+}
+.shipping-verdicts span {
+  background: #e5ecdb;
+  border-radius: 6px;
+  padding: 4px 7px;
+}
+.shipping-verdicts strong {
+  padding: 4px 0;
+}
+.prologue-narration {
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 14px 0;
+}
+.shipping-prologue .inspector-line {
+  margin: 14px 0 18px;
+}
+.completion-history li {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.completion-history ul {
+  padding-left: 20px;
+}
+@media (max-width: 700px) {
+  .story-intro .prologue-narration {
+    font-size: 14px;
+  }
+  .shipping-prologue .inspector-line p {
+    font-size: 15px;
+  }
+  .shipping-prologue .inspector-line {
+    gap: 8px;
+  }
+  .shipping-verdicts {
+    font-size: 12px;
+  }
+}
