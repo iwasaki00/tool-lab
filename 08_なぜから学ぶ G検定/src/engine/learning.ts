@@ -1,0 +1,197 @@
+import type {
+  Backup,
+  LearningProgress,
+  QuestionAttempt,
+  ReviewState,
+} from "../types";
+import { questions } from "../data/content";
+export const newProgress = (): LearningProgress => ({
+  id: "progress-L003",
+  lessonId: "L003",
+  scene: 0,
+  questionIndex: 0,
+  completed: false,
+  visited: [0],
+  updatedAt: new Date().toISOString(),
+  sessionId: crypto.randomUUID(),
+  predictions: [-1, -1, -1],
+  challenge: null,
+  challengeLabelled: true,
+});
+export const emptyBackup = (): Backup => ({
+  formatVersion: 1,
+  exportedAt: new Date().toISOString(),
+  attempts: [],
+  progress: newProgress(),
+  reviews: [],
+  settings: { id: "settings", speed: 1 },
+});
+export function grade(
+  questionId: string,
+  selected: number,
+  sessionId: string,
+): QuestionAttempt {
+  const q = questions.find((q) => q.id === questionId);
+  if (!q || !Number.isInteger(selected) || selected < 0 || selected > 3)
+    throw Error("回答が不正です");
+  return {
+    id: crypto.randomUUID(),
+    questionId,
+    version: q.version,
+    selected,
+    correct: q.answer === selected,
+    answeredAt: new Date().toISOString(),
+    sessionId,
+  };
+}
+export function reviewFor(a: QuestionAttempt): ReviewState {
+  return {
+    id: `review-${a.questionId}`,
+    questionId: a.questionId,
+    dueAt: new Date(
+      Date.parse(a.answeredAt) + (a.correct ? 3 : 1) * 86400000,
+    ).toISOString(),
+    reason: a.correct ? "correct" : "incorrect",
+    updatedAt: a.answeredAt,
+  };
+}
+const record = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+const date = (v: unknown): v is string =>
+  typeof v === "string" &&
+  /^\d{4}-\d{2}-\d{2}T/.test(v) &&
+  Number.isFinite(Date.parse(v)) &&
+  new Date(v).toISOString() === v;
+const int = (v: unknown, max: number) =>
+  typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= max;
+const str = (v: unknown): v is string =>
+  typeof v === "string" && v.length > 0 && v.length <= 200;
+export function validateBackup(input: unknown): Backup {
+  const fail = (): never => {
+    throw Error(
+      "バックアップの形式または整合性が不正です。保存内容は変更していません。",
+    );
+  };
+  if (
+    !record(input) ||
+    input.formatVersion !== 1 ||
+    !date(input.exportedAt) ||
+    !Array.isArray(input.attempts) ||
+    !Array.isArray(input.reviews) ||
+    !record(input.progress) ||
+    !record(input.settings)
+  )
+    return fail();
+  if (input.attempts.length > 100000 || input.reviews.length > questions.length)
+    return fail();
+  const p = input.progress,
+    s = input.settings;
+  if (
+    p.id !== "progress-L003" ||
+    p.lessonId !== "L003" ||
+    !int(p.scene, 8) ||
+    !int(p.questionIndex, 11) ||
+    typeof p.completed !== "boolean" ||
+    !date(p.updatedAt) ||
+    !str(p.sessionId) ||
+    !Array.isArray(p.visited) ||
+    !p.visited.every((v) => int(v, 8)) ||
+    new Set(p.visited).size !== p.visited.length ||
+    !p.visited.includes(p.scene) ||
+    !Array.isArray(p.predictions) ||
+    p.predictions.length !== 3 ||
+    !p.predictions.every((v) => v === -1 || int(v, 2)) ||
+    !(p.challenge === null || int(p.challenge, 2)) ||
+    typeof p.challengeLabelled !== "boolean" ||
+    s.id !== "settings" ||
+    ![0.5, 1, 2].includes(s.speed as number)
+  )
+    return fail();
+  const ids = new Set<string>();
+  for (const a of input.attempts) {
+    if (
+      !record(a) ||
+      !str(a.id) ||
+      ids.has(a.id) ||
+      !str(a.sessionId) ||
+      !date(a.answeredAt) ||
+      !int(a.selected, 3)
+    )
+      return fail();
+    const q = questions.find((q) => q.id === a.questionId);
+    if (
+      !q ||
+      a.version !== q.version ||
+      a.correct !== (a.selected === q.answer)
+    )
+      return fail();
+    ids.add(a.id);
+  }
+  const reviewIds = new Set();
+  for (const r of input.reviews) {
+    if (
+      !record(r) ||
+      !questions.some((q) => q.id === r.questionId) ||
+      r.id !== `review-${r.questionId}` ||
+      reviewIds.has(r.id) ||
+      !date(r.dueAt) ||
+      !date(r.updatedAt) ||
+      !["correct", "incorrect", "manual"].includes(r.reason as string)
+    )
+      return fail();
+    reviewIds.add(r.id);
+  }
+  const checkedAttempts = input.attempts;
+  if (
+    p.completed &&
+    (p.visited.length !== 9 ||
+      !questions.every((q) =>
+        checkedAttempts.some(
+          (a: QuestionAttempt) =>
+            a.questionId === q.id && a.sessionId === p.sessionId,
+        ),
+      ))
+  )
+    return fail();
+  // Return a detached, validated snapshot; UI never mutates the imported object.
+  return structuredClone(input) as unknown as Backup;
+}
+export function mergeBackups(current: Backup, incoming: Backup): Backup {
+  const a = validateBackup(current),
+    b = validateBackup(incoming);
+  const attempts = new Map(a.attempts.map((v) => [v.id, v]));
+  for (const item of b.attempts) {
+    const old = attempts.get(item.id);
+    if (
+      old &&
+      (
+        [
+          "id",
+          "questionId",
+          "version",
+          "selected",
+          "correct",
+          "answeredAt",
+          "sessionId",
+        ] as const
+      ).some((key) => old[key] !== item[key])
+    )
+      throw Error("同じ履歴IDに異なる内容があるため統合できません。");
+    attempts.set(item.id, item);
+  }
+  const reviews = new Map(a.reviews.map((v) => [v.id, v]));
+  for (const r of b.reviews) {
+    const old = reviews.get(r.id);
+    if (!old || r.updatedAt > old.updatedAt) reviews.set(r.id, r);
+  }
+  return validateBackup({
+    ...a,
+    exportedAt: new Date().toISOString(),
+    attempts: [...attempts.values()].sort((x, y) =>
+      x.answeredAt.localeCompare(y.answeredAt),
+    ),
+    progress:
+      b.progress.updatedAt > a.progress.updatedAt ? b.progress : a.progress,
+    reviews: [...reviews.values()],
+  });
+}
