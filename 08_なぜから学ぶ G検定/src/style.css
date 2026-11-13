@@ -1411,3 +1411,124 @@ select {
     display: grid;
   }
 }
+/* L003: one event, one illustration, one action before the first discovery. */
+.story-intro {
+  max-width: 850px;
+  padding-top: 14px;
+}
+.story-intro > h1 {
+  font-size: 27px;
+  margin: 12px 0 18px;
+}
+.story-intro .scene-body {
+  padding: 22px;
+  background: #fffdf7;
+}
+.shipping-story {
+  max-width: 650px;
+  margin: auto;
+}
+.shipping-illustration {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+}
+.inspector-line {
+  margin: 18px 0 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.inspector-line > span {
+  font-size: 11px;
+  white-space: nowrap;
+  padding: 4px 8px;
+  background: #e5ecdb;
+  border-radius: 8px;
+  color: #446343;
+}
+.inspector-line p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.7;
+}
+.story-action {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  padding: 13px 12px;
+  white-space: normal;
+}
+.shipping-discovery {
+  margin: 18px 0 24px;
+  border-left: 3px solid #5c8959;
+  padding: 8px 0 8px 16px;
+}
+.shipping-discovery strong {
+  font-size: 18px;
+}
+.shipping-discovery p {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.9;
+}
+.hero-revisit {
+  border: 0;
+  background: transparent;
+  color: #f2eacb;
+  text-decoration: underline;
+  font-size: 11px;
+  padding: 5px 0;
+}
+.hero-revisit:hover {
+  background: transparent;
+  color: white;
+}
+.optional-exam {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #dce5d5;
+}
+.optional-exam p {
+  font-size: 13px;
+}
+.story-intro .shipping-illustration text {
+  font-family: "Yu Gothic UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+}
+@media (max-width: 700px) {
+  .story-intro {
+    padding: 12px 16px 26px;
+  }
+  .story-intro > h1 {
+    font-size: 23px;
+    margin: 10px 0 16px;
+  }
+  .story-intro .scene-body {
+    padding: 16px;
+  }
+  .inspector-line {
+    margin: 16px 0 20px;
+    gap: 9px;
+  }
+  .inspector-line p {
+    font-size: 16px;
+  }
+  .inspector-line > span {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+  .story-intro .shipping-discovery p {
+    font-size: 15px;
+  }
+  .story-intro .scene-body {
+    overflow-wrap: anywhere;
+  }
+  .hero-revisit {
+    flex-basis: 100%;
+    text-align: left;
+  }
+  .shipping-illustration {
+    min-width: 0;
+  }
+}

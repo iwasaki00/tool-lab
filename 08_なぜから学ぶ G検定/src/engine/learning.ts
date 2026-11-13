@@ -15,6 +15,8 @@ export const newProgress = (): LearningProgress => ({
   updatedAt: new Date().toISOString(),
   sessionId: crypto.randomUUID(),
   predictions: [-1, -1, -1],
+  started: false,
+  storySampleAdded: false,
   challenge: null,
   challengeLabelled: true,
 });
@@ -92,6 +94,9 @@ export function validateBackup(input: unknown): Backup {
     !int(p.scene, 8) ||
     !int(p.questionIndex, 11) ||
     typeof p.completed !== "boolean" ||
+    (p.started !== undefined && typeof p.started !== "boolean") ||
+    (p.storySampleAdded !== undefined &&
+      typeof p.storySampleAdded !== "boolean") ||
     !date(p.updatedAt) ||
     !str(p.sessionId) ||
     !Array.isArray(p.visited) ||
@@ -141,16 +146,12 @@ export function validateBackup(input: unknown): Backup {
       return fail();
     reviewIds.add(r.id);
   }
-  const checkedAttempts = input.attempts;
+  // Completing the story no longer requires taking the optional exam.
   if (
     p.completed &&
-    (p.visited.length !== 9 ||
-      !questions.every((q) =>
-        checkedAttempts.some(
-          (a: QuestionAttempt) =>
-            a.questionId === q.id && a.sessionId === p.sessionId,
-        ),
-      ))
+    ![0, 1, 2, 3, 4, 5, 6, 8].every((scene) =>
+      (p.visited as number[]).includes(scene),
+    )
   )
     return fail();
   // Return a detached, validated snapshot; UI never mutates the imported object.
@@ -194,4 +195,19 @@ export function mergeBackups(current: Backup, incoming: Backup): Backup {
       b.progress.updatedAt > a.progress.updatedAt ? b.progress : a.progress,
     reviews: [...reviews.values()],
   });
+}
+
+export const storyVisited = (p: LearningProgress) =>
+  [0, 1, 2, 3, 4, 5, 6, 8].every((scene) => p.visited.includes(scene));
+export function hasLearningRecord(b: Backup): boolean {
+  const p = b.progress;
+  return (
+    !!p.started ||
+    !!p.storySampleAdded ||
+    p.scene > 0 ||
+    p.visited.length > 1 ||
+    p.completed ||
+    p.predictions.some((v) => v !== -1) ||
+    b.attempts.length > 0
+  );
 }

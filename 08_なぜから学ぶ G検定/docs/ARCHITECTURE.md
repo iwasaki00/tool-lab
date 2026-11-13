@@ -33,3 +33,12 @@ DB名 `why-learn-g`、DB版1、object store `state`、キー `snapshot`。履歴
 ## PWA更新
 
 資産単位のハッシュでキャッシュを更新し、インストール完了後に有効化する。同一プレフィックスの旧キャッシュだけを削除し、IndexedDBには触れない。教材はアプリのJSに含め、外部フォント・外部画像への依存を持たない。
+
+## v0.1.1：物語導入
+
+- `src/data/shippingStory.ts`：対象箱Q、追加する検査済み箱W、導入文言。
+- `src/engine/shippingStory.ts`：既存のclassifyを呼び、見本追加前後を計算。
+- `src/components/ShippingStory.tsx`：同一SVGの箱位置・判定文字・見本を計算に応じて切替。外部画像やアニメーションに依存しない。
+- 進行へ任意の `started` / `storySampleAdded` を追加。旧データの欠落時は未操作として描画する。旧 `predictions` は表示しないが削除しない。DB版1とバックアップ形式版1を継続する。
+- 完了記録は演習以外の8場面の閲覧で可能。12問の回答履歴と復習管理は従来通り独立して保存する。
+- `tests/fixtures/` に新フィールドを含まない旧形式の保存例と、既存12問の基準データを保持し、互換性と内容不変を検証する。

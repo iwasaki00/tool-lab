@@ -10,6 +10,7 @@ import {
   obstacles,
 } from "../engine/simulations";
 import type { Point } from "../engine/simulations";
+import { inspectedSample, shippingTarget } from "../data/shippingStory";
 const colors = ["#187b69", "#c75a35", "#6755a3", "#b27e16"];
 function Plot({
   points,
@@ -81,9 +82,19 @@ function Plot({
     </svg>
   );
 }
-export function Supervised() {
-  const [data, setData] = useState(samples),
-    [query, setQuery] = useState({ x: 45, y: 45 }),
+export function Supervised({
+  withShippingSample = false,
+}: {
+  withShippingSample?: boolean;
+}) {
+  const initialData = withShippingSample
+    ? [...samples, inspectedSample]
+    : samples;
+  const initialQuery = withShippingSample
+    ? { x: shippingTarget.x, y: shippingTarget.y }
+    : { x: 45, y: 45 };
+  const [data, setData] = useState(initialData),
+    [query, setQuery] = useState(initialQuery),
     [selected, setSelected] = useState(0);
   const result = classify(data, query);
   return (
@@ -176,8 +187,8 @@ export function Supervised() {
           </div>
           <button
             onClick={() => {
-              setData(samples);
-              setQuery({ x: 45, y: 45 });
+              setData(initialData);
+              setQuery(initialQuery);
             }}
           >
             見本をリセット

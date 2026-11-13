@@ -6,7 +6,6 @@ import {
   scenes,
   questions,
   comparisons,
-  requests,
   syllabus,
 } from "./data/content";
 import {
@@ -15,6 +14,8 @@ import {
   reviewFor,
   validateBackup,
   mergeBackups,
+  hasLearningRecord,
+  storyVisited,
 } from "./engine/learning";
 import { loadState, saveState } from "./engine/storage";
 import {
@@ -23,6 +24,7 @@ import {
   Reinforcement,
 } from "./components/Simulations";
 import { KnowledgeMap, Quiz } from "./components/Learning";
+import { ShippingStory } from "./components/ShippingStory";
 const nav = [
   ["⌂", "ホーム"],
   ["▤", "コース"],
@@ -129,10 +131,16 @@ export default function App() {
       },
     });
   }
-  function enter(scene?: number) {
+  function enter(scene?: number, restartIntro = false) {
     setOrigin(tab);
-    if (scene !== undefined)
-      updateProgress({ scene, visited: [...new Set([...p.visited, scene])] });
+    const current = ref.current.progress;
+    updateProgress({
+      started: true,
+      ...(scene === undefined
+        ? {}
+        : { scene, visited: [...new Set([...current.visited, scene])] }),
+      ...(restartIntro ? { storySampleAdded: false } : {}),
+    });
     setInLesson(true);
   }
   function move(scene: number) {
@@ -304,45 +312,14 @@ export default function App() {
     switch (p.scene) {
       case 0:
         return (
-          <>
-            <p>
-              AI研究所へようこそ。届いた3つの依頼に、どんな手がかりが使えそうでしょう。予想は採点しません。
-            </p>
-            <div className="request-list">
-              {requests.map((r, i) => (
-                <article className="mini-card" key={i}>
-                  <span className="eyebrow">依頼 0{i + 1}</span>
-                  <h3>{r}</h3>
-                  <label>
-                    あなたの予想
-                    <select
-                      value={p.predictions[i]}
-                      onChange={(e) =>
-                        updateProgress({
-                          predictions: p.predictions.map((v, j) =>
-                            j === i ? +e.target.value : v,
-                          ),
-                        })
-                      }
-                    >
-                      <option value="-1">手がかりを選ぶ</option>
-                      <option value="0">正解の見本</option>
-                      <option value="1">データの似かより</option>
-                      <option value="2">行動に対する得点</option>
-                    </select>
-                  </label>
-                  {p.predictions[i] !== -1 && (
-                    <p className="muted">
-                      予想を記録しました。このあと実際に操作して確かめます。
-                    </p>
-                  )}
-                </article>
-              ))}
-            </div>
-          </>
+          <ShippingStory
+            sampleAdded={!!p.storySampleAdded}
+            onAdd={() => updateProgress({ storySampleAdded: true })}
+            onContinue={() => move(1)}
+          />
         );
       case 1:
-        return <Supervised />;
+        return <Supervised withShippingSample={!!p.storySampleAdded} />;
       case 2:
         return <Unsupervised speed={snapshot.settings.speed} />;
       case 3:
@@ -407,7 +384,17 @@ export default function App() {
           </>
         );
       case 6:
-        return <KnowledgeMap />;
+        return (
+          <>
+            <KnowledgeMap />
+            <div className="optional-exam">
+              <p>
+                ここまでの体験を、試験形式でも確かめられます。演習はあとからでも取り組めます。
+              </p>
+              <button onClick={() => move(7)}>試験問題で確認する</button>
+            </div>
+          </>
+        );
       case 7:
         return (
           <Quiz
@@ -424,11 +411,19 @@ export default function App() {
         return (
           <>
             <div className="summary-score">
-              <strong>
-                {correct}
-                <span> / {answered}</span>
-              </strong>
-              <p>今回の正解数 / 回答済み問題数（全12問）</p>
+              {answered === 0 ? (
+                <p>
+                  ここまで、物語と体験をふり返りました。試験問題はあとからでも取り組めます。
+                </p>
+              ) : (
+                <>
+                  <strong>
+                    {correct}
+                    <span> / {answered}</span>
+                  </strong>
+                  <p>今回の正解数 / 回答済み問題数（全12問）</p>
+                </>
+              )}
             </div>
             {comparison()}
             <p>
@@ -436,7 +431,7 @@ export default function App() {
             </p>
             <div className="controls">
               <button onClick={manualReviews}>12問を復習候補に登録</button>
-              <button onClick={() => move(7)}>問題と解説を振り返る</button>
+              <button onClick={() => move(7)}>試験問題で確認する</button>
             </div>
             <p className="muted">関連教材：モデルの評価と汎化 — 準備中</p>
             {p.completed ? (
@@ -447,14 +442,14 @@ export default function App() {
               <>
                 <button
                   className="primary"
-                  disabled={answered !== 12 || p.visited.length !== 9}
+                  disabled={!storyVisited(p)}
                   onClick={() => updateProgress({ completed: true })}
                 >
                   レッスンを最後まで学習したと記録
                 </button>
-                {(answered !== 12 || p.visited.length !== 9) && (
+                {!storyVisited(p) && (
                   <p className="muted">
-                    9場面の閲覧と12問への回答後に記録できます。
+                    演習以外の8場面を閲覧すると記録できます。問題への回答は任意です。
                   </p>
                 )}
               </>
@@ -499,13 +494,13 @@ export default function App() {
             ))}
           </nav>
           <div className="sidebar-foot">
-            <span className="tag">FIRST LEARNING</span>
+            <span className="tag">STORY FIRST</span>
             <p>
               小さな「なぜ」が、
               <br />
               理解のはじまり。
             </p>
-            <small>v0.1.0 · この端末に保存</small>
+            <small>v0.1.1 · この端末に保存</small>
           </div>
         </aside>
       )}
@@ -549,77 +544,90 @@ export default function App() {
             )}
           </section>
         ) : inLesson ? (
-          <div className="lesson-wrap">
-            <div className="lesson-meta">
-              <span className="eyebrow">
-                LESSON 003 / {scenes[p.scene].eyebrow}
-              </span>
-              <label>
-                再生速度
-                <select
-                  value={snapshot.settings.speed}
-                  onChange={(e) =>
-                    commit({
-                      ...ref.current,
-                      settings: { id: "settings", speed: +e.target.value },
-                    })
-                  }
-                >
-                  <option value="0.5">0.5倍</option>
-                  <option value="1">1倍</option>
-                  <option value="2">2倍</option>
-                </select>
-              </label>
-            </div>
-            <div className="scene-progress" aria-label="レッスンの場面">
-              {scenes.map((s, i) => (
-                <button
-                  aria-label={`場面${i + 1} ${s.title}`}
-                  aria-current={p.scene === i ? "step" : undefined}
-                  className={
-                    p.scene === i
-                      ? "active"
-                      : p.visited.includes(i)
-                        ? "visited"
-                        : ""
-                  }
-                  key={s.id}
-                  onClick={() => move(i)}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
+          <div className={`lesson-wrap ${p.scene === 0 ? "story-intro" : ""}`}>
+            {p.scene !== 0 && (
+              <div className="lesson-meta">
+                <span className="eyebrow">
+                  LESSON 003 / {scenes[p.scene].eyebrow}
+                </span>
+                <label>
+                  再生速度
+                  <select
+                    value={snapshot.settings.speed}
+                    onChange={(e) =>
+                      commit({
+                        ...ref.current,
+                        settings: { id: "settings", speed: +e.target.value },
+                      })
+                    }
+                  >
+                    <option value="0.5">0.5倍</option>
+                    <option value="1">1倍</option>
+                    <option value="2">2倍</option>
+                  </select>
+                </label>
+              </div>
+            )}
+            {p.scene !== 0 && (
+              <div className="scene-progress" aria-label="レッスンの場面">
+                {scenes.map((s, i) => (
+                  <button
+                    aria-label={`場面${i + 1} ${s.title}`}
+                    aria-current={p.scene === i ? "step" : undefined}
+                    className={
+                      p.scene === i
+                        ? "active"
+                        : p.visited.includes(i)
+                          ? "visited"
+                          : ""
+                    }
+                    key={s.id}
+                    onClick={() => move(i)}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
             <h1 ref={heading} tabIndex={-1}>
               {scenes[p.scene].prompt}
             </h1>
             <section className="card scene-body">{sceneBody()}</section>
-            <footer className="lesson-footer">
-              <button
-                disabled={p.scene === 0}
-                onClick={() => move(p.scene - 1)}
-              >
-                ← 前へ
-              </button>
-              <span>
-                {String(p.scene + 1).padStart(2, "0")} / 09 ·{" "}
-                {scenes[p.scene].title}
-              </span>
-              {p.scene < 8 ? (
-                <button className="primary" onClick={() => move(p.scene + 1)}>
-                  次へ →
-                </button>
-              ) : (
+            {p.scene !== 0 && (
+              <footer className="lesson-footer">
                 <button
-                  onClick={() => {
-                    setInLesson(false);
-                    setTab(origin);
-                  }}
+                  disabled={p.scene === 0}
+                  onClick={() =>
+                    move(
+                      p.scene === 8 && !p.visited.includes(7) ? 6 : p.scene - 1,
+                    )
+                  }
                 >
-                  学習を閉じる
+                  ← 前へ
                 </button>
-              )}
-            </footer>
+                <span>
+                  {String(p.scene + 1).padStart(2, "0")} / 09 ·{" "}
+                  {scenes[p.scene].title}
+                </span>
+                {p.scene < 8 ? (
+                  <button
+                    className="primary"
+                    onClick={() => move(p.scene === 6 ? 8 : p.scene + 1)}
+                  >
+                    {p.scene === 6 ? "まとめへ →" : "次へ →"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setInLesson(false);
+                      setTab(origin);
+                    }}
+                  >
+                    学習を閉じる
+                  </button>
+                )}
+              </footer>
+            )}
           </div>
         ) : (
           <div className="content">
@@ -663,27 +671,35 @@ export default function App() {
                 <section className="hero">
                   <div>
                     <span className="hero-label">
-                      CONTINUE LEARNING <span>01 COURSE</span>
+                      STORY FIRST <span>LESSON 003</span>
                     </span>
                     <p className="lesson-number">LESSON 003 · 機械学習の概要</p>
                     <h2>
-                      AIはどうやって
+                      出荷ラインで、
                       <br />
-                      学習するのか？
+                      最初の発見を。
                     </h2>
                     <p>
-                      正解から学ぶ。似かよりを見つける。
+                      検査では合格だった箱が、不良品レーンへ。
                       <br />
-                      試して、報酬から学ぶ。3つの違いを体験しよう。
+                      検査員といっしょに、見本をひとつ加えてみよう。
                     </p>
                     <div className="hero-bottom">
                       <button className="cream" onClick={() => enter()}>
-                        {p.visited.length > 1 || p.scene > 0
+                        {hasLearningRecord(snapshot)
                           ? "続きから学ぶ"
-                          : "学習をはじめる"}{" "}
+                          : "出荷ラインを見に行く"}{" "}
                         <span>↗</span>
                       </button>
-                      <span>9場面 · 3つの操作体験 · 12問</span>
+                      <span>回答なしで始められる · 試験問題は任意</span>
+                      {hasLearningRecord(snapshot) && (
+                        <button
+                          className="hero-revisit"
+                          onClick={() => enter(0, true)}
+                        >
+                          導入をもう一度見る
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="hero-art" aria-hidden="true">
@@ -739,7 +755,12 @@ export default function App() {
                 </div>
                 <div className="three-col">
                   {[
-                    ["01", "体験する", "点を動かし、予測の変化を観察する。", 1],
+                    [
+                      "01",
+                      "体験する",
+                      "出荷ラインで、見本を加えて判定の変化を見る。",
+                      0,
+                    ],
                     ["02", "つなげる", "知識マップで、概念の関係をたどる。", 6],
                     [
                       "03",
@@ -943,7 +964,7 @@ export default function App() {
               </>
             )}
             <footer className="page-footer">
-              <span>WHY LEARN G · v0.1.0</span>
+              <span>WHY LEARN G · v0.1.1</span>
               <details>
                 <summary>教材の参照情報</summary>
                 <p>

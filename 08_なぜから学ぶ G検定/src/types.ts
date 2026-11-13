@@ -62,7 +62,10 @@ export interface LearningProgress {
   visited: number[];
   updatedAt: string;
   sessionId: string;
+  /** Kept for v0.1.0 backups; the prediction form is no longer shown. */
   predictions: number[];
+  started?: boolean;
+  storySampleAdded?: boolean;
   challenge: number | null;
   challengeLabelled: boolean;
 }

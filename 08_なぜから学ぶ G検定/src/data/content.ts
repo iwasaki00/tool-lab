@@ -22,7 +22,7 @@ export const course: Course = {
   lessonIds: ["L003"],
 };
 export const scenes: Scene[] = [
-  ["導入", "3つの依頼", "研究所に届いた依頼。あなたなら、どう解決する？"],
+  ["導入", "出荷ライン", "良品が、不良品レーンへ。"],
   [
     "教師あり学習",
     "正解を手がかりに",
@@ -152,11 +152,6 @@ export const comparisons = [
     use: "ロボットの制御",
     key: "行動の結果を報酬で評価する",
   },
-];
-export const requests = [
-  "検査結果つきの製品データで、新しい製品の良否を判定したい。",
-  "購買履歴だけから、似た傾向のお客さんをグループにしたい。",
-  "ロボットが試行錯誤し、得点を手がかりに運び方を改善してほしい。",
 ];
 const rows: [string, string[], number, string[], string, string[]][] = [
   [

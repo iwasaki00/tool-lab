@@ -3,7 +3,11 @@ import type { Page } from "@playwright/test";
 import { questions } from "../src/data/content";
 const openLesson = async (page: Page) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "学習をはじめる" }).click();
+  await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
+  await page
+    .getByRole("button", { name: "検査済みの箱を見本に加える" })
+    .click();
+  await page.getByRole("button", { name: "分類を続けて試す →" }).click();
 };
 const scene = async (page: Page, n: number) => {
   await page.getByRole("button", { name: new RegExp(`^場面${n} `) }).click();
@@ -11,18 +15,23 @@ const scene = async (page: Page, n: number) => {
 const saved = async (page: Page) => {
   await expect(page.getByText("端末に保存済み", { exact: true })).toBeVisible();
 };
-test("9場面、予想、前後移動、途中終了・再開と全問解説", async ({ page }) => {
+test("9場面、導入再訪、前後移動、途中終了・再開と全問解説", async ({
+  page,
+}) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await openLesson(page);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("研究所");
-  await page.getByLabel("あなたの予想").nth(0).selectOption("0");
-  await saved(page);
-  await page.getByRole("button", { name: "次へ →", exact: true }).click();
-  await expect(page.getByText("1-最近傍法 / 実計算")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    "見本の答え",
+  );
   await page.getByRole("button", { name: "← 前へ", exact: true }).click();
-  await expect(page.getByLabel("あなたの予想").nth(0)).toHaveValue("0");
-  await page.getByRole("button", { name: "次へ →", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "良品が、不良品レーンへ。",
+  );
+  await expect(page.locator(".shipping-discovery")).toContainText(
+    "不良 → 良品",
+  );
+  await page.getByRole("button", { name: "分類を続けて試す →" }).click();
   await page.getByRole("button", { name: "← 戻る・途中終了" }).click();
   await page.reload();
   await page.getByRole("button", { name: "続きから学ぶ" }).click();
@@ -251,6 +260,8 @@ test("PWA全資産のキャッシュとオフライン再読込・9場面・履�
   for (let n = 1; n <= 9; n++) {
     await scene(page, n);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    if (n === 1)
+      await page.getByRole("button", { name: "分類を続けて試す →" }).click();
   }
   await expect(page.getByText("オフライン", { exact: true })).toBeVisible();
   await context.setOffline(false);
@@ -258,7 +269,7 @@ test("PWA全資産のキャッシュとオフライン再読込・9場面・履�
 test("320px幅の5画面と9場面に横溢れがない", async ({ page }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("button", { name: "学習をはじめる" }),
+    page.getByRole("button", { name: "出荷ラインを見に行く" }),
   ).toBeVisible();
   if (test.info().project.name === "chromium")
     await page.screenshot({
@@ -281,10 +292,16 @@ test("320px幅の5画面と9場面に横溢れがない", async ({ page }) => {
     path: `test-results/home-${test.info().project.name}.png`,
     fullPage: true,
   });
-  await page.getByRole("button", { name: "学習をはじめる" }).click();
+  await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
+  await page
+    .getByRole("button", { name: "検査済みの箱を見本に加える" })
+    .click();
+  await page.getByRole("button", { name: "分類を続けて試す →" }).click();
   for (let n = 1; n <= 9; n++) {
     await scene(page, n);
     await noOverflow();
+    if (n === 1)
+      await page.getByRole("button", { name: "分類を続けて試す →" }).click();
   }
   await scene(page, 2);
   await page.screenshot({
