@@ -51,3 +51,11 @@ E2Eは先に `npm run build` を実行し、ポート4173を空けてくださ�
 - [構成とデータ](docs/ARCHITECTURE.md)
 - [検証結果](docs/QA_REPORT_v0.1.0.md)
 - [実装報告・残課題](docs/IMPLEMENTATION_REPORT_v0.1.0.md)
+
+## tool-labのメニューから利用する
+
+```sh
+npm run build:menu
+```
+
+`app/` にメニュー用の静的アプリを生成します。tool-labのメニューはこのディレクトリへリンクしています。ソース変更後は再実行してください。`app/` はGit管理対象、通常のビルドの `dist/` はGit対象外です。
