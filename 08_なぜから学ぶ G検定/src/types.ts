@@ -95,7 +95,15 @@ export interface LessonCompletion {
   sessionId: string;
   recordedAt: string;
 }
+export interface EvaluationProgress {
+ id:"progress-L004"; lessonId:"L004";
+ stage:"intro"|"discovery"|"comparison"|"ending"|"quiz";
+ visited:EvaluationProgress["stage"][];
+ questionIndex:number; sessionId:string; updatedAt:string; completed:boolean;
+}
 export interface Backup {
+ evaluation?:EvaluationProgress;
+ evaluationAttempts?:QuestionAttempt[];
   completions?: LessonCompletion[];
   formatVersion: 1;
   exportedAt: string;

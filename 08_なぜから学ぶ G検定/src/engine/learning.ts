@@ -5,6 +5,9 @@ import type {
   QuestionAttempt,
   ReviewState,
 } from "../types";
+import { evaluationQuestions } from "../data/evaluation";
+import { newEvaluationProgress, evaluationFinished } from "./evaluation";
+import type { EvaluationProgress } from "../types";
 import { questions } from "../data/content";
 export const newProgress = (): LearningProgress => ({
   id: "progress-L003",
@@ -35,8 +38,9 @@ export function grade(
   questionId: string,
   selected: number,
   sessionId: string,
+  items = questions,
 ): QuestionAttempt {
-  const q = questions.find((q) => q.id === questionId);
+  const q = items.find((q) => q.id === questionId);
   if (!q || !Number.isInteger(selected) || selected < 0 || selected > 3)
     throw Error("回答が不正です");
   return {
@@ -194,6 +198,25 @@ export function validateBackup(input: unknown): Backup {
       completionIds.add(c.id);
     }
   }
+  if (input.evaluation !== undefined) {
+   const e=input.evaluation, stages=["intro","discovery","comparison","ending","quiz"];
+   if(!record(e) || e.id!=="progress-L004" || e.lessonId!=="L004" || !stages.includes(e.stage as string) ||
+    !int(e.questionIndex,2) || !str(e.sessionId) || !date(e.updatedAt) || typeof e.completed!=="boolean" ||
+    !Array.isArray(e.visited) || !e.visited.every(stage=>stages.includes(stage as string)) || new Set(e.visited).size!==e.visited.length ||
+    !e.visited.includes("intro") || !e.visited.includes(e.stage)) return fail();
+   const required=stages.slice(0,Math.min(stages.indexOf(e.stage as string)+1,4));
+   if(!required.every(stage=>(e.visited as string[]).includes(stage)) || (e.completed&&!evaluationFinished(e as unknown as EvaluationProgress))) return fail();
+  }
+  if (input.evaluationAttempts !== undefined) {
+   if(!Array.isArray(input.evaluationAttempts) || input.evaluationAttempts.length>100000) return fail();
+   const ids=new Set();
+   for(const a of input.evaluationAttempts) {
+    if(!record(a)||!str(a.id)||ids.has(a.id)||!str(a.sessionId)||!date(a.answeredAt)||!int(a.selected,3))return fail();
+    const q=evaluationQuestions.find(q=>q.id===a.questionId);
+    if(!q||a.version!==q.version||a.correct!==(a.selected===q.answer))return fail();
+    ids.add(a.id);
+   }
+  }
   // Return a detached, validated snapshot; UI never mutates the imported object.
   return structuredClone(input) as unknown as Backup;
 }
@@ -241,6 +264,7 @@ export function mergeBackups(current: Backup, incoming: Backup): Backup {
     progress:
       b.progress.updatedAt > a.progress.updatedAt ? b.progress : a.progress,
     reviews: [...reviews.values()],
+    ...mergeEvaluation(a,b),
   });
 }
 
@@ -261,7 +285,7 @@ export function hasLearningRecord(b: Backup): boolean {
     p.completed ||
     p.predictions.some((v) => v !== -1) ||
     b.attempts.length > 0 ||
-    (b.completions?.length ?? 0) > 0
+    (b.completions?.some(c=>c.lessonId === "L003") ?? false)
   );
 }
 
@@ -276,21 +300,36 @@ function combineCompletions(items: LessonCompletion[]): LessonCompletion[] {
   );
 }
 export function completionRecords(b: Backup): LessonCompletion[] {
-  const records = b.completions ?? [];
-  if (!b.progress.completed) return records;
-  const p = b.progress,
-    id = `completion-${p.lessonId}-${p.sessionId}`;
-  return records.some((c) => c.id === id)
-    ? records
-    : [
-        ...records,
-        {
-          id,
-          lessonId: p.lessonId,
-          sessionId: p.sessionId,
-          recordedAt: p.updatedAt,
-        },
-      ];
+ const records=[...(b.completions??[])];
+ for(const p of [b.progress,b.evaluation]) {
+  if(!p?.completed)continue;
+  const id=`completion-${p.lessonId}-${p.sessionId}`;
+  if(!records.some(c=>c.id===id))records.push({id,lessonId:p.lessonId,sessionId:p.sessionId,recordedAt:p.updatedAt});
+ }
+ return records;
+}
+export function beginEvaluation(b:Backup,restart=false):Backup {
+ if(b.evaluation&&!restart)return b;
+ return {...b,completions:completionRecords(b),evaluation:newEvaluationProgress()};
+}
+export function completeEvaluation(b:Backup):Backup {
+ if(!b.evaluation||!evaluationFinished(b.evaluation))throw Error("第2話の結末まで確認してください");
+ const next={...b,completions:completionRecords(b),evaluation:{...b.evaluation,completed:true,updatedAt:new Date().toISOString()}};
+ return {...next,completions:completionRecords(next)};
+}
+function mergeEvaluation(a:Backup,b:Backup):Partial<Backup> {
+ const result:Partial<Backup>={};
+ if(a.evaluation||b.evaluation)result.evaluation=!a.evaluation?b.evaluation:!b.evaluation?a.evaluation:b.evaluation.updatedAt>a.evaluation.updatedAt?b.evaluation:a.evaluation;
+ if(a.evaluationAttempts||b.evaluationAttempts) {
+  const attempts=new Map((a.evaluationAttempts??[]).map(x=>[x.id,x]));
+  for(const item of b.evaluationAttempts??[]) {
+   const old=attempts.get(item.id);
+   if(old&&(["id","questionId","version","selected","correct","answeredAt","sessionId"] as const).some(key=>old[key]!==item[key]))throw Error("第2話の同じ履歴IDに異なる内容があるため統合できません。");
+   attempts.set(item.id,item);
+  }
+  result.evaluationAttempts=[...attempts.values()].sort((x,y)=>x.answeredAt.localeCompare(y.answeredAt));
+ }
+ return result;
 }
 export function restartLesson(b: Backup): Backup {
   return {

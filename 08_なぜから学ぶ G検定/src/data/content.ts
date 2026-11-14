@@ -19,7 +19,7 @@ export const syllabus: SyllabusItem[] = [
 export const course: Course = {
   id: "C01",
   title: "機械学習のはじめの一歩",
-  lessonIds: ["L003"],
+  lessonIds: ["L003", "L004"],
 };
 export const scenes: Scene[] = [
   ["導入", "出荷ライン", "良品が、不良品レーンへ。"],

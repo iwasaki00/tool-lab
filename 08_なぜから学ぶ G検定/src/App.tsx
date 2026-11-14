@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Backup, LearningProgress } from "./types";
+import type { Backup, LearningProgress, EvaluationProgress } from "./types";
 import {
   course,
   lesson,
@@ -11,6 +11,8 @@ import {
 } from "./data/content";
 import {
   emptyBackup,
+  beginEvaluation,
+  completeEvaluation,
   grade,
   reviewFor,
   validateBackup,
@@ -32,6 +34,8 @@ import { ShippingStory } from "./components/ShippingStory";
 import { EpisodeScene, episodeTitles } from "./components/Episode";
 import { ShippingTrial, ShippingPrologue } from "./components/ShippingPrologue";
 import { shippingTrial } from "./data/shippingStory";
+import { EvaluationEpisode } from "./components/EvaluationEpisode";
+import { evaluationQuestions } from "./data/evaluation";
 const nav = [
   ["⌂", "ホーム"],
   ["▤", "コース"],
@@ -46,6 +50,7 @@ export default function App() {
     [loadError, setLoadError] = useState(false),
     [tab, setTab] = useState(0),
     [inLesson, setInLesson] = useState(false),
+    [activeLesson,setActiveLesson]=useState<"L003"|"L004">("L003"),
     [origin, setOrigin] = useState(0),
     [online, setOnline] = useState(navigator.onLine),
     [offlineReady, setOfflineReady] = useState(false),
@@ -101,20 +106,18 @@ export default function App() {
     Number(!!p.episode?.grouped) +
     Number(!!p.episode?.compared);
   const isPrologue = p.scene === 0 && p.introStage === "prologue";
-  const pastCompletions = completionRecords(snapshot).filter(
-    (c) => c.lessonId === "L003",
-  );
+  const pastCompletions = completionRecords(snapshot);
   useEffect(() => {
-    if (inLesson) {
+    if (inLesson && activeLesson === "L003") {
       heading.current?.focus({ preventScroll: true });
       window.scrollTo({
         top: isPrologue ? (p.prologueScroll ?? 0) : 0,
         behavior: "instant",
       });
     }
-  }, [inLesson, p.scene, p.introStage, p.episode?.stage]);
+  }, [inLesson, activeLesson, p.scene, p.introStage, p.episode?.stage]);
   useEffect(() => {
-    if (!inLesson || !isPrologue) return;
+    if (!inLesson || activeLesson !== "L003" || !isPrologue) return;
     let timer: ReturnType<typeof setTimeout>;
     const savePosition = () => {
       clearTimeout(timer);
@@ -129,7 +132,7 @@ export default function App() {
       clearTimeout(timer);
       window.removeEventListener("scroll", savePosition);
     };
-  }, [inLesson, isPrologue]);
+  }, [inLesson, activeLesson, isPrologue]);
   function commit(next: Backup) {
     if (!ready) return;
     ref.current = next;
@@ -170,6 +173,7 @@ export default function App() {
     });
   }
   function enter(scene?: number) {
+    setActiveLesson("L003");
     setOrigin(tab);
     const current = ref.current.progress;
     updateProgress({
@@ -191,9 +195,32 @@ export default function App() {
     setInLesson(true);
   }
   function startOver() {
+    setActiveLesson("L003");
     commit(restartLesson(ref.current));
     setOrigin(tab);
     setInLesson(true);
+  }
+  function enterEvaluation(restart=false) {
+    commit(beginEvaluation(ref.current,restart));
+    setOrigin(tab);setActiveLesson("L004");setInLesson(true);
+  }
+  function updateEvaluation(change:Partial<EvaluationProgress>) {
+   const current=ref.current;
+   if(!current.evaluation)return;
+   commit({...current,completions:completionRecords(current),evaluation:{...current.evaluation,...change,updatedAt:new Date().toISOString()}});
+  }
+  function moveEvaluation(stage:EvaluationProgress["stage"]) {
+   const e=ref.current.evaluation!;
+   updateEvaluation({stage,visited:[...new Set([...e.visited,stage])]});
+  }
+  function answerEvaluation(choice:number) {
+   const current=ref.current,e=current.evaluation!;
+   const a=grade(evaluationQuestions[e.questionIndex].id,choice,e.sessionId,evaluationQuestions);
+   commit({...current,completions:completionRecords(current),evaluationAttempts:[...(current.evaluationAttempts??[]),a],evaluation:{...e,updatedAt:a.answeredAt}});
+  }
+  function finishEvaluation() {
+   if(!ref.current.evaluation?.completed)commit(completeEvaluation(ref.current));
+   setInLesson(false);setTab(origin);
   }
   function move(scene: number) {
     updateProgress({
@@ -292,6 +319,7 @@ export default function App() {
     ).length;
   const due = snapshot.reviews.filter((r) => Date.parse(r.dueAt) <= Date.now());
   const startQuiz = () => {
+    setActiveLesson("L003");
     const current = ref.current;
     commit({
       ...current,
@@ -383,6 +411,7 @@ export default function App() {
               }}
               onQuiz={() => move(7)}
               onReference={move}
+              onNext={()=>enterEvaluation()}
             />
           );
         if (isPrologue)
@@ -535,7 +564,7 @@ export default function App() {
               <button onClick={manualReviews}>12問を復習候補に登録</button>
               <button onClick={() => move(7)}>試験問題で確認する</button>
             </div>
-            <p className="muted">関連教材：モデルの評価と汎化 — 準備中</p>
+            <div className="evaluation-entry"><h3>第2話：モデル評価</h3><button onClick={()=>enterEvaluation()}>第2話を開く</button></div>
             {p.completed ? (
               <p className="notice">
                 このレッスンを最後まで学習した記録があります。習得を保証する評価ではありません。
@@ -602,7 +631,7 @@ export default function App() {
               <br />
               理解のはじまり。
             </p>
-            <small>v0.1.4 · この端末に保存</small>
+            <small>v0.1.5 · この端末に保存</small>
           </div>
         </aside>
       )}
@@ -645,6 +674,8 @@ export default function App() {
               <button onClick={() => void load()}>読み込みを再試行</button>
             )}
           </section>
+        ) : inLesson && activeLesson === "L004" && snapshot.evaluation ? (
+          <EvaluationEpisode progress={snapshot.evaluation} attempts={snapshot.evaluationAttempts??[]} onMove={moveEvaluation} onIndex={questionIndex=>updateEvaluation({questionIndex})} onAnswer={answerEvaluation} onFinish={finishEvaluation} busy={saving}/>
         ) : inLesson ? (
           <div className={`lesson-wrap ${p.scene === 0 ? "story-intro" : ""}`}>
             {p.scene !== 0 && p.episode && (
@@ -912,7 +943,7 @@ export default function App() {
             {tab === 1 && (
               <>
                 <section className="card">
-                  <span className="tag">公開中 · 1レッスン</span>
+                  <span className="tag">公開中 · 2レッスン</span>
                   <h2>{course.title}</h2>
                   <h3>L003 {lesson.title}</h3>
                   <p>教師あり学習 / 教師なし学習 / 強化学習</p>
@@ -927,11 +958,15 @@ export default function App() {
                     レッスンを開く →
                   </button>
                 </section>
+                <section className="card evaluation-course" data-lesson="L004">
+                  <span className="tag">第2話 · L004 モデル評価</span>
+                  <h2>正解率99％なのに、不良品を見逃した</h2>
+                  <p>同じ100箱を2つの設定で確かめ、何を間違えたかを見比べます。第1話を読んでいなくても始められます。</p>
+                  <p>{snapshot.evaluation?.completed?"最後まで学習した記録あり":snapshot.evaluation?"途中の場面から再開できます。":"演習は最後に選べます。"}</p>
+                  <div className="controls"><button className="primary" onClick={()=>enterEvaluation()}>{snapshot.evaluation?"続きから学ぶ":"第2話を始める"}</button>{snapshot.evaluation&&<button onClick={()=>enterEvaluation(true)}>最初から学ぶ</button>}</div>
+                </section>
                 <section className="card">
                   <h3>これからの教材</h3>
-                  <p>
-                    モデルの評価と汎化 <span className="tag">準備中</span>
-                  </p>
                   <p>
                     ニューラルネットワーク <span className="tag">準備中</span>
                   </p>
@@ -991,7 +1026,7 @@ export default function App() {
                     <ul>
                       {pastCompletions.map((c) => (
                         <li key={c.id}>
-                          L003 完了 ·{" "}
+                          {c.lessonId} 完了 ·{" "}
                           {new Date(c.recordedAt).toLocaleString("ja-JP")}
                         </li>
                       ))}
@@ -1039,6 +1074,7 @@ export default function App() {
                     </ul>
                   )}
                 </section>
+                <section className="card evaluation-history"><h2>L004の記録</h2><p>{snapshot.evaluation?.completed?"最後まで学習":snapshot.evaluation?"学習中":"未開始"} · 回答履歴 {(snapshot.evaluationAttempts??[]).length}件</p><ul>{[...(snapshot.evaluationAttempts??[])].reverse().map(a=><li key={a.id}>{a.questionId} v{a.version} · {"ABCD"[a.selected]} · {a.correct?"正解":"不正解"} · {new Date(a.answeredAt).toLocaleString("ja-JP")}</li>)}</ul></section>
                 <section className="card">
                   <h2>バックアップ</h2>
                   <p>
@@ -1096,7 +1132,7 @@ export default function App() {
               </>
             )}
             <footer className="page-footer">
-              <span>WHY LEARN G · v0.1.4</span>
+              <span>WHY LEARN G · v0.1.5</span>
               <details>
                 <summary>教材の参照情報</summary>
                 <p>

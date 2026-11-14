@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { concepts, relationships, questions } from "../data/content";
-import type { QuestionAttempt } from "../types";
+import type { Question, QuestionAttempt } from "../types";
 export function KnowledgeMap() {
   const [id, setId] = useState("supervised");
   const current = concepts.find((c) => c.id === id)!;
@@ -57,6 +57,9 @@ export function Quiz({
   onAnswer,
   onIndex,
   busy,
+  items=questions,
+  relatedLabel,
+  sourceLabel="機械学習の概要",
 }: {
   index: number;
   attempts: QuestionAttempt[];
@@ -64,8 +67,11 @@ export function Quiz({
   onAnswer: (choice: number) => void;
   onIndex: (index: number) => void;
   busy: boolean;
+  items?:Question[];
+  relatedLabel?:string;
+  sourceLabel?:string;
 }) {
-  const q = questions[index];
+  const q = items[index];
   const attempt = attempts
     .filter((a) => a.questionId === q.id && a.sessionId === sessionId)
     .at(-1);
@@ -81,13 +87,13 @@ export function Quiz({
   return (
     <>
       <div className="quiz-top">
-        <span className="tag">独自問題 / {index + 1} of 12</span>
+        <span className="tag">独自問題 / {index + 1} of {items.length}</span>
         <span className="muted">
           {q.id} · v{q.version}
         </span>
       </div>
       <progress
-        max={12}
+        max={items.length}
         value={
           attempts
             .filter((a) => a.sessionId === sessionId)
@@ -160,12 +166,12 @@ export function Quiz({
             ))}
             <p>
               関連知識：
-              {q.conceptIds
+              {relatedLabel ?? q.conceptIds
                 .map((id) => concepts.find((c) => c.id === id)?.name)
                 .join("・")}
             </p>
             <p>
-              根拠範囲：JDLAシラバス「機械学習の概要」 /
+              根拠範囲：{sourceLabel} /
               本アプリの独自問題。公式試験問題ではありません。
             </p>
           </details>
@@ -183,12 +189,12 @@ export function Quiz({
         <button disabled={index === 0 || busy} onClick={() => move(index - 1)}>
           前の問題
         </button>
-        <button disabled={index === 11 || busy} onClick={() => move(index + 1)}>
+        <button disabled={index === items.length-1 || busy} onClick={() => move(index + 1)}>
           次の問題
         </button>
       </div>
       <div className="question-dots" aria-label="問題を選ぶ">
-        {questions.map((q, i) => (
+        {items.map((q, i) => (
           <button
             className={i === index ? "active" : ""}
             aria-label={`問題${i + 1}`}

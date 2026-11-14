@@ -28,6 +28,7 @@ export function EpisodeScene({
   onFinish,
   onQuiz,
   onReference,
+  onNext,
 }: {
   progress: LearningProgress;
   speed: number;
@@ -35,6 +36,7 @@ export function EpisodeScene({
   onFinish: () => void;
   onQuiz: () => void;
   onReference: (scene: number) => void;
+  onNext: () => void;
 }) {
   const e = progress.episode!;
   const change = (value: Partial<EpisodeProgress>) =>
@@ -317,6 +319,7 @@ export function EpisodeScene({
           ここで終える
         </button>
       </div>
+      <section className="evaluation-entry"><h2>第2話：モデル評価</h2><p>正解率99％なのに、不良品を見逃した。翌朝の試運転で、見るべき数字を確かめます。</p><button onClick={onNext}>第2話を開く</button></section>
       {progress.completed && (
         <p className="notice">このレッスンを最後まで学習した記録があります。</p>
       )}
