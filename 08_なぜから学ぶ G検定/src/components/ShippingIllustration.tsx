@@ -1,3 +1,4 @@
+import { compareTransport, routeDrawing } from "../engine/episode";
 import { useId } from "react";
 function Box({ x, y, name }: { x: number; y: number; name: string }) {
   return (
@@ -33,7 +34,15 @@ export function ShippingIllustration({
   label = "不良",
   sampleAdded = false,
 }: {
-  mode?: "usual" | "stopped" | "arrivals" | "ai-trial" | "sorting";
+  mode?:
+    | "usual"
+    | "stopped"
+    | "arrivals"
+    | "ai-trial"
+    | "records"
+    | "routes"
+    | "ending"
+    | "sorting";
   label?: "良品" | "不良";
   sampleAdded?: boolean;
 }) {
@@ -54,8 +63,14 @@ export function ShippingIllustration({
               stopped:
                 "午前、包装機が停止。警告ランプが点滅し、ベルトに箱が届かない",
               arrivals: "15時に復旧。仕分け待ちの箱が次々に届く。集荷は16時",
+              records:
+                "同じ工場の出荷口。仕分けた箱が途中で待ち、搬送記録が残っている",
+              routes:
+                "同じ出荷口への2経路。近道Aは段差で停止し、遠回りBは段差を避ける",
+              ending:
+                "集荷16時。検査を終えた箱をトラックに積み込み、検査員が見届ける",
               "ai-trial": "仕分け台のモニターに、過去の箱の良品と不良の見本",
-            }[mode as "usual" | "stopped" | "arrivals" | "ai-trial"]
+            }[mode as Exclude<typeof mode, "sorting">]
           : "出荷ライン。箱Qの検査員の確認は合格。AIの現在の判定は" +
             label +
             "で、" +
@@ -145,7 +160,210 @@ export function ShippingIllustration({
       </g>
       {prologue ? (
         <g>
-          {mode === "ai-trial" ? (
+          {mode === "records" ? (
+            <>
+              <rect
+                x="425"
+                y="111"
+                width="143"
+                height="144"
+                rx="10"
+                fill="#dae5d8"
+                stroke="#829884"
+                strokeWidth="3"
+              />
+              <text
+                x="496"
+                y="101"
+                textAnchor="middle"
+                fontSize="23"
+                fill="#385d46"
+              >
+                同じ出荷口
+              </text>
+              <text
+                x="497"
+                y="145"
+                textAnchor="middle"
+                fontSize="20"
+                fill="#385d46"
+              >
+                まだ届かない…
+              </text>
+              <Box x={210} y={111} name="Q" />
+              <Box x={285} y={133} name="A" />
+              <path
+                d="M240 205v-26m-9 7 9-7 9 7"
+                stroke="#ab7653"
+                strokeWidth="4"
+                fill="none"
+              />
+              <rect
+                x="40"
+                y="218"
+                width="317"
+                height="69"
+                rx="10"
+                fill="#fffaf0"
+                stroke="#829884"
+                strokeWidth="2"
+              />
+              <text x="57" y="246" fontSize="21" fill="#385d46">
+                搬送記録：待ち時間・停止回数
+              </text>
+              <text x="57" y="274" fontSize="19" fill="#805337">
+                遅れた理由の記入はない
+              </text>
+            </>
+          ) : mode === "routes" ? (
+            <>
+              <rect
+                x="243"
+                y="91"
+                width="302"
+                height="170"
+                rx="12"
+                fill="#fffaf0"
+              />
+              <rect
+                x="380"
+                y="138"
+                width="22"
+                height="20"
+                rx="4"
+                fill="#e3be9a"
+                stroke="#ab7653"
+              />
+              <text
+                x="392"
+                y="183"
+                fontSize="18"
+                textAnchor="middle"
+                fill="#805337"
+              >
+                段差
+              </text>
+              <polyline
+                points={routeDrawing(compareTransport("speed")[1].frames)}
+                stroke="#4b8060"
+                strokeWidth="9"
+                fill="none"
+                strokeLinejoin="round"
+              />
+              <polyline
+                points={routeDrawing(compareTransport("speed")[0].frames)}
+                stroke="#b97a46"
+                strokeWidth="4"
+                fill="none"
+                strokeDasharray="8 5"
+              />
+              <path
+                d="M390 116v22"
+                stroke="#b97a46"
+                strokeWidth="4"
+                strokeDasharray="3 3"
+              />
+              <text x="248" y="36" fontSize="23" fill="#805337">
+                A：近道（段差あり）
+              </text>
+              <text x="244" y="70" fontSize="21" fill="#385d46">
+                B：揺れを避ける遠回り
+              </text>
+              <text x="260" y="108" fontSize="17" fill="#385d46">
+                仕分け台
+              </text>
+              <text
+                x="490"
+                y="285"
+                textAnchor="middle"
+                fontSize="20"
+                fill="#385d46"
+              >
+                出荷口
+              </text>
+              <circle cx="510" cy="243" r="12" fill="#385d46" />
+              <Box x={32} y={213} name="Q" />
+            </>
+          ) : mode === "ending" ? (
+            <>
+              <circle
+                cx="482"
+                cy="45"
+                r="31"
+                fill="#fffaf0"
+                stroke="#829884"
+                strokeWidth="3"
+              />
+              <path
+                d="M482 20v25l19 11"
+                stroke="#4d705c"
+                strokeWidth="4"
+                fill="none"
+              />
+              <text
+                x="314"
+                y="45"
+                textAnchor="middle"
+                fontSize="23"
+                fill="#385d46"
+              >
+                集荷 16:00
+              </text>
+              <rect
+                x="277"
+                y="102"
+                width="215"
+                height="128"
+                rx="13"
+                fill="#829e83"
+                stroke="#4d705c"
+                strokeWidth="3"
+              />
+              <path
+                d="M492 146h45l36 38v46h-81Z"
+                fill="#c5d4b8"
+                stroke="#4d705c"
+                strokeWidth="3"
+              />
+              <rect
+                x="506"
+                y="158"
+                width="29"
+                height="27"
+                rx="3"
+                fill="#fffaf0"
+              />
+              <circle cx="324" cy="237" r="21" fill="#4d6050" />
+              <circle cx="529" cy="237" r="21" fill="#4d6050" />
+              <text
+                x="384"
+                y="131"
+                textAnchor="middle"
+                fontSize="21"
+                fill="white"
+              >
+                集荷トラック
+              </text>
+              <Box x={293} y={151} name="Q" />
+              <Box x={366} y={151} name="A" />
+              <Box x={196} y={153} name="W" />
+              <path
+                d="M208 245h59l-13-10m13 10-13 10"
+                stroke="#4d705c"
+                strokeWidth="4"
+                fill="none"
+              />
+              <text
+                x="390"
+                y="289"
+                textAnchor="middle"
+                fontSize="24"
+                fill="#385d46"
+              >
+                検査を終えた箱を、出荷へ。
+              </text>
+            </>
+          ) : mode === "ai-trial" ? (
             <>
               <rect
                 x="280"

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ShippingIllustration } from "./ShippingIllustration";
 import { shippingStory } from "../data/shippingStory";
 import { shippingPrediction } from "../engine/shippingStory";
@@ -6,10 +7,14 @@ export function ShippingStory({
   sampleAdded,
   onAdd,
   onContinue,
+  continueLabel = "分類を続けて試す →",
+  details,
 }: {
   sampleAdded: boolean;
   onAdd: () => void;
   onContinue: () => void;
+  continueLabel?: string;
+  details?: ReactNode;
 }) {
   const result = shippingPrediction(sampleAdded);
   return (
@@ -40,8 +45,9 @@ export function ShippingStory({
             <p>{shippingStory.explanation}</p>
           </div>
           <button className="primary story-action" onClick={onContinue}>
-            分類を続けて試す →
+            {continueLabel}
           </button>
+          {details}
         </>
       ) : (
         <button className="primary story-action" onClick={onAdd}>

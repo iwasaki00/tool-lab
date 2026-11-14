@@ -49,13 +49,17 @@ export interface KState {
   iteration: number;
   converged: boolean;
 }
-export function initializeK(k: number, seed: number = 1): KState {
+export function initializeK(
+  k: number,
+  seed: number = 1,
+  data: Point[] = clusterPoints,
+): KState {
   let n = seed >>> 0;
   const random = () => {
     n = (1664525 * n + 1013904223) >>> 0;
     return n / 4294967296;
   };
-  const points = [...clusterPoints];
+  const points = [...data];
   for (let i = points.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
     [points[i], points[j]] = [points[j], points[i]];

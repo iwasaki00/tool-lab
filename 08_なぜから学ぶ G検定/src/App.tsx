@@ -29,6 +29,7 @@ import {
 } from "./components/Simulations";
 import { KnowledgeMap, Quiz } from "./components/Learning";
 import { ShippingStory } from "./components/ShippingStory";
+import { EpisodeScene, episodeTitles } from "./components/Episode";
 import { ShippingTrial, ShippingPrologue } from "./components/ShippingPrologue";
 import { shippingTrial } from "./data/shippingStory";
 const nav = [
@@ -95,6 +96,10 @@ export default function App() {
     };
   }, []);
   const p = snapshot.progress;
+  const episodeCount =
+    Number(!!p.storySampleAdded) +
+    Number(!!p.episode?.grouped) +
+    Number(!!p.episode?.compared);
   const isPrologue = p.scene === 0 && p.introStage === "prologue";
   const pastCompletions = completionRecords(snapshot).filter(
     (c) => c.lessonId === "L003",
@@ -107,7 +112,7 @@ export default function App() {
         behavior: "instant",
       });
     }
-  }, [inLesson, p.scene, p.introStage]);
+  }, [inLesson, p.scene, p.introStage, p.episode?.stage]);
   useEffect(() => {
     if (!inLesson || !isPrologue) return;
     let timer: ReturnType<typeof setTimeout>;
@@ -169,6 +174,16 @@ export default function App() {
     const current = ref.current.progress;
     updateProgress({
       started: true,
+      ...(!hasLearningRecord(ref.current)
+        ? {
+            episode: {
+              stage: "sorting",
+              grouped: false,
+              compared: false,
+              priority: "speed",
+            } as const,
+          }
+        : {}),
       ...(scene === undefined
         ? {}
         : { scene, visited: [...new Set([...current.visited, scene])] }),
@@ -354,6 +369,22 @@ export default function App() {
   const sceneBody = () => {
     switch (p.scene) {
       case 0:
+        if (p.episode && p.episode.stage !== "sorting")
+          return (
+            <EpisodeScene
+              progress={p}
+              speed={snapshot.settings.speed}
+              onChange={(episode) => updateProgress({ episode })}
+              onFinish={() => {
+                if (!ref.current.progress.completed)
+                  commit(completeLesson(ref.current));
+                setInLesson(false);
+                setTab(origin);
+              }}
+              onQuiz={() => move(7)}
+              onReference={move}
+            />
+          );
         if (isPrologue)
           return (
             <ShippingPrologue
@@ -370,7 +401,23 @@ export default function App() {
           <ShippingStory
             sampleAdded={!!p.storySampleAdded}
             onAdd={() => updateProgress({ storySampleAdded: true })}
-            onContinue={() => move(1)}
+            onContinue={() =>
+              p.episode
+                ? updateProgress({
+                    episode: { ...p.episode, stage: "records" },
+                  })
+                : move(1)
+            }
+            continueLabel={p.episode ? "搬送の様子を見る" : undefined}
+            details={
+              p.episode ? (
+                <details className="episode-details">
+                  <summary>仕組みを詳しく見る</summary>
+                  <Supervised withShippingSample />
+                  <button onClick={() => move(1)}>詳しい分類教材へ</button>
+                </details>
+              ) : undefined
+            }
           />
         );
       case 1:
@@ -549,13 +596,13 @@ export default function App() {
             ))}
           </nav>
           <div className="sidebar-foot">
-            <span className="tag">STORY FIRST</span>
+            <span className="tag">FIRST EPISODE</span>
             <p>
               小さな「なぜ」が、
               <br />
               理解のはじまり。
             </p>
-            <small>v0.1.3 · この端末に保存</small>
+            <small>v0.1.4 · この端末に保存</small>
           </div>
         </aside>
       )}
@@ -600,6 +647,11 @@ export default function App() {
           </section>
         ) : inLesson ? (
           <div className={`lesson-wrap ${p.scene === 0 ? "story-intro" : ""}`}>
+            {p.scene !== 0 && p.episode && (
+              <button className="episode-return" onClick={() => move(0)}>
+                出荷の物語に戻る
+              </button>
+            )}
             {p.scene !== 0 && (
               <div className="lesson-meta">
                 <span className="eyebrow">
@@ -649,7 +701,9 @@ export default function App() {
                 ? prologueScene.prompt
                 : p.scene === 0 && p.introStage === "ai-trial"
                   ? shippingTrial.title
-                  : scenes[p.scene].prompt}
+                  : p.scene === 0 && p.episode && p.episode.stage !== "sorting"
+                    ? episodeTitles[p.episode.stage]
+                    : scenes[p.scene].prompt}
             </h1>
             <section className="card scene-body">{sceneBody()}</section>
             {p.scene !== 0 && (
@@ -730,16 +784,18 @@ export default function App() {
                 <section className="hero">
                   <div>
                     <span className="hero-label">
-                      STORY FIRST <span>LESSON 003</span>
+                      FIRST EPISODE <span>LESSON 003</span>
                     </span>
-                    <p className="lesson-number">LESSON 003 · 機械学習の概要</p>
+                    <p className="lesson-number">
+                      LESSON 003 · 機械学習の3つの方法
+                    </p>
                     <h2>
                       出荷ラインで、
                       <br />
-                      最初の発見を。
+                      3つの学び方を。
                     </h2>
                     <p>
-                      工場の出荷を手伝うことになったあなた。今日は、いつもと少し様子が違います。
+                      工場の出荷を手伝いながら、AIの3つの学び方を体験します。専門知識は不要。試験問題は最後に選べます。
                     </p>
                     <div className="hero-bottom">
                       <button className="cream" onClick={() => enter()}>
@@ -777,12 +833,17 @@ export default function App() {
                 </section>
                 <div className="stats-row">
                   <article>
-                    <span>学習の進み具合</span>
+                    <span>
+                      {p.episode ? "体験した学び方" : "学習の進み具合"}
+                    </span>
                     <strong>
-                      {p.visited.length}
-                      <small> / 9 場面</small>
+                      {p.episode ? episodeCount : p.visited.length}
+                      <small>{p.episode ? " / 3 方式" : " / 9 場面"}</small>
                     </strong>
-                    <progress value={p.visited.length} max={9} />
+                    <progress
+                      value={p.episode ? episodeCount : p.visited.length}
+                      max={p.episode ? 3 : 9}
+                    />
                   </article>
                   <article>
                     <span>問題に向き合った回数</span>
@@ -858,7 +919,9 @@ export default function App() {
                   <p>
                     {p.completed
                       ? "最後まで学習した記録あり"
-                      : `再開位置：場面 ${p.scene + 1} ${scenes[p.scene].title}`}
+                      : p.episode && p.scene === 0
+                        ? `再開位置：${p.episode.stage === "sorting" ? (isPrologue ? "プロローグ" : p.introStage === "ai-trial" ? "AIを試す" : "箱の仕分け") : episodeTitles[p.episode.stage]}`
+                        : `再開位置：場面 ${p.scene + 1} ${scenes[p.scene].title}`}
                   </p>
                   <button className="primary" onClick={() => enter()}>
                     レッスンを開く →
@@ -1033,7 +1096,7 @@ export default function App() {
               </>
             )}
             <footer className="page-footer">
-              <span>WHY LEARN G · v0.1.3</span>
+              <span>WHY LEARN G · v0.1.4</span>
               <details>
                 <summary>教材の参照情報</summary>
                 <p>

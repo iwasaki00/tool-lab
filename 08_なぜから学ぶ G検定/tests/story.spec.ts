@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { finishEpisode } from "./helpers";
 const legacy = JSON.parse(
   readFileSync(
     new URL("./fixtures/v0.1.0-backup.json", import.meta.url),
@@ -56,7 +57,7 @@ test("390×844：回答や選択なしで最初の発見、挿絵とボタンが
   expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(844);
   expect(await page.evaluate(() => scrollY)).toBe(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.3/intro-before-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.4/intro-before-${test.info().project.name}.png`,
     fullPage: true,
   });
   const positionBefore = await page
@@ -74,20 +75,20 @@ test("390×844：回答や選択なしで最初の発見、挿絵とボタンが
     "不良 → 良品",
   );
   await expect(page.locator(".shipping-discovery")).toContainText(
-    "答え付きの見本から学ぶ方法を教師あり学習と呼びます。",
+    "人が付けた答えを見本にして、新しい箱を判定する。これが教師あり学習の例です",
   );
   await expect(
-    page.getByRole("button", { name: "分類を続けて試す →" }),
+    page.getByRole("button", { name: "搬送の様子を見る" }),
   ).toBeVisible();
   const aiLabel = await page.locator(".shipping-ai-verdict rect").boundingBox();
   const humanLabel = await page.locator(".shipping-human-check").boundingBox();
   expect(humanLabel!.y).toBeGreaterThanOrEqual(aiLabel!.y + aiLabel!.height);
   expect((await snapshot(page)).attempts).toHaveLength(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.3/intro-after-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.4/intro-after-${test.info().project.name}.png`,
     fullPage: true,
   });
-  await page.getByRole("button", { name: "分類を続けて試す →" }).click();
+  await page.getByText("仕組みを詳しく見る", { exact: true }).click();
   await expect(page.locator(".result")).toContainText("予測：良品");
   await expect(page.getByLabel("変更する見本")).toContainText("BOX-W");
 });
@@ -99,22 +100,8 @@ test("試験を選ばずにまとめと完了へ進め、演習メニューか�
   await page
     .getByRole("button", { name: "検査済みの箱を見本に加える" })
     .click();
-  await page.getByRole("button", { name: "分類を続けて試す →" }).click();
-  for (let n = 2; n < 7; n++)
-    await page.getByRole("button", { name: "次へ →", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "試験問題で確認する" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "まとめへ →" }).click();
-  await expect(page.locator(".summary-score")).toContainText(
-    "試験問題はあとから",
-  );
-  await expect(
-    page.getByRole("button", { name: "レッスンを最後まで学習したと記録" }),
-  ).toBeEnabled();
-  await page
-    .getByRole("button", { name: "レッスンを最後まで学習したと記録" })
-    .click();
+  await finishEpisode(page);
+  await page.getByRole("button", { name: "ここで終える" }).click();
   await saved(page);
   const data = await snapshot(page);
   expect(data.attempts).toEqual([]);
@@ -276,7 +263,7 @@ test("320pxと文字200%相当で横溢れ・挿絵やボタンの重なりが�
     .click();
   await check();
   await page.screenshot({
-    path: `docs/screenshots/v0.1.3/intro-large-text-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.4/intro-large-text-${test.info().project.name}.png`,
     fullPage: true,
   });
 });

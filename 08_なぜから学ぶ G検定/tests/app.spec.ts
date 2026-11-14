@@ -1,9 +1,10 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { questions } from "../src/data/content";
+import { seedLegacy } from "./helpers";
 const openLesson = async (page: Page) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
+  await seedLegacy(page);
+  await page.getByRole("button", { name: "続きから学ぶ" }).click();
   await page.getByRole("button", { name: "仕分け台へ行く" }).click();
   await page.getByRole("button", { name: "最初の箱を流す" }).click();
   await page
@@ -269,9 +270,9 @@ test("PWA全資産のキャッシュとオフライン再読込・9場面・履�
   await context.setOffline(false);
 });
 test("320px幅の5画面と9場面に横溢れがない", async ({ page }) => {
-  await page.goto("/");
+  await seedLegacy(page);
   await expect(
-    page.getByRole("button", { name: "出荷ラインを見に行く" }),
+    page.getByRole("button", { name: "続きから学ぶ" }),
   ).toBeVisible();
   if (test.info().project.name === "chromium")
     await page.screenshot({
@@ -294,7 +295,7 @@ test("320px幅の5画面と9場面に横溢れがない", async ({ page }) => {
     path: `test-results/home-${test.info().project.name}.png`,
     fullPage: true,
   });
-  await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
+  await page.getByRole("button", { name: "続きから学ぶ" }).click();
   await page.getByRole("button", { name: "仕分け台へ行く" }).click();
   await page.getByRole("button", { name: "最初の箱を流す" }).click();
   await page

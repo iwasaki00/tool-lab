@@ -17,17 +17,19 @@ function Plot({
   centers = [],
   labels = [],
   query,
+  axes = ["大きさ", "重さ"],
 }: {
   points: Point[];
   centers?: Point[];
   labels?: number[];
   query?: Point;
+  axes?: [string, string];
 }) {
   return (
     <svg
       viewBox="0 0 340 270"
       role="img"
-      aria-label="特徴量の散布図。横軸は大きさ、縦軸は重さ。点の番号とグループは下の一覧でも確認できます。"
+      aria-label={`特徴量の散布図。横軸は${axes[0]}、縦軸は${axes[1]}。点の番号とグループは下の一覧でも確認できます。`}
     >
       <rect x="28" y="10" width="290" height="225" rx="10" fill="#f3f5ef" />
       {[25, 50, 75].map((v) => (
@@ -74,10 +76,10 @@ function Plot({
         </g>
       )}
       <text x="160" y="262" fontSize="12">
-        大きさ →
+        {axes[0]} →
       </text>
       <text x="5" y="20" fontSize="12">
-        重さ
+        {axes[1]}
       </text>
     </svg>
   );
@@ -207,19 +209,27 @@ export function Supervised({
     </>
   );
 }
-export function Unsupervised({ speed }: { speed: number }) {
+export function Unsupervised({
+  speed,
+  points = clusterPoints,
+  axes,
+}: {
+  speed: number;
+  points?: Point[];
+  axes?: [string, string];
+}) {
   const [k, setK] = useState(3),
     [seed, setSeed] = useState(1),
-    [state, setState] = useState(() => initializeK(3)),
+    [state, setState] = useState(() => initializeK(3, 1, points)),
     [playing, setPlaying] = useState(false);
   function reset(nextK = k, nextSeed = seed) {
     setPlaying(false);
-    setState(initializeK(nextK, nextSeed));
+    setState(initializeK(nextK, nextSeed, points));
   }
   useEffect(() => {
     if (!playing || state.converged) return;
     const timer = setTimeout(
-      () => setState((s) => kStep(clusterPoints, s)),
+      () => setState((s) => kStep(points, s)),
       1000 / speed,
     );
     return () => clearTimeout(timer);
@@ -231,7 +241,8 @@ export function Unsupervised({ speed }: { speed: number }) {
       </p>
       <div className="simulation">
         <Plot
-          points={clusterPoints}
+          points={points}
+          axes={axes}
           centers={state.centers}
           labels={state.assignments}
         />
@@ -280,7 +291,7 @@ export function Unsupervised({ speed }: { speed: number }) {
               disabled={state.converged}
               onClick={() => {
                 setPlaying(false);
-                setState((s) => kStep(clusterPoints, s));
+                setState((s) => kStep(points, s));
               }}
             >
               1ステップ

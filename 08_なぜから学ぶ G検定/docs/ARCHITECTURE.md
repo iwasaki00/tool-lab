@@ -56,3 +56,10 @@ DB名 `why-learn-g`、DB版1、object store `state`、キー `snapshot`。履歴
 - scene=0のintroStageへai-trialを追加し、prologue（同一画面の縦3コマ）→ai-trial（過去の見本モニター）→sortingへ進む。既存のL003-P00・S01〜S09は変更しない。旧prologueは新しい漫画、sortingまたは未設定は従来の仕分け操作状態へ復帰する。
 - 任意のprologueScrollは漫画の縦スクロール位置。180msのデバウンスで既存の保存キューへ書き込み、再開時に復元する。再開始時は0へ初期化。非数値・非有限・負値をバックアップ検証で拒否する。DB・バックアップ形式の版は1を継続する。
 - ShippingIllustrationの共通SVGへusual/stopped/arrivals/ai-trialを追加。ローカルのJSに含まれるためSWでオフライン表示できる。判定計算・問題・教師なし学習・強化学習は変更しない。
+
+## v0.1.4：1話完結の本編
+
+- 新規開始時とrestartLessonで任意のEpisodeProgressを設定する。stageはsorting/records/routes/ending、操作はgrouped/compared、条件はpriority=speed/care。scene=0の内部で本編を進め、旧版のscene・ID・introStageを変更しない。episodeのない保存データは既存画面のまま再開する。
+- Episode.tsxは困りごと→操作→結果→名前の順に表示。旧版の詳細教材へ移動した場合もepisodeを保持し、出荷の物語に戻る導線を表示する。新しい本編は見本追加・グループ分け・報酬比較を終えたendingで完了可能。旧版は従来の8場面閲覧条件を維持する。
+- episode.tsは架空記録と固定経路の入力を持ち、既存のinitializeK/kStep/evaluateRouteを呼ぶ。K-means初期化は任意データを受け取れるよう拡張し、既存の既定データ・seedは維持。UnsupervisedとPlotも任意データ・軸名を受け取れ、本編と詳細で同じ記録を使う。
+- 新状態の型・前提条件・完了条件をJSON復元とDB保存の両方で検証。DB版1・JSON形式版1を維持し、回答・完了履歴・復習・設定の統合処理は従来どおり。

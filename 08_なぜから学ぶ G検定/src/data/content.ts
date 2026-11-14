@@ -69,7 +69,7 @@ export const prologueScene: Scene = {
 };
 export const lesson: Lesson = {
   id: "L003",
-  title: "AIはどうやって学習するのか？",
+  title: "機械学習の3つの方法",
   courseId: course.id,
   sceneIds: [prologueScene.id, ...scenes.map((s) => s.id)],
   syllabusIds: ["SY-ML"],

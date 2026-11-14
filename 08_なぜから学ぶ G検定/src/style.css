@@ -1638,3 +1638,207 @@ select {
     flex-direction: column;
   }
 }
+
+.episode-scene {
+  max-width: 680px;
+  margin: auto;
+}
+.story-intro .episode-scene p {
+  font-size: 16px;
+  line-height: 1.85;
+}
+.episode-purpose {
+  padding: 10px 14px;
+  border-left: 3px solid #829e83;
+  color: #426051;
+  background: #f0f4e9;
+}
+.episode-details {
+  margin-top: 24px;
+  border-top: 1px solid #d5dfcc;
+  padding: 16px 0;
+}
+.episode-details summary {
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1.7;
+  font-weight: 600;
+}
+.record-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 14px 0;
+}
+.record-cloud span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 14px;
+}
+.record-cloud i {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #82938e;
+}
+.episode-groups {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+.record-group {
+  padding: 14px;
+  border: 1px solid #c5d5c0;
+  border-radius: 12px;
+  background: #f4f7ef;
+}
+.record-group h2,
+.route-score h2 {
+  font-size: 18px;
+  margin: 0 0 8px;
+  line-height: 1.6;
+}
+.record-group p {
+  margin: 0;
+}
+.record-group .record-cloud {
+  padding: 8px 0 0;
+}
+.group-1 i {
+  background: #187b69;
+}
+.group-2 i {
+  background: #c75a35;
+}
+.group-3 i {
+  background: #6755a3;
+}
+.episode-result {
+  margin: 22px 0;
+  padding: 2px 16px;
+  border-left: 3px solid #5c8959;
+}
+.priority-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 20px 0;
+}
+.priority-switch button {
+  flex: 1 1 180px;
+  white-space: normal;
+  min-height: 48px;
+}
+.priority-switch button[aria-pressed="true"] {
+  background: #215e50;
+  color: white;
+}
+.route-scores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.route-score {
+  border: 1px solid #c5d5c0;
+  border-radius: 12px;
+  padding: 16px;
+  background: #f4f7ef;
+  min-width: 0;
+}
+.route-score h2 span {
+  display: block;
+  color: #215b49;
+  font-size: 13px;
+}
+.route-total {
+  font-size: 28px;
+  color: #215b49;
+}
+.story-intro .episode-demo {
+  padding: 12px;
+  background: #f1ead9;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.episode-recap {
+  display: grid;
+  gap: 14px;
+  margin: 20px 0;
+}
+.episode-recap section {
+  border: 1px solid #c5d5c0;
+  border-radius: 12px;
+  padding: 18px;
+  background: #f4f7ef;
+}
+.episode-recap section > span {
+  color: #446343;
+  font-size: 15px;
+}
+.episode-recap h3 {
+  font-size: 21px;
+  margin: 8px 0;
+}
+.episode-recap p {
+  margin: 0;
+}
+.episode-end-actions,
+.reference-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.episode-end-actions button {
+  flex: 1 1 180px;
+  min-height: 52px;
+  white-space: normal;
+}
+.reference-actions button {
+  white-space: normal;
+}
+.episode-table {
+  width: 100%;
+  overflow-x: auto;
+  margin: 20px 0;
+}
+.episode-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.episode-table th,
+.episode-table td {
+  padding: 8px;
+  border-bottom: 1px solid #d5dfcc;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.episode-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding: 8px 0;
+}
+@media (max-width: 700px) {
+  .episode-scene .inspector-line {
+    flex-direction: column;
+  }
+  .route-scores {
+    grid-template-columns: 1fr;
+  }
+  .episode-scene h2 {
+    overflow-wrap: anywhere;
+    font-size: 20px;
+    line-height: 1.6;
+  }
+  .record-group h2,
+  .route-score h2 {
+    font-size: 18px;
+  }
+}
+
+.episode-return {
+  margin-bottom: 16px;
+  white-space: normal;
+}

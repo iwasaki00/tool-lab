@@ -53,7 +53,14 @@ export interface QuestionAttempt {
   answeredAt: string;
   sessionId: string;
 }
+export interface EpisodeProgress {
+  stage: "sorting" | "records" | "routes" | "ending";
+  grouped: boolean;
+  compared: boolean;
+  priority: "speed" | "care";
+}
 export interface LearningProgress {
+  episode?: EpisodeProgress;
   id: string;
   lessonId: string;
   scene: number;

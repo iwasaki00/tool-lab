@@ -1,3 +1,4 @@
+import { finishEpisode } from "./helpers";
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
@@ -79,16 +80,14 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
     await expect(panels.nth(i).locator("h2")).toContainText(titles[i]);
     await expect(panels.nth(i).locator("svg")).toHaveCount(1);
     if (i < 2) await expect(panels.nth(i)).not.toContainText("あと1時間");
-    await panels
-      .nth(i)
-      .screenshot({
-        path:
-          "docs/screenshots/v0.1.3/comic-" +
-          (i + 1) +
-          "-" +
-          test.info().project.name +
-          ".png",
-      });
+    await panels.nth(i).screenshot({
+      path:
+        "docs/screenshots/v0.1.4/comic-" +
+        (i + 1) +
+        "-" +
+        test.info().project.name +
+        ".png",
+    });
   }
   await expect(panels.nth(0)).toContainText("集荷 16:00");
   await expect(panels.nth(1)).toContainText(
@@ -100,7 +99,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
   ).toBeGreaterThan(844);
   await page.screenshot({
     path:
-      "docs/screenshots/v0.1.3/prologue-" + test.info().project.name + ".png",
+      "docs/screenshots/v0.1.4/prologue-" + test.info().project.name + ".png",
     fullPage: true,
   });
   await page.getByRole("button", { name: "仕分け台へ行く" }).click();
@@ -112,7 +111,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
   await expect(page.getByText("教師あり学習", { exact: false })).toHaveCount(0);
   await page.screenshot({
     path:
-      "docs/screenshots/v0.1.3/ai-trial-" + test.info().project.name + ".png",
+      "docs/screenshots/v0.1.4/ai-trial-" + test.info().project.name + ".png",
     fullPage: true,
   });
   await page.getByRole("button", { name: "最初の箱を流す" }).click();
@@ -128,7 +127,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
   );
   await expect(page.locator(".shipping-discovery")).toHaveCount(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.3/intro-before-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.4/intro-before-${test.info().project.name}.png`,
     fullPage: true,
   });
   await page
@@ -142,7 +141,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
     "不良 → 良品",
   );
   await page.screenshot({
-    path: `docs/screenshots/v0.1.3/intro-after-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.4/intro-after-${test.info().project.name}.png`,
     fullPage: true,
   });
   expect((await data(page)).attempts).toHaveLength(0);
@@ -214,15 +213,9 @@ test("完了済みデータから最初から学ぶ：現在のプレイだけ�
   await expect(page.locator(".shipping-verdicts")).toContainText(
     "AIの判定：良品",
   );
-  await page.getByRole("button", { name: "分類を続けて試す →" }).click();
-  for (let n = 2; n < 7; n++)
-    await page.getByRole("button", { name: "次へ →", exact: true }).click();
-  await page.getByRole("button", { name: "まとめへ →" }).click();
-  await page
-    .getByRole("button", { name: "レッスンを最後まで学習したと記録" })
-    .click();
+  await finishEpisode(page);
+  await page.getByRole("button", { name: "ここで終える" }).click();
   await saved(page);
-  await exit(page);
   await page.getByRole("button", { name: "最初から学ぶ" }).click();
   await saved(page);
   b = await data(page);
@@ -335,7 +328,7 @@ test("プロローグも320px・文字200%相当で切れや横溢れなく操�
     );
   }
   await page.screenshot({
-    path: `docs/screenshots/v0.1.3/prologue-large-text-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.4/prologue-large-text-${test.info().project.name}.png`,
     fullPage: true,
   });
   await page.getByRole("button", { name: "仕分け台へ行く" }).click();
@@ -355,7 +348,7 @@ test("プロローグも320px・文字200%相当で切れや横溢れなく操�
   ).toBe(true);
   await page.screenshot({
     path:
-      "docs/screenshots/v0.1.3/ai-trial-large-text-" +
+      "docs/screenshots/v0.1.4/ai-trial-large-text-" +
       test.info().project.name +
       ".png",
     fullPage: true,
@@ -376,7 +369,7 @@ test("漫画の読書位置とAI試行の途中位置を再開する", async ({ 
   await page.goto("/");
   await expect(
     page.getByText(
-      "工場の出荷を手伝うことになったあなた。今日は、いつもと少し様子が違います。",
+      "工場の出荷を手伝いながら、AIの3つの学び方を体験します。専門知識は不要。試験問題は最後に選べます。",
       { exact: true },
     ),
   ).toBeVisible();

@@ -67,6 +67,13 @@ it("完了後の再開始を繰り返しても完了記録を重複・消去せ�
   b = restartLesson(b);
   expect(b.progress.completed).toBe(false);
   expect(b.completions?.[0].sessionId).toBe(first);
+  b.progress.episode = {
+    stage: "ending",
+    grouped: true,
+    compared: true,
+    priority: "care",
+  };
+  b.progress.storySampleAdded = true;
   b.progress.visited = [0, 1, 2, 3, 4, 5, 6, 8];
   b.progress.scene = 8;
   b = completeLesson(b);

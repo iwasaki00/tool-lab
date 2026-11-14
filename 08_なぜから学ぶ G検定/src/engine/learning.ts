@@ -92,6 +92,26 @@ export function validateBackup(input: unknown): Backup {
   const p = input.progress,
     s = input.settings;
   if (
+    p.episode !== undefined &&
+    (!record(p.episode) ||
+      !["sorting", "records", "routes", "ending"].includes(
+        p.episode.stage as string,
+      ) ||
+      typeof p.episode.grouped !== "boolean" ||
+      typeof p.episode.compared !== "boolean" ||
+      !["speed", "care"].includes(p.episode.priority as string))
+  )
+    return fail();
+  if (
+    record(p.episode) &&
+    ((p.episode.stage !== "sorting" && !p.storySampleAdded) ||
+      (["routes", "ending"].includes(p.episode.stage as string) &&
+        !p.episode.grouped) ||
+      (p.episode.stage === "ending" && !p.episode.compared) ||
+      (p.episode.compared && !p.episode.grouped))
+  )
+    return fail();
+  if (
     (p.prologueScroll !== undefined &&
       (typeof p.prologueScroll !== "number" ||
         !Number.isFinite(p.prologueScroll) ||
@@ -155,13 +175,7 @@ export function validateBackup(input: unknown): Backup {
       return fail();
     reviewIds.add(r.id);
   }
-  // Completing the story no longer requires taking the optional exam.
-  if (
-    p.completed &&
-    ![0, 1, 2, 3, 4, 5, 6, 8].every((scene) =>
-      (p.visited as number[]).includes(scene),
-    )
-  )
+  if (p.completed && !storyVisited(p as unknown as LearningProgress))
     return fail();
   if (input.completions !== undefined) {
     if (!Array.isArray(input.completions) || input.completions.length > 100000)
@@ -231,7 +245,12 @@ export function mergeBackups(current: Backup, incoming: Backup): Backup {
 }
 
 export const storyVisited = (p: LearningProgress) =>
-  [0, 1, 2, 3, 4, 5, 6, 8].every((scene) => p.visited.includes(scene));
+  p.episode
+    ? p.episode.stage === "ending" &&
+      p.episode.grouped &&
+      p.episode.compared &&
+      !!p.storySampleAdded
+    : [0, 1, 2, 3, 4, 5, 6, 8].every((scene) => p.visited.includes(scene));
 export function hasLearningRecord(b: Backup): boolean {
   const p = b.progress;
   return (
@@ -277,7 +296,16 @@ export function restartLesson(b: Backup): Backup {
   return {
     ...b,
     completions: completionRecords(b),
-    progress: { ...newProgress(), started: true },
+    progress: {
+      ...newProgress(),
+      started: true,
+      episode: {
+        stage: "sorting",
+        grouped: false,
+        compared: false,
+        priority: "speed",
+      },
+    },
   };
 }
 export function completeLesson(b: Backup): Backup {
