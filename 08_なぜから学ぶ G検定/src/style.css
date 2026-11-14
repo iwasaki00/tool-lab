@@ -1578,3 +1578,63 @@ select {
     font-size: 12px;
   }
 }
+
+.comic-panel {
+  margin: 0 0 28px;
+  border: 1px solid #d5dfcc;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fffdf7;
+}
+.comic-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 16px;
+  font-size: 20px;
+  line-height: 1.5;
+}
+.comic-panel h2 span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e0ead9;
+}
+.comic-panel .shipping-illustration {
+  display: block;
+  border-radius: 0;
+}
+.comic-panel .inspector-line,
+.comic-panel .prologue-narration {
+  margin: 18px 16px;
+}
+.story-intro .comic-panel p,
+.story-intro .shipping-trial p {
+  font-size: 16px;
+  line-height: 1.85;
+}
+.comic-panel .inspector-line {
+  align-items: flex-start;
+}
+.comic-panel h2,
+.comic-panel p {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .comic-panel h2 {
+    font-size: 18px;
+    padding: 14px;
+  }
+  .comic-panel .inspector-line {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 700px) {
+  .shipping-trial .inspector-line {
+    flex-direction: column;
+  }
+}

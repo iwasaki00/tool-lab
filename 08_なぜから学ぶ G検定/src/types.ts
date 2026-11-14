@@ -66,7 +66,8 @@ export interface LearningProgress {
   predictions: number[];
   started?: boolean;
   storySampleAdded?: boolean;
-  introStage?: "prologue" | "sorting";
+  prologueScroll?: number;
+  introStage?: "prologue" | "ai-trial" | "sorting";
   challenge: number | null;
   challengeLabelled: boolean;
 }

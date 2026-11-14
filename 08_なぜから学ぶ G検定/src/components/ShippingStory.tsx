@@ -21,7 +21,15 @@ export function ShippingStory({
       </div>
       <blockquote className="inspector-line">
         <span>検査員</span>
-        <p>「{sampleAdded ? shippingStory.after : shippingStory.before}」</p>
+        <p>
+          「{sampleAdded ? shippingStory.after : shippingStory.before}」
+          {!sampleAdded && (
+            <>
+              <br />
+              「そういえば、これによく似た箱も合格だった。あれを見本に加えてみよう」
+            </>
+          )}
+        </p>
       </blockquote>
       {sampleAdded ? (
         <>

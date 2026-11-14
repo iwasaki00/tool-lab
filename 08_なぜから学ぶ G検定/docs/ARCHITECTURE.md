@@ -50,3 +50,9 @@ DB名 `why-learn-g`、DB版1、object store `state`、キー `snapshot`。履歴
 - `restartLesson`は現在のL003進行だけをnewProgressで初期化し、新しいセッションIDを発行する。スナップショットの他フィールドは維持する。
 - `LessonCompletion`と任意の `completions` 配列を追加。旧 completed=true は再開始・進行変更・新規演習の前に完了記録へ退避する。旧版に正確な完了日時がないため、旧進行のupdatedAtを記録日時として継承する。新規の完了は完了操作の日時を記録する。
 - 完了IDはlessonIdとsessionIdから安定して生成。JSON統合時はIDで重複を排除して完了記録を残す。再開始・復元・履歴更新は従来のIndexedDBトランザクションで保存する。
+
+## v0.1.3：漫画とAI試行
+
+- scene=0のintroStageへai-trialを追加し、prologue（同一画面の縦3コマ）→ai-trial（過去の見本モニター）→sortingへ進む。既存のL003-P00・S01〜S09は変更しない。旧prologueは新しい漫画、sortingまたは未設定は従来の仕分け操作状態へ復帰する。
+- 任意のprologueScrollは漫画の縦スクロール位置。180msのデバウンスで既存の保存キューへ書き込み、再開時に復元する。再開始時は0へ初期化。非数値・非有限・負値をバックアップ検証で拒否する。DB・バックアップ形式の版は1を継続する。
+- ShippingIllustrationの共通SVGへusual/stopped/arrivals/ai-trialを追加。ローカルのJSに含まれるためSWでオフライン表示できる。判定計算・問題・教師なし学習・強化学習は変更しない。

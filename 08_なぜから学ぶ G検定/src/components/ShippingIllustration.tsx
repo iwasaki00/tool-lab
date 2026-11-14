@@ -33,13 +33,13 @@ export function ShippingIllustration({
   label = "不良",
   sampleAdded = false,
 }: {
-  mode?: "prologue" | "sorting";
+  mode?: "usual" | "stopped" | "arrivals" | "ai-trial" | "sorting";
   label?: "良品" | "不良";
   sampleAdded?: boolean;
 }) {
   const titleId = useId(),
     good = label === "良品",
-    prologue = mode === "prologue";
+    prologue = mode !== "sorting";
   return (
     <svg
       className="shipping-illustration"
@@ -49,8 +49,21 @@ export function ShippingIllustration({
     >
       <title id={titleId}>
         {prologue
-          ? "出荷口に仕分け待ちの箱がたまり、一人の検査員がコンベアで確認している。時計は出荷まであと1時間を示す。"
-          : `出荷ライン。箱Qの検査員の確認は合格。AIの現在の判定は${label}で、${label}レーンにあります。${sampleAdded ? "別の検査済みの箱Wが良品の見本に加わりました。" : ""}`}
+          ? {
+              usual: "いつもの出荷。検査員が学習者に集荷16時の札を示す",
+              stopped:
+                "午前、包装機が停止。警告ランプが点滅し、ベルトに箱が届かない",
+              arrivals: "15時に復旧。仕分け待ちの箱が次々に届く。集荷は16時",
+              "ai-trial": "仕分け台のモニターに、過去の箱の良品と不良の見本",
+            }[mode as "usual" | "stopped" | "arrivals" | "ai-trial"]
+          : "出荷ライン。箱Qの検査員の確認は合格。AIの現在の判定は" +
+            label +
+            "で、" +
+            label +
+            "レーンにあります。" +
+            (sampleAdded
+              ? "別の検査済みの箱Wが良品の見本に加わりました。"
+              : "")}
       </title>
       <rect width="600" height="310" rx="24" fill="#f1f4e8" />
       <path
@@ -132,61 +145,239 @@ export function ShippingIllustration({
       </g>
       {prologue ? (
         <g>
-          <rect
-            x="433"
-            y="124"
-            width="132"
-            height="133"
-            rx="9"
-            fill="#dae5d8"
-            stroke="#829884"
-            strokeWidth="3"
-          />
-          <path
-            d="M449 146h99v102h-99ZM449 172h99M449 197h99M449 222h99"
-            stroke="#a6b7a2"
-            fill="none"
-          />
-          <text
-            x="499"
-            y="117"
-            textAnchor="middle"
-            fontSize="21"
-            fill="#385d46"
-          >
-            出荷口
-          </text>
-          <circle
-            cx="504"
-            cy="45"
-            r="29"
-            fill="#fffaf0"
-            stroke="#829884"
-            strokeWidth="3"
-          />
-          <path
-            d="M504 24v21l14 10"
-            stroke="#4d705c"
-            strokeWidth="4"
-            fill="none"
-          />
-          <text x="504" y="94" textAnchor="middle" fontSize="18" fill="#385d46">
-            出荷まで1時間
-          </text>
-          <Box x={40} y={120} name="W" />
-          <Box x={116} y={120} name="A" />
-          <Box x={192} y={120} name="Q" />
-          <Box x={269} y={148} name="B" />
-          <Box x={344} y={188} name="C" />
-          <text x="40" y="286" fontSize="21" fill="#385d46">
-            仕分けを待つ箱が、次々に。
-          </text>
+          {mode === "ai-trial" ? (
+            <>
+              <rect
+                x="280"
+                y="14"
+                width="290"
+                height="183"
+                rx="14"
+                fill="#426051"
+              />
+              <rect
+                x="292"
+                y="25"
+                width="266"
+                height="160"
+                rx="8"
+                fill="#fffaf0"
+              />
+              <text
+                x="425"
+                y="51"
+                textAnchor="middle"
+                fontSize="19"
+                fill="#354e40"
+              >
+                前に検査した箱の見本
+              </text>
+              <Box x={316} y={64} name="P1" />
+              <Box x={451} y={64} name="P4" />
+              <text
+                x="350"
+                y="160"
+                textAnchor="middle"
+                fontSize="23"
+                fill="#215b49"
+              >
+                良品
+              </text>
+              <text
+                x="485"
+                y="160"
+                textAnchor="middle"
+                fontSize="23"
+                fill="#805337"
+              >
+                不良
+              </text>
+              <path d="M425 197v28m-45 0h90" stroke="#426051" strokeWidth="9" />
+              <text x="300" y="281" fontSize="22" fill="#385d46">
+                仕分け台で、まず一箱だけ。
+              </text>
+            </>
+          ) : (
+            <>
+              <rect
+                x="429"
+                y="115"
+                width="140"
+                height="140"
+                rx="9"
+                fill="#dae5d8"
+                stroke="#829884"
+                strokeWidth="3"
+              />
+              <path
+                d="M442 140h114M442 170h114M442 200h114M442 230h114"
+                stroke="#a6b7a2"
+              />
+              <text
+                x="499"
+                y="246"
+                textAnchor="middle"
+                fontSize="21"
+                fill="#385d46"
+              >
+                出荷口
+              </text>
+              <rect
+                x="410"
+                y="14"
+                width="177"
+                height="43"
+                rx="7"
+                fill="#fffaf0"
+                stroke="#829884"
+                strokeWidth="2"
+              />
+              <text
+                x="498"
+                y="43"
+                textAnchor="middle"
+                fontSize="24"
+                fontWeight="700"
+                fill="#385d46"
+              >
+                集荷 16:00
+              </text>
+              {mode === "usual" && (
+                <>
+                  <g transform="translate(45 198)">
+                    <circle cy="12" r="19" fill="#f3d9bb" />
+                    <path d="M-25 76V44q0-25 25-25t25 25v32" fill="#b4a0c3" />
+                    <text
+                      y="101"
+                      textAnchor="middle"
+                      fontSize="19"
+                      fill="#354e40"
+                    >
+                      あなた
+                    </text>
+                  </g>
+                  <Box x={252} y={113} name="A" />
+                  <path
+                    d="M239 81 405 39"
+                    stroke="#4d705c"
+                    strokeWidth="3"
+                    strokeDasharray="7 6"
+                  />
+                </>
+              )}
+              {mode === "stopped" && (
+                <>
+                  <rect
+                    x="18"
+                    y="111"
+                    width="198"
+                    height="105"
+                    rx="12"
+                    fill="#c7d3c5"
+                    stroke="#617d65"
+                    strokeWidth="3"
+                  />
+                  <circle cx="181" cy="134" r="12" fill="#d58a51" />
+                  <path
+                    d="M181 112v-9m-21 17-8-7m42 7 8-7"
+                    stroke="#a96534"
+                    strokeWidth="4"
+                  />
+                  <rect
+                    x="38"
+                    y="148"
+                    width="151"
+                    height="49"
+                    rx="7"
+                    fill="#fffaf0"
+                  />
+                  <text
+                    x="114"
+                    y="179"
+                    textAnchor="middle"
+                    fontSize="24"
+                    fill="#805337"
+                  >
+                    包装機 停止
+                  </text>
+                  <text
+                    x="322"
+                    y="220"
+                    textAnchor="middle"
+                    fontSize="23"
+                    fill="#805337"
+                  >
+                    ベルト停止
+                  </text>
+                  <text
+                    x="297"
+                    y="280"
+                    textAnchor="middle"
+                    fontSize="22"
+                    fill="#385d46"
+                  >
+                    仕分け場に、箱が来ない。
+                  </text>
+                </>
+              )}
+              {mode === "arrivals" && (
+                <>
+                  <circle
+                    cx="310"
+                    cy="48"
+                    r="34"
+                    fill="#fffaf0"
+                    stroke="#829884"
+                    strokeWidth="3"
+                  />
+                  <path
+                    d="M310 22v26h23"
+                    stroke="#4d705c"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <text
+                    x="310"
+                    y="103"
+                    textAnchor="middle"
+                    fontSize="21"
+                    fill="#385d46"
+                  >
+                    15:00
+                  </text>
+                  <Box x={25} y={116} name="W" />
+                  <Box x={99} y={116} name="A" />
+                  <Box x={173} y={116} name="Q" />
+                  <Box x={247} y={143} name="B" />
+                  <Box x={321} y={181} name="C" />
+                  <path
+                    d="m20 208 35 0-10-8m10 8-10 8"
+                    stroke="#4d705c"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <text
+                    x="190"
+                    y="282"
+                    textAnchor="middle"
+                    fontSize="22"
+                    fill="#385d46"
+                  >
+                    包装機が復旧。箱が次々に！
+                  </text>
+                </>
+              )}
+            </>
+          )}
         </g>
       ) : (
         <>
           {" "}
           <Box x={427} y={good ? 48 : 193} name="Q" />
-          <g transform={`translate(290 ${good ? 99 : 178})`}>
+          <g
+            className="shipping-ai-verdict"
+            transform={`translate(290 ${good ? 99 : 178})`}
+          >
             <rect
               width="126"
               height="43"
@@ -206,7 +397,13 @@ export function ShippingIllustration({
               AI：{label}
             </text>
           </g>
-          <text x="272" y="151" fontSize="18" fill="#425e48">
+          <text
+            className="shipping-human-check"
+            x="272"
+            y={good ? 175 : 151}
+            fontSize="18"
+            fill="#425e48"
+          >
             箱Q／検査員：合格
           </text>
           <g transform="translate(38 211)">

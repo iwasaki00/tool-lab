@@ -129,3 +129,23 @@ it("プロローグに新IDを追加し既存9場面の添字とIDを維持", as
     Array.from({ length: 9 }, (_, i) => `L003-S0${i + 1}`),
   );
 });
+
+it("漫画の読書位置とAI試行段階の保存・バックアップ・再開始", async () => {
+  const b = emptyBackup();
+  b.progress.introStage = "ai-trial";
+  b.progress.prologueScroll = 570;
+  expect(validateBackup(JSON.parse(JSON.stringify(b)))).toEqual(b);
+  await saveState(b);
+  expect((await loadState()).progress.introStage).toBe("ai-trial");
+  const reset = restartLesson(b);
+  expect(reset.progress.introStage).toBe("prologue");
+  expect(reset.progress.prologueScroll).toBe(0);
+  for (const invalid of [-1, NaN, Infinity, "200", null]) {
+    expect(() =>
+      validateBackup({
+        ...b,
+        progress: { ...b.progress, prologueScroll: invalid },
+      }),
+    ).toThrow();
+  }
+});

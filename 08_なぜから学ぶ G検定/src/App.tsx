@@ -29,7 +29,8 @@ import {
 } from "./components/Simulations";
 import { KnowledgeMap, Quiz } from "./components/Learning";
 import { ShippingStory } from "./components/ShippingStory";
-import { ShippingPrologue } from "./components/ShippingPrologue";
+import { ShippingTrial, ShippingPrologue } from "./components/ShippingPrologue";
+import { shippingTrial } from "./data/shippingStory";
 const nav = [
   ["⌂", "ホーム"],
   ["▤", "コース"],
@@ -100,10 +101,30 @@ export default function App() {
   );
   useEffect(() => {
     if (inLesson) {
-      heading.current?.focus();
-      window.scrollTo({ top: 0, behavior: "instant" });
+      heading.current?.focus({ preventScroll: true });
+      window.scrollTo({
+        top: isPrologue ? (p.prologueScroll ?? 0) : 0,
+        behavior: "instant",
+      });
     }
   }, [inLesson, p.scene, p.introStage]);
+  useEffect(() => {
+    if (!inLesson || !isPrologue) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const savePosition = () => {
+      clearTimeout(timer);
+      const position = window.scrollY;
+      timer = setTimeout(
+        () => updateProgress({ prologueScroll: position }),
+        180,
+      );
+    };
+    window.addEventListener("scroll", savePosition);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", savePosition);
+    };
+  }, [inLesson, isPrologue]);
   function commit(next: Backup) {
     if (!ready) return;
     ref.current = next;
@@ -336,6 +357,12 @@ export default function App() {
         if (isPrologue)
           return (
             <ShippingPrologue
+              onContinue={() => updateProgress({ introStage: "ai-trial" })}
+            />
+          );
+        if (p.introStage === "ai-trial")
+          return (
+            <ShippingTrial
               onContinue={() => updateProgress({ introStage: "sorting" })}
             />
           );
@@ -528,7 +555,7 @@ export default function App() {
               <br />
               理解のはじまり。
             </p>
-            <small>v0.1.2 · この端末に保存</small>
+            <small>v0.1.3 · この端末に保存</small>
           </div>
         </aside>
       )}
@@ -618,7 +645,11 @@ export default function App() {
               </div>
             )}
             <h1 ref={heading} tabIndex={-1}>
-              {isPrologue ? prologueScene.prompt : scenes[p.scene].prompt}
+              {isPrologue
+                ? prologueScene.prompt
+                : p.scene === 0 && p.introStage === "ai-trial"
+                  ? shippingTrial.title
+                  : scenes[p.scene].prompt}
             </h1>
             <section className="card scene-body">{sceneBody()}</section>
             {p.scene !== 0 && (
@@ -708,9 +739,7 @@ export default function App() {
                       最初の発見を。
                     </h2>
                     <p>
-                      出荷まであと1時間。仕分けを待つ箱が山積みに。
-                      <br />
-                      検査員といっしょに、AIの仕分けを見てみよう。
+                      工場の出荷を手伝うことになったあなた。今日は、いつもと少し様子が違います。
                     </p>
                     <div className="hero-bottom">
                       <button className="cream" onClick={() => enter()}>
@@ -783,7 +812,7 @@ export default function App() {
                     [
                       "01",
                       "体験する",
-                      "出荷ラインで、見本を加えて判定の変化を見る。",
+                      "出荷現場の物語から、AIの学び方にふれる。",
                       0,
                     ],
                     ["02", "つなげる", "知識マップで、概念の関係をたどる。", 6],
@@ -1004,7 +1033,7 @@ export default function App() {
               </>
             )}
             <footer className="page-footer">
-              <span>WHY LEARN G · v0.1.2</span>
+              <span>WHY LEARN G · v0.1.3</span>
               <details>
                 <summary>教材の参照情報</summary>
                 <p>

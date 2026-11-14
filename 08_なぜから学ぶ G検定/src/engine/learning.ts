@@ -19,6 +19,7 @@ export const newProgress = (): LearningProgress => ({
   started: false,
   storySampleAdded: false,
   introStage: "prologue",
+  prologueScroll: 0,
   challenge: null,
   challengeLabelled: true,
 });
@@ -91,8 +92,12 @@ export function validateBackup(input: unknown): Backup {
   const p = input.progress,
     s = input.settings;
   if (
+    (p.prologueScroll !== undefined &&
+      (typeof p.prologueScroll !== "number" ||
+        !Number.isFinite(p.prologueScroll) ||
+        p.prologueScroll < 0)) ||
     (p.introStage !== undefined &&
-      !["prologue", "sorting"].includes(p.introStage as string)) ||
+      !["prologue", "ai-trial", "sorting"].includes(p.introStage as string)) ||
     p.id !== "progress-L003" ||
     p.lessonId !== "L003" ||
     !int(p.scene, 8) ||

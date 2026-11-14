@@ -56,7 +56,7 @@ async function install(page: Page, value: unknown) {
 const exit = async (page: Page) =>
   page.getByRole("button", { name: "← 戻る・途中終了" }).click();
 
-test("390×844：プロローグから人とAIの食い違い、見本追加へ進み3画面を撮影", async ({
+test("390×844：プロローグから人とAIの食い違い、見本追加へ進み漫画3コマと各場面を撮影", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -64,30 +64,58 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
   await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
   await saved(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "出荷まで、あと1時間。",
+    "今日は、いつもどおりのはずだった",
   );
   await expect(page.locator("input,select")).toHaveCount(0);
   await expect(page.locator(".scene-body button")).toHaveCount(1);
-  const picture = page.getByRole("img", { name: /仕分け待ちの箱/ }),
-    action = page.getByRole("button", { name: "AIの仕分けを見てみる" }),
-    narration = page.locator(".prologue-narration");
-  await expect(narration).toHaveText(
-    "出荷前の工場。検査員が一箱ずつ確認しているが、仕分けが追いつかない。",
-  );
-  await expect(page.locator(".inspector-line")).toContainText(
-    "判定が合っているかは、私が確かめるよ",
-  );
-  for (const el of [picture, narration, action]) {
-    const b = await el.boundingBox();
-    expect(b!.y).toBeGreaterThanOrEqual(0);
-    expect(b!.y + b!.height).toBeLessThanOrEqual(844);
+  const panels = page.locator(".comic-panel");
+  await expect(panels).toHaveCount(3);
+  const titles = [
+    "いつもの出荷",
+    "午前、包装機が止まる",
+    "15時、箱が一気に届く",
+  ];
+  for (let i = 0; i < 3; i++) {
+    await expect(panels.nth(i).locator("h2")).toContainText(titles[i]);
+    await expect(panels.nth(i).locator("svg")).toHaveCount(1);
+    if (i < 2) await expect(panels.nth(i)).not.toContainText("あと1時間");
+    await panels
+      .nth(i)
+      .screenshot({
+        path:
+          "docs/screenshots/v0.1.3/comic-" +
+          (i + 1) +
+          "-" +
+          test.info().project.name +
+          ".png",
+      });
   }
-  expect(await page.evaluate(() => scrollY)).toBe(0);
+  await expect(panels.nth(0)).toContainText("集荷 16:00");
+  await expect(panels.nth(1)).toContainText(
+    "仕分けを始めたくても、箱が来ない。",
+  );
+  await expect(panels.nth(2)).toContainText("あと1時間しかない");
+  expect(
+    await page.evaluate(() => document.documentElement.scrollHeight),
+  ).toBeGreaterThan(844);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.2/prologue-${test.info().project.name}.png`,
+    path:
+      "docs/screenshots/v0.1.3/prologue-" + test.info().project.name + ".png",
     fullPage: true,
   });
-  await action.click();
+  await page.getByRole("button", { name: "仕分け台へ行く" }).click();
+  await expect(page.locator(".shipping-trial")).toContainText(
+    "前に検査した箱を見本にして",
+  );
+  await expect(page.locator(".shipping-trial svg")).toContainText("良品");
+  await expect(page.locator(".shipping-trial svg")).toContainText("不良");
+  await expect(page.getByText("教師あり学習", { exact: false })).toHaveCount(0);
+  await page.screenshot({
+    path:
+      "docs/screenshots/v0.1.3/ai-trial-" + test.info().project.name + ".png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "最初の箱を流す" }).click();
   await saved(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "良品が、不良品レーンへ。",
@@ -100,7 +128,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
   );
   await expect(page.locator(".shipping-discovery")).toHaveCount(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.2/intro-before-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.3/intro-before-${test.info().project.name}.png`,
     fullPage: true,
   });
   await page
@@ -114,7 +142,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
     "不良 → 良品",
   );
   await page.screenshot({
-    path: `docs/screenshots/v0.1.2/intro-after-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.3/intro-after-${test.info().project.name}.png`,
     fullPage: true,
   });
   expect((await data(page)).attempts).toHaveLength(0);
@@ -152,7 +180,7 @@ test("完了済みデータから最初から学ぶ：現在のプレイだけ�
   await page.getByRole("button", { name: "最初から学ぶ" }).click();
   await saved(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "出荷まで、あと1時間。",
+    "今日は、いつもどおりのはずだった",
   );
   let b = await data(page);
   expect(b.progress).toMatchObject({
@@ -172,7 +200,8 @@ test("完了済みデータから最初から学ぶ：現在のプレイだけ�
   expect(b.settings).toEqual(done.settings);
   expect(b.completions).toHaveLength(1);
   expect(b.completions[0].recordedAt).toBe(done.progress.updatedAt);
-  await page.getByRole("button", { name: "AIの仕分けを見てみる" }).click();
+  await page.getByRole("button", { name: "仕分け台へ行く" }).click();
+  await page.getByRole("button", { name: "最初の箱を流す" }).click();
   await expect(page.locator(".shipping-verdicts")).toContainText(
     "AIの判定：不良",
   );
@@ -230,7 +259,7 @@ test("完了済みデータから最初から学ぶ：現在のプレイだけ�
   await page.reload();
   await page.getByRole("button", { name: "続きから学ぶ" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "出荷まで、あと1時間。",
+    "今日は、いつもどおりのはずだった",
   );
   expect((await data(page)).completions).toHaveLength(2);
 });
@@ -263,7 +292,8 @@ test("更新前の操作済み保存は誤判定体験の操作後へ直接再�
   await page.reload();
   await page.getByRole("button", { name: "続きから学ぶ" }).click();
   await expect(page.getByRole("img", { name: /仕分け待ちの箱/ })).toBeVisible();
-  await page.getByRole("button", { name: "AIの仕分けを見てみる" }).click();
+  await page.getByRole("button", { name: "仕分け台へ行く" }).click();
+  await page.getByRole("button", { name: "最初の箱を流す" }).click();
   await expect(page.locator(".shipping-verdicts")).toContainText(
     "AIの判定：不良",
   );
@@ -295,18 +325,42 @@ test("プロローグも320px・文字200%相当で切れや横溢れなく操�
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  const image = await page.locator(".shipping-illustration").boundingBox(),
-    narration = await page.locator(".prologue-narration").boundingBox(),
-    line = await page.locator(".inspector-line").boundingBox(),
-    button = await page.locator(".story-action").boundingBox();
-  expect(image!.y + image!.height).toBeLessThanOrEqual(narration!.y);
-  expect(narration!.y + narration!.height).toBeLessThanOrEqual(line!.y);
-  expect(line!.y + line!.height).toBeLessThanOrEqual(button!.y);
+  for (const panel of await page.locator(".comic-panel").all()) {
+    const image = await panel.locator("svg").boundingBox();
+    const text = await panel.locator("p").boundingBox();
+    expect(image!.y + image!.height).toBeLessThanOrEqual(text!.y);
+    const bounds = await panel.boundingBox();
+    expect(text!.x + text!.width).toBeLessThanOrEqual(
+      bounds!.x + bounds!.width,
+    );
+  }
   await page.screenshot({
-    path: `docs/screenshots/v0.1.2/prologue-large-text-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.3/prologue-large-text-${test.info().project.name}.png`,
     fullPage: true,
   });
-  await page.getByRole("button", { name: "AIの仕分けを見てみる" }).click();
+  await page.getByRole("button", { name: "仕分け台へ行く" }).click();
+  const trialImage = await page.locator(".shipping-trial svg").boundingBox();
+  const trialLine = await page
+    .locator(".shipping-trial .inspector-line")
+    .boundingBox();
+  const trialButton = await page
+    .locator(".shipping-trial button")
+    .boundingBox();
+  expect(trialImage!.y + trialImage!.height).toBeLessThanOrEqual(trialLine!.y);
+  expect(trialLine!.y + trialLine!.height).toBeLessThanOrEqual(trialButton!.y);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path:
+      "docs/screenshots/v0.1.3/ai-trial-large-text-" +
+      test.info().project.name +
+      ".png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "最初の箱を流す" }).click();
   await expect(page.locator(".shipping-verdicts")).toContainText(
     "AIの判定：不良",
   );
@@ -316,3 +370,62 @@ test("プロローグも320px・文字200%相当で切れや横溢れなく操�
     ),
   ).toBe(true);
 });
+
+test("漫画の読書位置とAI試行の途中位置を再開する", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(
+    page.getByText(
+      "工場の出荷を手伝うことになったあなた。今日は、いつもと少し様子が違います。",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(page.getByText(/あと1時間/)).toHaveCount(0);
+  await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
+  await page.locator(".comic-panel").nth(1).scrollIntoViewIfNeeded();
+  await expect
+    .poll(async () => (await data(page)).progress.prologueScroll)
+    .toBeGreaterThan(100);
+  const position = (await data(page)).progress.prologueScroll;
+  await page.reload();
+  await page.getByRole("button", { name: "続きから学ぶ" }).click();
+  await expect(page.locator(".comic-panel")).toHaveCount(3);
+  await expect
+    .poll(() => page.evaluate(() => scrollY))
+    .toBeCloseTo(position, 0);
+  await page.getByRole("button", { name: "仕分け台へ行く" }).click();
+  await saved(page);
+  expect((await data(page)).progress.introStage).toBe("ai-trial");
+  await page.reload();
+  await page.getByRole("button", { name: "続きから学ぶ" }).click();
+  await expect(page.locator(".shipping-trial")).toBeVisible();
+  await expect(page.locator(".comic-panel")).toHaveCount(0);
+  await page.getByRole("button", { name: "最初の箱を流す" }).click();
+  await expect(page.locator(".shipping-verdicts")).toContainText(
+    "AIの判定：不良",
+  );
+});
+
+for (const stage of ["prologue", "sorting"] as const) {
+  test("v0.1.2の保存段階を復元：" + stage, async ({ page }) => {
+    const old = {
+      ...legacy,
+      progress: {
+        ...legacy.progress,
+        introStage: stage,
+        storySampleAdded: stage === "sorting",
+      },
+    };
+    await install(page, old);
+    await page.getByRole("button", { name: "続きから学ぶ" }).click();
+    if (stage === "prologue")
+      await expect(page.locator(".comic-panel")).toHaveCount(3);
+    else {
+      await expect(page.locator(".shipping-verdicts")).toContainText(
+        "AIの判定：良品",
+      );
+      await expect(page.locator(".comic-panel")).toHaveCount(0);
+    }
+    expect((await data(page)).attempts).toEqual(legacy.attempts);
+  });
+}

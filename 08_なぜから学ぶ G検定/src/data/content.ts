@@ -65,7 +65,7 @@ export const prologueScene: Scene = {
   id: "L003-P00",
   title: "プロローグ",
   eyebrow: "出荷前の工場",
-  prompt: "出荷まで、あと1時間。",
+  prompt: "今日は、いつもどおりのはずだった",
 };
 export const lesson: Lesson = {
   id: "L003",
