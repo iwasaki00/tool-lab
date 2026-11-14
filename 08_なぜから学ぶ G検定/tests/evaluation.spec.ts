@@ -25,7 +25,7 @@ async function open(page: Page) {
 }
 const shot = async (page: Page, name: string) =>
   page.screenshot({
-    path: `docs/screenshots/v0.1.5/${name}-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.6/${name}-${test.info().project.name}.png`,
     fullPage: true,
   });
 async function runToEnd(page: Page) {
@@ -42,7 +42,7 @@ async function runToEnd(page: Page) {
 async function install(page: Page) {
   await page.goto("/");
   await expect(
-    page.getByRole("button", { name: "出荷ラインを見に行く" }),
+    page.getByRole("button", { name: "3分で全体像を見る" }),
   ).toBeVisible();
   await page.evaluate(
     (value) =>
@@ -167,9 +167,10 @@ test("390px：未読でも始め、100箱の見逃しを発見しA/Bを比較、
   ).toHaveLength(1);
   await page.getByRole("button", { name: "ホーム", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "出荷ラインを見に行く" }),
+    page.getByRole("button", { name: "続きから学ぶ" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
+  await page.getByRole("button", { name: "第0章を見る", exact: true }).click();
+  await page.getByRole("button", { name: "第1話で、AIの学び方を試す" }).click();
   await saved(page);
   expect((await readSnapshot(page)).progress.episode.stage).toBe("sorting");
   expect((await readSnapshot(page)).evaluation).toEqual(done.evaluation);
@@ -243,13 +244,11 @@ test("両話の独立した再開・やり直し、旧履歴、3問の解説と�
   expect((await readSnapshot(page)).evaluation.stage).toBe("intro");
   await page.getByRole("button", { name: "← 戻る・途中終了" }).click();
   await page.getByRole("button", { name: "記録", exact: true }).click();
-  await page
-    .getByLabel("JSONから復元")
-    .setInputFiles({
-      name: "both-lessons.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(body),
-    });
+  await page.getByLabel("JSONから復元").setInputFiles({
+    name: "both-lessons.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(body),
+  });
   await page.getByLabel("復元方法").selectOption("replace");
   page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "この内容を復元" }).click();
@@ -271,7 +270,8 @@ test("両話の独立した再開・やり直し、旧履歴、3問の解説と�
   expect(state.progress).toEqual(old.progress);
   await page.getByRole("button", { name: "← 戻る・途中終了" }).click();
   await page.getByRole("button", { name: "ホーム", exact: true }).click();
-  await page.getByRole("button", { name: "続きから学ぶ" }).click();
+  await page.getByRole("button", { name: "第0章を見る", exact: true }).click();
+  await page.getByRole("button", { name: "第1話で、AIの学び方を試す" }).click();
   await expect(page.locator(".shipping-verdicts")).toContainText(
     "AIの判定：良品",
   );

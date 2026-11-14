@@ -36,6 +36,7 @@ import { ShippingTrial, ShippingPrologue } from "./components/ShippingPrologue";
 import { shippingTrial } from "./data/shippingStory";
 import { EvaluationEpisode } from "./components/EvaluationEpisode";
 import { evaluationQuestions } from "./data/evaluation";
+import { BeginnerGuide } from "./components/BeginnerGuide";
 const nav = [
   ["⌂", "ホーム"],
   ["▤", "コース"],
@@ -50,6 +51,7 @@ export default function App() {
     [loadError, setLoadError] = useState(false),
     [tab, setTab] = useState(0),
     [inLesson, setInLesson] = useState(false),
+    [guideOpen, setGuideOpen] = useState(false),
     [activeLesson, setActiveLesson] = useState<"L003" | "L004">("L003"),
     [origin, setOrigin] = useState(0),
     [online, setOnline] = useState(navigator.onLine),
@@ -58,6 +60,33 @@ export default function App() {
     [mode, setMode] = useState("merge"),
     [importMessage, setImportMessage] = useState(""),
     [saving, setSaving] = useState(false);
+  const guideReturn = useRef({
+    scroll: 0,
+    element: null as HTMLElement | null,
+  });
+  function openGuide() {
+    guideReturn.current = {
+      scroll: window.scrollY,
+      element: document.activeElement as HTMLElement,
+    };
+    setGuideOpen(true);
+  }
+  function closeGuide() {
+    setGuideOpen(false);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: guideReturn.current.scroll, behavior: "instant" });
+      guideReturn.current.element?.focus({ preventScroll: true });
+    });
+  }
+  function guideLesson(id: "L003" | "L004") {
+    if (inLesson && activeLesson === id) {
+      closeGuide();
+      return;
+    }
+    setGuideOpen(false);
+    if (id === "L003") enter();
+    else enterEvaluation();
+  }
   const ref = useRef(snapshot),
     queue = useRef(Promise.resolve()),
     writeId = useRef(0),
@@ -103,6 +132,10 @@ export default function App() {
   const totalAttempts =
     snapshot.attempts.length + (snapshot.evaluationAttempts?.length ?? 0);
   const p = snapshot.progress;
+  const resumeEvaluation =
+    !!snapshot.evaluation &&
+    (!hasLearningRecord(snapshot) ||
+      snapshot.evaluation.updatedAt > p.updatedAt);
   const episodeCount =
     Number(!!p.storySampleAdded) +
     Number(!!p.episode?.grouped) +
@@ -119,7 +152,8 @@ export default function App() {
     }
   }, [inLesson, activeLesson, p.scene, p.introStage, p.episode?.stage]);
   useEffect(() => {
-    if (!inLesson || activeLesson !== "L003" || !isPrologue) return;
+    if (guideOpen || !inLesson || activeLesson !== "L003" || !isPrologue)
+      return;
     let timer: ReturnType<typeof setTimeout>;
     const savePosition = () => {
       clearTimeout(timer);
@@ -134,7 +168,7 @@ export default function App() {
       clearTimeout(timer);
       window.removeEventListener("scroll", savePosition);
     };
-  }, [inLesson, activeLesson, isPrologue]);
+  }, [inLesson, activeLesson, isPrologue, guideOpen]);
   function commit(next: Backup) {
     if (!ready) return;
     ref.current = next;
@@ -620,8 +654,8 @@ export default function App() {
     }
   };
   return (
-    <div className={inLesson ? "app learning" : "app"}>
-      {!inLesson && (
+    <div className={inLesson || guideOpen ? "app learning" : "app"}>
+      {!inLesson && !guideOpen && (
         <aside className="sidebar">
           <a
             className="brand"
@@ -653,19 +687,21 @@ export default function App() {
             ))}
           </nav>
           <div className="sidebar-foot">
-            <span className="tag">SECOND EPISODE</span>
+            <span className="tag">BEGINNER GUIDE</span>
             <p>
               小さな「なぜ」が、
               <br />
               理解のはじまり。
             </p>
-            <small>v0.1.5 · この端末に保存</small>
+            <small>v0.1.6 · この端末に保存</small>
           </div>
         </aside>
       )}
       <main>
         <header className="topbar">
-          {inLesson ? (
+          {guideOpen ? (
+            <button onClick={closeGuide}>← 第0章を閉じて戻る</button>
+          ) : inLesson ? (
             <button
               onClick={() => {
                 setInLesson(false);
@@ -695,535 +731,578 @@ export default function App() {
               : "オフライン教材：初回取得中（本番ビルド時）"}
           </span>
         </div>
-        {!ready ? (
-          <section className="card">
-            <h1>{loadError ? "記録を確認できません" : "学びの準備中…"}</h1>
-            {loadError && (
-              <button onClick={() => void load()}>読み込みを再試行</button>
-            )}
-          </section>
-        ) : inLesson && activeLesson === "L004" && snapshot.evaluation ? (
-          <EvaluationEpisode
-            progress={snapshot.evaluation}
-            attempts={snapshot.evaluationAttempts ?? []}
-            onMove={moveEvaluation}
-            onIndex={(questionIndex) => updateEvaluation({ questionIndex })}
-            onAnswer={answerEvaluation}
-            onFinish={finishEvaluation}
-            busy={saving}
-          />
-        ) : inLesson ? (
-          <div className={`lesson-wrap ${p.scene === 0 ? "story-intro" : ""}`}>
-            {p.scene !== 0 && p.episode && (
-              <button className="episode-return" onClick={() => move(0)}>
-                出荷の物語に戻る
+        {guideOpen && <BeginnerGuide onLesson={guideLesson} />}
+        <div hidden={guideOpen}>
+          {!ready ? (
+            <section className="card">
+              <h1>{loadError ? "記録を確認できません" : "学びの準備中…"}</h1>
+              {loadError && (
+                <button onClick={() => void load()}>読み込みを再試行</button>
+              )}
+            </section>
+          ) : inLesson && activeLesson === "L004" && snapshot.evaluation ? (
+            <EvaluationEpisode
+              progress={snapshot.evaluation}
+              attempts={snapshot.evaluationAttempts ?? []}
+              onMove={moveEvaluation}
+              onIndex={(questionIndex) => updateEvaluation({ questionIndex })}
+              onAnswer={answerEvaluation}
+              onFinish={finishEvaluation}
+              busy={saving}
+              onGuide={openGuide}
+            />
+          ) : inLesson ? (
+            <div
+              className={`lesson-wrap ${p.scene === 0 ? "story-intro" : ""}`}
+            >
+              <button className="guide-link" onClick={openGuide}>
+                第0章で用語を確認
               </button>
-            )}
-            {p.scene !== 0 && (
-              <div className="lesson-meta">
-                <span className="eyebrow">
-                  LESSON 003 / {scenes[p.scene].eyebrow}
-                </span>
-                <label>
-                  再生速度
-                  <select
-                    value={snapshot.settings.speed}
-                    onChange={(e) =>
-                      commit({
-                        ...ref.current,
-                        settings: { id: "settings", speed: +e.target.value },
-                      })
-                    }
-                  >
-                    <option value="0.5">0.5倍</option>
-                    <option value="1">1倍</option>
-                    <option value="2">2倍</option>
-                  </select>
-                </label>
-              </div>
-            )}
-            {p.scene !== 0 && (
-              <div className="scene-progress" aria-label="レッスンの場面">
-                {scenes.map((s, i) => (
-                  <button
-                    aria-label={`場面${i + 1} ${s.title}`}
-                    aria-current={p.scene === i ? "step" : undefined}
-                    className={
-                      p.scene === i
-                        ? "active"
-                        : p.visited.includes(i)
-                          ? "visited"
-                          : ""
-                    }
-                    key={s.id}
-                    onClick={() => move(i)}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
-            )}
-            <h1 ref={heading} tabIndex={-1}>
-              {isPrologue
-                ? prologueScene.prompt
-                : p.scene === 0 && p.introStage === "ai-trial"
-                  ? shippingTrial.title
-                  : p.scene === 0 && p.episode && p.episode.stage !== "sorting"
-                    ? episodeTitles[p.episode.stage]
-                    : scenes[p.scene].prompt}
-            </h1>
-            <section className="card scene-body">{sceneBody()}</section>
-            {p.scene !== 0 && (
-              <footer className="lesson-footer">
-                <button
-                  disabled={p.scene === 0}
-                  onClick={() =>
-                    move(
-                      p.scene === 8 && !p.visited.includes(7) ? 6 : p.scene - 1,
-                    )
-                  }
-                >
-                  ← 前へ
+              {p.scene !== 0 && p.episode && (
+                <button className="episode-return" onClick={() => move(0)}>
+                  出荷の物語に戻る
                 </button>
-                <span>
-                  {String(p.scene + 1).padStart(2, "0")} / 09 ·{" "}
-                  {scenes[p.scene].title}
-                </span>
-                {p.scene < 8 ? (
-                  <button
-                    className="primary"
-                    onClick={() => move(p.scene === 6 ? 8 : p.scene + 1)}
-                  >
-                    {p.scene === 6 ? "まとめへ →" : "次へ →"}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setInLesson(false);
-                      setTab(origin);
-                    }}
-                  >
-                    学習を閉じる
-                  </button>
-                )}
-              </footer>
-            )}
-          </div>
-        ) : (
-          <div className="content">
-            <div className="page-heading">
-              <span className="eyebrow">
-                {
-                  [
-                    "YOUR LEARNING JOURNEY",
-                    "COURSE LIBRARY",
-                    "PRACTICE ROOM",
-                    "KNOWLEDGE CONNECTIONS",
-                    "LEARNING RECORD",
-                  ][tab]
-                }
-              </span>
-              <h1>
-                {
-                  [
-                    "「なぜ？」から、はじめよう。",
-                    "コースを探す",
-                    "理由から考える演習",
-                    "理解を、つなげよう。",
-                    "学びの足あと",
-                  ][tab]
-                }
+              )}
+              {p.scene !== 0 && (
+                <div className="lesson-meta">
+                  <span className="eyebrow">
+                    LESSON 003 / {scenes[p.scene].eyebrow}
+                  </span>
+                  <label>
+                    再生速度
+                    <select
+                      value={snapshot.settings.speed}
+                      onChange={(e) =>
+                        commit({
+                          ...ref.current,
+                          settings: { id: "settings", speed: +e.target.value },
+                        })
+                      }
+                    >
+                      <option value="0.5">0.5倍</option>
+                      <option value="1">1倍</option>
+                      <option value="2">2倍</option>
+                    </select>
+                  </label>
+                </div>
+              )}
+              {p.scene !== 0 && (
+                <div className="scene-progress" aria-label="レッスンの場面">
+                  {scenes.map((s, i) => (
+                    <button
+                      aria-label={`場面${i + 1} ${s.title}`}
+                      aria-current={p.scene === i ? "step" : undefined}
+                      className={
+                        p.scene === i
+                          ? "active"
+                          : p.visited.includes(i)
+                            ? "visited"
+                            : ""
+                      }
+                      key={s.id}
+                      onClick={() => move(i)}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <h1 ref={heading} tabIndex={-1}>
+                {isPrologue
+                  ? prologueScene.prompt
+                  : p.scene === 0 && p.introStage === "ai-trial"
+                    ? shippingTrial.title
+                    : p.scene === 0 &&
+                        p.episode &&
+                        p.episode.stage !== "sorting"
+                      ? episodeTitles[p.episode.stage]
+                      : scenes[p.scene].prompt}
               </h1>
-              <p>
-                {
-                  [
-                    "操作して、気づいて、自分の言葉に。今日も理解をひとつずつ。",
-                    "まずは機械学習の3つの学び方を体験しましょう。",
-                    "答えを選んだら、判断の決め手を確認しましょう。",
-                    "用語を覚える、その先へ。概念どうしの関係をたどる。",
-                    "このブラウザに保存した記録と、次の復習候補を確認できます。",
-                  ][tab]
-                }
-              </p>
+              <section className="card scene-body">{sceneBody()}</section>
+              {p.scene !== 0 && (
+                <footer className="lesson-footer">
+                  <button
+                    disabled={p.scene === 0}
+                    onClick={() =>
+                      move(
+                        p.scene === 8 && !p.visited.includes(7)
+                          ? 6
+                          : p.scene - 1,
+                      )
+                    }
+                  >
+                    ← 前へ
+                  </button>
+                  <span>
+                    {String(p.scene + 1).padStart(2, "0")} / 09 ·{" "}
+                    {scenes[p.scene].title}
+                  </span>
+                  {p.scene < 8 ? (
+                    <button
+                      className="primary"
+                      onClick={() => move(p.scene === 6 ? 8 : p.scene + 1)}
+                    >
+                      {p.scene === 6 ? "まとめへ →" : "次へ →"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setInLesson(false);
+                        setTab(origin);
+                      }}
+                    >
+                      学習を閉じる
+                    </button>
+                  )}
+                </footer>
+              )}
             </div>
-            {tab === 0 && (
-              <>
-                <section className="hero">
-                  <div>
-                    <span className="hero-label">
-                      FIRST EPISODE <span>LESSON 003</span>
-                    </span>
-                    <p className="lesson-number">
-                      LESSON 003 · 機械学習の3つの方法
-                    </p>
-                    <h2>
-                      出荷ラインで、
-                      <br />
-                      3つの学び方を。
-                    </h2>
-                    <p>
-                      工場の出荷を手伝いながら、AIの3つの学び方を体験します。専門知識は不要。試験問題は最後に選べます。
-                    </p>
-                    <div className="hero-bottom">
-                      <button className="cream" onClick={() => enter()}>
-                        {hasLearningRecord(snapshot)
-                          ? "続きから学ぶ"
-                          : "出荷ラインを見に行く"}{" "}
-                        <span>↗</span>
+          ) : (
+            <div className="content">
+              <div className="page-heading">
+                <span className="eyebrow">
+                  {
+                    [
+                      "YOUR LEARNING JOURNEY",
+                      "COURSE LIBRARY",
+                      "PRACTICE ROOM",
+                      "KNOWLEDGE CONNECTIONS",
+                      "LEARNING RECORD",
+                    ][tab]
+                  }
+                </span>
+                <h1>
+                  {
+                    [
+                      "「なぜ？」から、はじめよう。",
+                      "コースを探す",
+                      "理由から考える演習",
+                      "理解を、つなげよう。",
+                      "学びの足あと",
+                    ][tab]
+                  }
+                </h1>
+                <p>
+                  {
+                    [
+                      "操作して、気づいて、自分の言葉に。今日も理解をひとつずつ。",
+                      "まずは機械学習の3つの学び方を体験しましょう。",
+                      "答えを選んだら、判断の決め手を確認しましょう。",
+                      "用語を覚える、その先へ。概念どうしの関係をたどる。",
+                      "このブラウザに保存した記録と、次の復習候補を確認できます。",
+                    ][tab]
+                  }
+                </p>
+              </div>
+              {tab === 0 && (
+                <>
+                  <section className="hero">
+                    <div>
+                      <span className="hero-label">
+                        BEGINNER GUIDE <span>第0章から</span>
+                      </span>
+                      <p className="lesson-number">
+                        {resumeEvaluation
+                          ? "再開する教材：第2話 · モデル評価"
+                          : hasLearningRecord(snapshot)
+                            ? "再開する教材：第1話 · AIの3つの学び方"
+                            : "AIの入り口 · 2つの工場体験"}
+                      </p>
+                      <h2>
+                        まずは、
+                        <br />
+                        AIの全体像から。
+                      </h2>
+                      <p>
+                        G検定って何を学ぶ試験？
+                        AI・機械学習・ディープラーニングの違いから見てみましょう
+                      </p>
+                      <div className="hero-bottom">
+                        <button
+                          className="cream"
+                          onClick={() => {
+                            if (resumeEvaluation) enterEvaluation();
+                            else if (hasLearningRecord(snapshot)) enter();
+                            else openGuide();
+                          }}
+                        >
+                          {hasLearningRecord(snapshot) || snapshot.evaluation
+                            ? "続きから学ぶ"
+                            : "3分で全体像を見る"}{" "}
+                          <span>↗</span>
+                        </button>
+                        <span>全体像 → 気になるところ → 工場で体験</span>
+                        <button className="hero-revisit" onClick={openGuide}>
+                          第0章を見る
+                        </button>
+                        {(hasLearningRecord(snapshot) ||
+                          snapshot.evaluation) && (
+                          <button
+                            className="hero-revisit"
+                            onClick={() =>
+                              resumeEvaluation
+                                ? enterEvaluation(true)
+                                : startOver()
+                            }
+                          >
+                            最初から学ぶ
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="hero-art guide-home-art" aria-hidden="true">
+                      <img
+                        src={`${import.meta.env.BASE_URL}illustrations/ml-inspected-samples.png`}
+                        alt=""
+                        width="1536"
+                        height="1024"
+                      />
+                    </div>
+                  </section>
+                  <div className="stats-row">
+                    <article>
+                      <span>
+                        {p.episode ? "体験した学び方" : "学習の進み具合"}
+                      </span>
+                      <strong>
+                        {p.episode ? episodeCount : p.visited.length}
+                        <small>{p.episode ? " / 3 方式" : " / 9 場面"}</small>
+                      </strong>
+                      <progress
+                        value={p.episode ? episodeCount : p.visited.length}
+                        max={p.episode ? 3 : 9}
+                      />
+                    </article>
+                    <article>
+                      <span>問題に向き合った回数</span>
+                      <strong>
+                        {totalAttempts}
+                        <small> 回</small>
+                      </strong>
+                      <p>解き直しも履歴に残ります</p>
+                    </article>
+                    <article>
+                      <span>今日までの復習候補</span>
+                      <strong>
+                        {due.length}
+                        <small> 問</small>
+                      </strong>
+                      <button className="text-button" onClick={() => setTab(4)}>
+                        記録を見る ↗
                       </button>
-                      <span>回答なしで始められる · 試験問題は任意</span>
-                      {hasLearningRecord(snapshot) && (
-                        <button className="hero-revisit" onClick={startOver}>
+                    </article>
+                  </div>
+                  <div className="section-heading">
+                    <h2>今日の学び方</h2>
+                    <span className="muted">小さく試して、深く理解する</span>
+                  </div>
+                  <div className="three-col">
+                    {[
+                      [
+                        "01",
+                        "体験する",
+                        "出荷現場の物語から、AIの学び方にふれる。",
+                        0,
+                      ],
+                      [
+                        "02",
+                        "つなげる",
+                        "知識マップで、概念の関係をたどる。",
+                        6,
+                      ],
+                      [
+                        "03",
+                        "確かめる",
+                        "事例を読み、使い分けの理由を考える。",
+                        7,
+                      ],
+                    ].map(([n, title, desc, scene]) => (
+                      <button
+                        className="activity"
+                        key={n}
+                        onClick={() => enter(+scene)}
+                      >
+                        <span className="activity-number">{n}</span>
+                        <h3>
+                          {title}
+                          <span>↗</span>
+                        </h3>
+                        <p>{desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="note-strip">
+                    <span>✦</span>
+                    <p>
+                      <strong>暗記の前に、ひとつの疑問を。</strong>
+                      <br />
+                      「この方法は、何を手がかりに学ぶんだろう？」
+                    </p>
+                    <span className="eyebrow">THINK FIRST</span>
+                  </div>
+                </>
+              )}
+              {tab === 1 && (
+                <>
+                  <section className="card">
+                    <span className="tag">推奨の入口 · 第0章</span>
+                    <h2>G検定とAIの全体像</h2>
+                    <p>
+                      概要を知り、気になる項目を深掘りしてから、工場で体験します。第0章を読まなくても各話を始められます。
+                    </p>
+                    <button onClick={openGuide}>第0章を見る</button>
+                  </section>
+                  <section className="card">
+                    <span className="tag">公開中 · 2レッスン</span>
+                    <h2>{course.title}</h2>
+                    <h3>L003 {lesson.title}</h3>
+                    <p>教師あり学習 / 教師なし学習 / 強化学習</p>
+                    <p>
+                      {p.completed
+                        ? "最後まで学習した記録あり"
+                        : p.episode && p.scene === 0
+                          ? `再開位置：${p.episode.stage === "sorting" ? (isPrologue ? "プロローグ" : p.introStage === "ai-trial" ? "AIを試す" : "箱の仕分け") : episodeTitles[p.episode.stage]}`
+                          : `再開位置：場面 ${p.scene + 1} ${scenes[p.scene].title}`}
+                    </p>
+                    <button className="primary" onClick={() => enter()}>
+                      レッスンを開く →
+                    </button>
+                  </section>
+                  <section
+                    className="card evaluation-course"
+                    data-lesson="L004"
+                  >
+                    <span className="tag">第2話 · L004 モデル評価</span>
+                    <h2>正解率99％なのに、不良品を見逃した</h2>
+                    <p>
+                      同じ100箱を2つの設定で確かめ、何を間違えたかを見比べます。第1話を読んでいなくても始められます。
+                    </p>
+                    <p>
+                      {snapshot.evaluation?.completed
+                        ? "最後まで学習した記録あり"
+                        : snapshot.evaluation
+                          ? "途中の場面から再開できます。"
+                          : "演習は最後に選べます。"}
+                    </p>
+                    <div className="controls">
+                      <button
+                        className="primary"
+                        onClick={() => enterEvaluation()}
+                      >
+                        {snapshot.evaluation ? "続きから学ぶ" : "第2話を始める"}
+                      </button>
+                      {snapshot.evaluation && (
+                        <button onClick={() => enterEvaluation(true)}>
                           最初から学ぶ
                         </button>
                       )}
                     </div>
-                  </div>
-                  <div className="hero-art" aria-hidden="true">
-                    <div className="orbit orbit-one" />
-                    <div className="orbit orbit-two" />
-                    <div className="art-node node-one">
-                      正解<small>LABEL</small>
-                    </div>
-                    <div className="art-node node-two">
-                      発見<small>PATTERN</small>
-                    </div>
-                    <div className="art-node node-three">
-                      行動<small>ACTION</small>
-                    </div>
-                    <div className="art-center">
-                      なぜ<span>?</span>
-                    </div>
-                    <span className="spark spark-one">✳</span>
-                    <span className="spark spark-two">+</span>
-                  </div>
-                </section>
-                <div className="stats-row">
-                  <article>
-                    <span>
-                      {p.episode ? "体験した学び方" : "学習の進み具合"}
-                    </span>
-                    <strong>
-                      {p.episode ? episodeCount : p.visited.length}
-                      <small>{p.episode ? " / 3 方式" : " / 9 場面"}</small>
-                    </strong>
-                    <progress
-                      value={p.episode ? episodeCount : p.visited.length}
-                      max={p.episode ? 3 : 9}
-                    />
-                  </article>
-                  <article>
-                    <span>問題に向き合った回数</span>
-                    <strong>
-                      {totalAttempts}
-                      <small> 回</small>
-                    </strong>
-                    <p>解き直しも履歴に残ります</p>
-                  </article>
-                  <article>
-                    <span>今日までの復習候補</span>
-                    <strong>
-                      {due.length}
-                      <small> 問</small>
-                    </strong>
-                    <button className="text-button" onClick={() => setTab(4)}>
-                      記録を見る ↗
-                    </button>
-                  </article>
-                </div>
-                <div className="section-heading">
-                  <h2>今日の学び方</h2>
-                  <span className="muted">小さく試して、深く理解する</span>
-                </div>
-                <div className="three-col">
-                  {[
-                    [
-                      "01",
-                      "体験する",
-                      "出荷現場の物語から、AIの学び方にふれる。",
-                      0,
-                    ],
-                    ["02", "つなげる", "知識マップで、概念の関係をたどる。", 6],
-                    [
-                      "03",
-                      "確かめる",
-                      "事例を読み、使い分けの理由を考える。",
-                      7,
-                    ],
-                  ].map(([n, title, desc, scene]) => (
-                    <button
-                      className="activity"
-                      key={n}
-                      onClick={() => enter(+scene)}
-                    >
-                      <span className="activity-number">{n}</span>
-                      <h3>
-                        {title}
-                        <span>↗</span>
-                      </h3>
-                      <p>{desc}</p>
-                    </button>
-                  ))}
-                </div>
-                <div className="note-strip">
-                  <span>✦</span>
-                  <p>
-                    <strong>暗記の前に、ひとつの疑問を。</strong>
-                    <br />
-                    「この方法は、何を手がかりに学ぶんだろう？」
-                  </p>
-                  <span className="eyebrow">THINK FIRST</span>
-                </div>
-              </>
-            )}
-            {tab === 1 && (
-              <>
+                  </section>
+                  <section className="card">
+                    <h3>これからの教材</h3>
+                    <p>
+                      ニューラルネットワーク <span className="tag">準備中</span>
+                    </p>
+                  </section>
+                </>
+              )}
+              {tab === 2 && (
                 <section className="card">
-                  <span className="tag">公開中 · 2レッスン</span>
-                  <h2>{course.title}</h2>
-                  <h3>L003 {lesson.title}</h3>
-                  <p>教師あり学習 / 教師なし学習 / 強化学習</p>
+                  <span className="tag">L003 / オリジナル12問</span>
+                  <h2>学習方式を使い分けよう</h2>
                   <p>
-                    {p.completed
-                      ? "最後まで学習した記録あり"
-                      : p.episode && p.scene === 0
-                        ? `再開位置：${p.episode.stage === "sorting" ? (isPrologue ? "プロローグ" : p.introStage === "ai-trial" ? "AIを試す" : "箱の仕分け") : episodeTitles[p.episode.stage]}`
-                        : `再開位置：場面 ${p.scene + 1} ${scenes[p.scene].title}`}
-                  </p>
-                  <button className="primary" onClick={() => enter()}>
-                    レッスンを開く →
-                  </button>
-                </section>
-                <section className="card evaluation-course" data-lesson="L004">
-                  <span className="tag">第2話 · L004 モデル評価</span>
-                  <h2>正解率99％なのに、不良品を見逃した</h2>
-                  <p>
-                    同じ100箱を2つの設定で確かめ、何を間違えたかを見比べます。第1話を読んでいなくても始められます。
-                  </p>
-                  <p>
-                    {snapshot.evaluation?.completed
-                      ? "最後まで学習した記録あり"
-                      : snapshot.evaluation
-                        ? "途中の場面から再開できます。"
-                        : "演習は最後に選べます。"}
+                    理由理解・比較判断・事例応用の12問。各選択肢に解説を用意しました。新しい演習を始めても過去の回答履歴は残ります。
                   </p>
                   <div className="controls">
-                    <button
-                      className="primary"
-                      onClick={() => enterEvaluation()}
-                    >
-                      {snapshot.evaluation ? "続きから学ぶ" : "第2話を始める"}
+                    <button className="primary" onClick={startQuiz}>
+                      新しい演習を始める
                     </button>
-                    {snapshot.evaluation && (
-                      <button onClick={() => enterEvaluation(true)}>
-                        最初から学ぶ
-                      </button>
-                    )}
+                    <button onClick={() => enter(7)}>現在の演習を続ける</button>
                   </div>
-                </section>
-                <section className="card">
-                  <h3>これからの教材</h3>
                   <p>
-                    ニューラルネットワーク <span className="tag">準備中</span>
+                    今回の回答：{answered} / 12問 · 正解 {correct}問
                   </p>
                 </section>
-              </>
-            )}
-            {tab === 2 && (
-              <section className="card">
-                <span className="tag">L003 / オリジナル12問</span>
-                <h2>学習方式を使い分けよう</h2>
-                <p>
-                  理由理解・比較判断・事例応用の12問。各選択肢に解説を用意しました。新しい演習を始めても過去の回答履歴は残ります。
-                </p>
-                <div className="controls">
-                  <button className="primary" onClick={startQuiz}>
-                    新しい演習を始める
-                  </button>
-                  <button onClick={() => enter(7)}>現在の演習を続ける</button>
-                </div>
-                <p>
-                  今回の回答：{answered} / 12問 · 正解 {correct}問
-                </p>
-              </section>
-            )}
-            {tab === 3 && (
-              <section className="card">
-                <KnowledgeMap />
-              </section>
-            )}
-            {tab === 4 && (
-              <>
-                <div className="stats-row">
-                  <article>
-                    <span>全回答履歴</span>
-                    <strong>
-                      {totalAttempts}
-                      <small>件</small>
-                    </strong>
-                  </article>
-                  <article>
-                    <span>復習候補</span>
-                    <strong>
-                      {snapshot.reviews.length}
-                      <small>問</small>
-                    </strong>
-                  </article>
-                  <article>
-                    <span>L003の記録</span>
-                    <strong className="status-label">
-                      {p.completed ? "最後まで学習" : "学習中"}
-                    </strong>
-                  </article>
-                </div>
-                <section className="card completion-history">
-                  <h2>これまでの完了記録</h2>
-                  {pastCompletions.length ? (
+              )}
+              {tab === 3 && (
+                <section className="card">
+                  <KnowledgeMap />
+                </section>
+              )}
+              {tab === 4 && (
+                <>
+                  <div className="stats-row">
+                    <article>
+                      <span>全回答履歴</span>
+                      <strong>
+                        {totalAttempts}
+                        <small>件</small>
+                      </strong>
+                    </article>
+                    <article>
+                      <span>復習候補</span>
+                      <strong>
+                        {snapshot.reviews.length}
+                        <small>問</small>
+                      </strong>
+                    </article>
+                    <article>
+                      <span>L003の記録</span>
+                      <strong className="status-label">
+                        {p.completed ? "最後まで学習" : "学習中"}
+                      </strong>
+                    </article>
+                  </div>
+                  <section className="card completion-history">
+                    <h2>これまでの完了記録</h2>
+                    {pastCompletions.length ? (
+                      <ul>
+                        {pastCompletions.map((c) => (
+                          <li key={c.id}>
+                            {c.lessonId} 完了 ·{" "}
+                            {new Date(c.recordedAt).toLocaleString("ja-JP")}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>完了した記録はまだありません。</p>
+                    )}
+                  </section>
+                  <section className="card">
+                    <h2>復習の候補</h2>
+                    <p className="muted">
+                      正解は3日後、不正解は翌日を候補日にします。習得を判定する仕組みではありません。
+                    </p>
+                    {snapshot.reviews.length === 0 ? (
+                      <p>問題に回答すると、ここに候補が表示されます。</p>
+                    ) : (
+                      <ul className="record-list">
+                        {snapshot.reviews.map((r) => (
+                          <li key={r.id}>
+                            <div>
+                              <strong>{r.questionId}</strong>
+                              <small>
+                                {r.reason === "manual"
+                                  ? "自分で登録"
+                                  : r.reason === "correct"
+                                    ? "正解からの振り返り"
+                                    : "もう一度確かめたい問題"}{" "}
+                                ·{" "}
+                                {new Date(r.dueAt).toLocaleDateString("ja-JP")}
+                              </small>
+                            </div>
+                            <button
+                              onClick={() => {
+                                updateProgress({
+                                  questionIndex: questions.findIndex(
+                                    (q) => q.id === r.questionId,
+                                  ),
+                                });
+                                enter(7);
+                              }}
+                            >
+                              問題を見る
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                  <section className="card evaluation-history">
+                    <h2>L004の記録</h2>
+                    <p>
+                      {snapshot.evaluation?.completed
+                        ? "最後まで学習"
+                        : snapshot.evaluation
+                          ? "学習中"
+                          : "未開始"}{" "}
+                      · 回答履歴 {(snapshot.evaluationAttempts ?? []).length}件
+                    </p>
                     <ul>
-                      {pastCompletions.map((c) => (
-                        <li key={c.id}>
-                          {c.lessonId} 完了 ·{" "}
-                          {new Date(c.recordedAt).toLocaleString("ja-JP")}
-                        </li>
-                      ))}
+                      {[...(snapshot.evaluationAttempts ?? [])]
+                        .reverse()
+                        .map((a) => (
+                          <li key={a.id}>
+                            {a.questionId} v{a.version} · {"ABCD"[a.selected]} ·{" "}
+                            {a.correct ? "正解" : "不正解"} ·{" "}
+                            {new Date(a.answeredAt).toLocaleString("ja-JP")}
+                          </li>
+                        ))}
                     </ul>
-                  ) : (
-                    <p>完了した記録はまだありません。</p>
-                  )}
-                </section>
-                <section className="card">
-                  <h2>復習の候補</h2>
-                  <p className="muted">
-                    正解は3日後、不正解は翌日を候補日にします。習得を判定する仕組みではありません。
-                  </p>
-                  {snapshot.reviews.length === 0 ? (
-                    <p>問題に回答すると、ここに候補が表示されます。</p>
-                  ) : (
-                    <ul className="record-list">
-                      {snapshot.reviews.map((r) => (
-                        <li key={r.id}>
-                          <div>
-                            <strong>{r.questionId}</strong>
-                            <small>
-                              {r.reason === "manual"
-                                ? "自分で登録"
-                                : r.reason === "correct"
-                                  ? "正解からの振り返り"
-                                  : "もう一度確かめたい問題"}{" "}
-                              · {new Date(r.dueAt).toLocaleDateString("ja-JP")}
-                            </small>
-                          </div>
-                          <button
-                            onClick={() => {
-                              updateProgress({
-                                questionIndex: questions.findIndex(
-                                  (q) => q.id === r.questionId,
-                                ),
-                              });
-                              enter(7);
-                            }}
+                  </section>
+                  <section className="card">
+                    <h2>バックアップ</h2>
+                    <p>
+                      記録はこのブラウザ内に保存されます。ブラウザのデータ消去などで失われることがあるため、定期的にJSONを保存してください。
+                    </p>
+                    <button onClick={exportBackup}>JSONをエクスポート</button>
+                    <label>
+                      JSONから復元
+                      <input
+                        type="file"
+                        accept=".json,application/json"
+                        onChange={(e) => void readBackup(e.target.files?.[0])}
+                      />
+                    </label>
+                    <p role="status">{importMessage}</p>
+                    {pending && (
+                      <div className="notice">
+                        <label>
+                          復元方法
+                          <select
+                            value={mode}
+                            onChange={(e) => setMode(e.target.value)}
                           >
-                            問題を見る
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-                <section className="card evaluation-history">
-                  <h2>L004の記録</h2>
-                  <p>
-                    {snapshot.evaluation?.completed
-                      ? "最後まで学習"
-                      : snapshot.evaluation
-                        ? "学習中"
-                        : "未開始"}{" "}
-                    · 回答履歴 {(snapshot.evaluationAttempts ?? []).length}件
-                  </p>
-                  <ul>
-                    {[...(snapshot.evaluationAttempts ?? [])]
-                      .reverse()
-                      .map((a) => (
+                            <option value="merge">
+                              統合（履歴IDで重複を除く）
+                            </option>
+                            <option value="replace">
+                              置換（確認後に上書き）
+                            </option>
+                          </select>
+                        </label>
+                        <button disabled={saving} onClick={applyBackup}>
+                          この内容を復元
+                        </button>
+                        <button onClick={() => setPending(null)}>
+                          キャンセル
+                        </button>
+                      </div>
+                    )}
+                  </section>
+                  <details className="card">
+                    <summary>
+                      L003の回答履歴（{snapshot.attempts.length}件）
+                    </summary>
+                    <ul className="history">
+                      {[...snapshot.attempts].reverse().map((a) => (
                         <li key={a.id}>
                           {a.questionId} v{a.version} · {"ABCD"[a.selected]} ·{" "}
                           {a.correct ? "正解" : "不正解"} ·{" "}
                           {new Date(a.answeredAt).toLocaleString("ja-JP")}
                         </li>
                       ))}
-                  </ul>
-                </section>
-                <section className="card">
-                  <h2>バックアップ</h2>
+                    </ul>
+                  </details>
+                </>
+              )}
+              <footer className="page-footer">
+                <span>WHY LEARN G · v0.1.6</span>
+                <details>
+                  <summary>教材の参照情報</summary>
                   <p>
-                    記録はこのブラウザ内に保存されます。ブラウザのデータ消去などで失われることがあるため、定期的にJSONを保存してください。
+                    JDLA公式シラバスの機械学習の概要を参照。
+                    {syllabus[0].checkedAt}
+                    確認。本アプリは独自教材で、JDLA公式教材ではありません。
                   </p>
-                  <button onClick={exportBackup}>JSONをエクスポート</button>
-                  <label>
-                    JSONから復元
-                    <input
-                      type="file"
-                      accept=".json,application/json"
-                      onChange={(e) => void readBackup(e.target.files?.[0])}
-                    />
-                  </label>
-                  <p role="status">{importMessage}</p>
-                  {pending && (
-                    <div className="notice">
-                      <label>
-                        復元方法
-                        <select
-                          value={mode}
-                          onChange={(e) => setMode(e.target.value)}
-                        >
-                          <option value="merge">
-                            統合（履歴IDで重複を除く）
-                          </option>
-                          <option value="replace">
-                            置換（確認後に上書き）
-                          </option>
-                        </select>
-                      </label>
-                      <button disabled={saving} onClick={applyBackup}>
-                        この内容を復元
-                      </button>
-                      <button onClick={() => setPending(null)}>
-                        キャンセル
-                      </button>
-                    </div>
-                  )}
-                </section>
-                <details className="card">
-                  <summary>
-                    L003の回答履歴（{snapshot.attempts.length}件）
-                  </summary>
-                  <ul className="history">
-                    {[...snapshot.attempts].reverse().map((a) => (
-                      <li key={a.id}>
-                        {a.questionId} v{a.version} · {"ABCD"[a.selected]} ·{" "}
-                        {a.correct ? "正解" : "不正解"} ·{" "}
-                        {new Date(a.answeredAt).toLocaleString("ja-JP")}
-                      </li>
-                    ))}
-                  </ul>
+                  <a href={syllabus[0].source} target="_blank" rel="noreferrer">
+                    JDLA公式シラバス ↗（オンライン）
+                  </a>
                 </details>
-              </>
-            )}
-            <footer className="page-footer">
-              <span>WHY LEARN G · v0.1.5</span>
-              <details>
-                <summary>教材の参照情報</summary>
-                <p>
-                  JDLA公式シラバスの機械学習の概要を参照。
-                  {syllabus[0].checkedAt}
-                  確認。本アプリは独自教材で、JDLA公式教材ではありません。
-                </p>
-                <a href={syllabus[0].source} target="_blank" rel="noreferrer">
-                  JDLA公式シラバス ↗（オンライン）
-                </a>
-              </details>
-            </footer>
-          </div>
-        )}
+              </footer>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

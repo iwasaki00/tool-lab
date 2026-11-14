@@ -105,6 +105,7 @@ export function EvaluationEpisode({
   onAnswer,
   onFinish,
   busy,
+  onGuide,
 }: {
   progress: EvaluationProgress;
   attempts: QuestionAttempt[];
@@ -113,6 +114,7 @@ export function EvaluationEpisode({
   onAnswer: (choice: number) => void;
   onFinish: () => void;
   busy: boolean;
+  onGuide: () => void;
 }) {
   const heading = useRef<HTMLHeadingElement>(null),
     a = summarizeInspection(sortingA),
@@ -134,6 +136,9 @@ export function EvaluationEpisode({
       className="lesson-wrap story-intro evaluation-lesson"
       data-lesson="L004"
     >
+      <button className="guide-link" onClick={onGuide}>
+        第0章で用語を確認
+      </button>
       <p className="eyebrow">第2話 · L004 モデル評価</p>
       <h1 ref={heading} tabIndex={-1}>
         {title}

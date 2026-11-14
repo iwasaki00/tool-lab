@@ -4,7 +4,7 @@ import { firstBox, finishEpisode, saved, readSnapshot } from "./helpers";
 import { groupTransport, compareTransport } from "../src/engine/episode";
 const shot = async (page: Page, name: string) =>
   page.screenshot({
-    path: `docs/screenshots/v0.1.5/${name}-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.6/${name}-${test.info().project.name}.png`,
     fullPage: true,
   });
 const heading = async (page: Page, text: string) =>
@@ -23,7 +23,7 @@ test("390px：専門知識・クイズ・詳細設定なしで3方式を体験�
   await page.goto("/");
   await expect(
     page.getByText(
-      "工場の出荷を手伝いながら、AIの3つの学び方を体験します。専門知識は不要。試験問題は最後に選べます。",
+      "G検定って何を学ぶ試験？ AI・機械学習・ディープラーニングの違いから見てみましょう",
       { exact: true },
     ),
   ).toBeVisible();
@@ -259,7 +259,10 @@ for (const large of [false, true])
         }
       }
     };
-    await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
+    await page.getByRole("button", { name: "3分で全体像を見る" }).click();
+    await page
+      .getByRole("button", { name: "第1話で、AIの学び方を試す" })
+      .click();
     await check();
     for (const action of [
       "仕分け台へ行く",

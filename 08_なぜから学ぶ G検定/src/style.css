@@ -2037,3 +2037,162 @@ select {
     flex-basis: auto;
   }
 }
+/* Chapter 0: readable, optional explanation with local illustrations. */
+[hidden] {
+  display: none !important;
+}
+.guide-link {
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  background: transparent;
+}
+.beginner-guide {
+  max-width: 800px;
+}
+.guide-lead {
+  max-width: 48em;
+  font-size: 1.1rem;
+  margin-bottom: 28px;
+}
+.guide-section {
+  margin-bottom: 24px;
+}
+.guide-section h2 {
+  font-size: 1.45rem;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+.guide-section p {
+  line-height: 1.95;
+}
+.guide-illustration {
+  margin: 22px 0;
+}
+.guide-illustration img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  background: #faf0dc;
+}
+.guide-illustration figcaption {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin-top: 10px;
+}
+.image-labels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.image-labels span {
+  border-left: 3px solid #64816b;
+  padding-left: 10px;
+}
+.ai-containment {
+  padding: 18px;
+  background: #eef3e8;
+  border: 2px solid #66866d;
+  border-radius: 14px;
+  margin: 24px 0 14px;
+}
+.ai-containment p {
+  margin: 5px 0 12px;
+  font-size: 1rem;
+}
+.ml-containment {
+  padding: 18px;
+  background: #dbe9e2;
+  border: 2px solid #4f7a70;
+  border-radius: 10px;
+}
+.dl-containment {
+  padding: 16px;
+  background: #f5e8c8;
+  border: 2px solid #92784c;
+  border-radius: 8px;
+}
+.dl-containment p {
+  margin-bottom: 0;
+}
+.guide-note {
+  padding: 12px 14px;
+  border-left: 3px solid #a58c59;
+  background: #faf6e9;
+}
+.guide-detail {
+  border-top: 1px solid #d5dfd4;
+  margin-top: 24px;
+}
+.guide-detail summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 16px 0;
+  color: #285d49;
+  font-weight: 700;
+  line-height: 1.7;
+}
+.guide-detail summary span {
+  display: block;
+  font-size: 0.85rem;
+  color: #586b60;
+  font-weight: 400;
+}
+.guide-detail-body {
+  padding-bottom: 12px;
+}
+.guide-detail-body a {
+  overflow-wrap: anywhere;
+}
+.guide-topics {
+  padding-left: 22px;
+}
+.guide-topics li {
+  margin-bottom: 12px;
+}
+.feature-schematic {
+  margin: 20px 0;
+  border: 1px solid #bccfc4;
+  padding: 16px;
+  border-radius: 10px;
+}
+.feature-schematic figcaption {
+  font-weight: 700;
+}
+.feature-schematic ol {
+  padding-left: 24px;
+}
+.feature-schematic li {
+  background: #eef3ec;
+  padding: 8px;
+  margin-top: 8px;
+}
+.guide-destination button {
+  display: block;
+  width: 100%;
+  white-space: normal;
+}
+.shipping-trial .guide-illustration {
+  margin-top: 0;
+}
+@media (max-width: 420px) {
+  .beginner-guide .card {
+    padding: 20px 16px;
+  }
+  .ai-containment,
+  .ml-containment,
+  .dl-containment {
+    padding: 12px;
+  }
+  .image-labels {
+    gap: 8px;
+  }
+  .image-labels span {
+    padding-left: 7px;
+  }
+}
+.guide-home-art img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}

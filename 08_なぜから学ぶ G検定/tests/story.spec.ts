@@ -12,7 +12,8 @@ const saved = async (page: Page) =>
   expect(page.getByText("端末に保存済み", { exact: true })).toBeVisible();
 const open = async (page: Page) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
+  await page.getByRole("button", { name: "3分で全体像を見る" }).click();
+  await page.getByRole("button", { name: "第1話で、AIの学び方を試す" }).click();
   await saved(page);
   await page.getByRole("button", { name: "仕分け台へ行く" }).click();
   await page.getByRole("button", { name: "最初の箱を流す" }).click();
@@ -57,7 +58,7 @@ test("390×844：回答や選択なしで最初の発見、挿絵とボタンが
   expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(844);
   expect(await page.evaluate(() => scrollY)).toBe(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.5/intro-before-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.6/intro-before-${test.info().project.name}.png`,
     fullPage: true,
   });
   const positionBefore = await page
@@ -85,7 +86,7 @@ test("390×844：回答や選択なしで最初の発見、挿絵とボタンが
   expect(humanLabel!.y).toBeGreaterThanOrEqual(aiLabel!.y + aiLabel!.height);
   expect((await snapshot(page)).attempts).toHaveLength(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.5/intro-after-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.6/intro-after-${test.info().project.name}.png`,
     fullPage: true,
   });
   await page.getByText("仕組みを詳しく見る", { exact: true }).click();
@@ -126,7 +127,7 @@ test("v0.1.0の途中データをその場から再開し、導入再訪と旧JS
 }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("button", { name: "出荷ラインを見に行く" }),
+    page.getByRole("button", { name: "3分で全体像を見る" }),
   ).toBeVisible();
   await page.evaluate(async (legacy) => {
     await new Promise<void>((resolve, reject) => {
@@ -263,7 +264,7 @@ test("320pxと文字200%相当で横溢れ・挿絵やボタンの重なりが�
     .click();
   await check();
   await page.screenshot({
-    path: `docs/screenshots/v0.1.5/intro-large-text-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.6/intro-large-text-${test.info().project.name}.png`,
     fullPage: true,
   });
 });

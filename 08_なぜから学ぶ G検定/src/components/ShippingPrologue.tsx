@@ -1,3 +1,4 @@
+import { GuideIllustration } from "./BeginnerGuide";
 import { ShippingIllustration } from "./ShippingIllustration";
 import { shippingPrologue, shippingTrial } from "../data/shippingStory";
 export function ShippingPrologue({ onContinue }: { onContinue: () => void }) {
@@ -29,7 +30,7 @@ export function ShippingPrologue({ onContinue }: { onContinue: () => void }) {
 export function ShippingTrial({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="shipping-story shipping-trial">
-      <ShippingIllustration mode="ai-trial" />
+      <GuideIllustration name="ml-inspected-samples" />
       <blockquote className="inspector-line">
         <span>検査員</span>
         <p>「{shippingTrial.line}」</p>

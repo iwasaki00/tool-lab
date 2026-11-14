@@ -25,7 +25,7 @@ export async function readSnapshot(page: Page) {
 export async function seedLegacy(page: Page) {
   await page.goto("/");
   await expect(
-    page.getByRole("button", { name: "出荷ラインを見に行く" }),
+    page.getByRole("button", { name: "3分で全体像を見る" }),
   ).toBeVisible();
   const value = emptyBackup();
   value.progress.started = true;
@@ -60,7 +60,8 @@ export async function seedLegacy(page: Page) {
   await page.reload();
 }
 export async function firstBox(page: Page) {
-  await page.getByRole("button", { name: "出荷ラインを見に行く" }).click();
+  await page.getByRole("button", { name: "3分で全体像を見る" }).click();
+  await page.getByRole("button", { name: "第1話で、AIの学び方を試す" }).click();
   await page.getByRole("button", { name: "仕分け台へ行く" }).click();
   await page.getByRole("button", { name: "最初の箱を流す" }).click();
 }
