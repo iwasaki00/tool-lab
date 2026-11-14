@@ -1,6 +1,6 @@
 # WHY LEARN G / なぜから学ぶ G検定
 
-v0.1.4 — FIRST EPISODE／工場の出荷を見届ける1話完結の教材。理由と操作から学ぶ、ブラウザ内完結の学習アプリです。L003「機械学習の3つの方法」だけを実装しています。公式教材・公式試験問題ではありません。
+v0.1.5 — SECOND EPISODE／同じ工場で学ぶ第1話と第2話。理由と操作から学ぶ、ブラウザ内完結の学習アプリです。L003「機械学習の3つの方法」とL004「モデル評価」を収録しています。公式教材・公式試験問題ではありません。
 
 ## 起動
 
@@ -32,6 +32,15 @@ npm run preview -- --port 4173
 - 「続きから学ぶ」は漫画の読書位置、見本追加、グループ分け、条件切替、結末を復元します。旧版の進行は既存の場面から再開し、新しい物語へ強制移動しません。全編を体験する場合は「最初から学ぶ」を選べます。
 - 「記録」で復習候補・履歴・JSON書出し／統合／置換を利用できます。既存の復習機能は変更していません。
 
+## 第2話 L004を学ぶ
+
+「コース」→L004「第2話を始める」→「100箱を流す」→見逃しの発見→「別の仕分け設定で試す」→A/B比較→「見るべき数字を振り返る」→「試験での呼び方」→「ここで終える」。任意の3問は「試験問題で確認する」から選べます。第1話の結末にある「第2話を開く」からも進めます。自動では移動しません。
+
+- 同じ100箱に対する固定の判定データから、一致数・見逃し・止めすぎ・正解率・再現率を集計します。学習用の見本へ箱や人の検査結果を追加しません。
+- 第2話も「続きから学ぶ」「最初から学ぶ」に対応し、操作はL003の進行と12問の回答を変更しません。L003のやり直しでもL004の進行・3問の履歴を保持します。
+- 正解率・再現率は結果後に説明し、混同行列は任意の「詳しく見る」に配置します。Bを候補にする理由と、止まった良品を人が再確認することを示します。
+- 「記録」で両レッスンの完了、L004の回答履歴、合計回答数を確認できます。L004の回答はL003と別に保存し、JSON書出し・統合・置換にも含まれます。
+
 IndexedDBの保存完了後に「端末に保存済み」と表示します。失敗時は再試行してください。保存失敗時も画面上の記録をJSONへ書き出せます。ブラウザのデータ消去・容量制限などによって記録が失われる場合があり、定期的なバックアップを推奨します。
 
 初回オンライン時、本番ビルドのアプリ・教材資産をService Workerが取得します。「オフライン教材：準備済み」になってからオフライン利用してください。外部の公式参照リンクはオンライン接続が必要です。PWAはHTTPSまたはlocalhostで利用してください。iPhoneからPCのHTTP LANアドレスを開く場合、Service Workerが利用できないことがあります。
@@ -48,11 +57,12 @@ E2Eは先に `npm run build` を実行し、ポート4173を空けてくださ�
 
 ## 資料
 
-- [実装仕様](docs/SPEC_v0.1.4.md)
-- [教材・問題・出典](docs/CONTENT_L003.md)
+- [実装仕様](docs/SPEC_v0.1.5.md)
+- [L003の教材・問題・出典](docs/CONTENT_L003.md)
+- [L004の判定データ・3問と解説](docs/CONTENT_L004.md)
 - [構成とデータ](docs/ARCHITECTURE.md)
-- [検証結果](docs/QA_REPORT_v0.1.4.md)
-- [実装報告・残課題](docs/IMPLEMENTATION_REPORT_v0.1.4.md)
+- [検証結果](docs/QA_REPORT_v0.1.5.md)
+- [実装報告・残課題](docs/IMPLEMENTATION_REPORT_v0.1.5.md)
 
 ## tool-labのメニューから利用する
 
@@ -62,4 +72,4 @@ npm run build:menu
 
 `app/` にメニュー用の静的アプリを生成します。tool-labのメニューはこのディレクトリへリンクしています。ソース変更後は再実行してください。`app/` はGit管理対象、通常のビルドの `dist/` はGit対象外です。
 
-本編の画像：[見本追加](docs/screenshots/v0.1.4/episode-supervised-chromium.png)・[搬送記録](docs/screenshots/v0.1.4/episode-unsupervised-chromium.png)・[報酬比較](docs/screenshots/v0.1.4/episode-rewards-care-chromium.png)・[出荷と振り返り](docs/screenshots/v0.1.4/episode-ending-chromium.png)。旧版の仕様・報告・画像は履歴として残しています。
+第2話の画像：[冒頭](docs/screenshots/v0.1.5/evaluation-intro-chromium.png)・[見逃し](docs/screenshots/v0.1.5/evaluation-discovery-chromium.png)・[A/B比較](docs/screenshots/v0.1.5/evaluation-comparison-chromium.png)・[結末](docs/screenshots/v0.1.5/evaluation-ending-chromium.png)。第1話と旧版の仕様・報告・画像は残しています。

@@ -4,7 +4,7 @@ import { firstBox, finishEpisode, saved, readSnapshot } from "./helpers";
 import { groupTransport, compareTransport } from "../src/engine/episode";
 const shot = async (page: Page, name: string) =>
   page.screenshot({
-    path: `docs/screenshots/v0.1.4/${name}-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.5/${name}-${test.info().project.name}.png`,
     fullPage: true,
   });
 const heading = async (page: Page, text: string) =>

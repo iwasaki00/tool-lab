@@ -49,13 +49,13 @@ export function ShippingIllustration({
     | "evaluation";
   label?: "良品" | "不良";
   sampleAdded?: boolean;
-  evaluationState?: "intro"|"result"|"ending";
+  evaluationState?: "intro" | "result" | "ending";
   evaluationRecords?: readonly InspectionRecord[];
 }) {
   const titleId = useId(),
     good = label === "良品",
     prologue = mode !== "sorting";
-  const inspected = evaluationRecords.find(row=>row.actual === "不良");
+  const inspected = evaluationRecords.find((row) => row.actual === "不良");
   return (
     <svg
       className="shipping-illustration"
@@ -66,7 +66,10 @@ export function ShippingIllustration({
       <title id={titleId}>
         {prologue
           ? {
-              evaluation: evaluationState === "intro" ? `同じ工場で、見本に使っていない${evaluationRecords.length}箱を試運転。人の検査結果は照合に使う` : `試運転の箱。人の検査結果は${inspected?.actual}、AIの判定は${inspected?.predicted}。${evaluationState === "ending" ? "止まった良品は人が再確認する" : "同じ絵で判定の違いを示す"}`,
+              evaluation:
+                evaluationState === "intro"
+                  ? `同じ工場で、見本に使っていない${evaluationRecords.length}箱を試運転。人の検査結果は照合に使う`
+                  : `試運転の箱。人の検査結果は${inspected?.actual}、AIの判定は${inspected?.predicted}。${evaluationState === "ending" ? "止まった良品は人が再確認する" : "同じ絵で判定の違いを示す"}`,
               usual: "いつもの出荷。検査員が学習者に集荷16時の札を示す",
               stopped:
                 "午前、包装機が停止。警告ランプが点滅し、ベルトに箱が届かない",
@@ -168,35 +171,178 @@ export function ShippingIllustration({
       </g>
       {prologue ? (
         <g>
-          {mode === "evaluation" ? <>
-  <text x="100" y="145" textAnchor="middle" fontSize="20" fill="#385d46">評価用の{evaluationRecords.length}箱</text>
-  {evaluationRecords.map((row,i)=>{
-   const missed=row.actual==="不良"&&row.predicted==="良品", extra=row.actual==="良品"&&row.predicted==="不良";
-   return <g key={row.id} data-evaluation-box={row.id}>
-    <rect x={30+(i%10)*13} y={160+Math.floor(i/10)*13} width="10" height="10" rx="2" fill={evaluationState==="intro"?"#eac58d":missed?"#f0c58f":extra?"#d9d0ed":"#d4e7d5"} stroke={evaluationState!=="intro"&&(missed||extra)?"#805337":"#829884"} strokeWidth={evaluationState!=="intro"&&(missed||extra)?2:0.7}/>
-    {evaluationState!=="intro"&&(missed||extra)&&<text x={35+(i%10)*13} y={169+Math.floor(i/10)*13} textAnchor="middle" fontSize="9" fontWeight="700">{missed?"!":"Ⅱ"}</text>}
-   </g>;
-  })}
-  {evaluationState==="intro" ? <>
-   <Box x={270} y={113} name="100"/>
-   <rect x="340" y="20" width="230" height="50" rx="10" fill="#fffaf0" stroke="#829884"/>
-   <text x="455" y="51" textAnchor="middle" fontSize="23" fill="#385d46">翌朝の試運転</text>
-   <text x="252" y="239" fontSize="20" fill="#385d46">人の検査結果は、あとで照合</text>
-  </> : inspected && <>
-   <rect x="376" y="10" width="190" height="34" rx="12" fill="#d4e7d5"/>
-   <text x="471" y="34" textAnchor="middle" fontSize="21" fill="#215b49">良品として通す</text>
-   <rect x="376" y="264" width="190" height="34" rx="12" fill="#f1dcc8"/>
-   <text x="471" y="288" textAnchor="middle" fontSize="21" fill="#805337">不良として止める</text>
-   <Box x={427} y={inspected.predicted==="良品"?48:193} name={inspected.id.slice(-3)}/>
-   <rect x="218" y="117" width="350" height="73" rx="12" fill="#fffaf0" stroke="#829884" strokeWidth="2"/>
-   <text x="235" y="145" fontSize="22" fill="#805337">人の検査結果：{inspected.actual}</text>
-   <text x="235" y="177" fontSize="22" fill="#385d46">AIの判定：{inspected.predicted}</text>
-   {evaluationState==="ending"&&<>
-    {evaluationRecords.filter(row=>row.actual==="良品"&&row.predicted==="不良").slice(0,2).map((row,i)=><Box key={row.id} x={227+i*75} y={190} name={row.id.slice(-3)}/>)}
-    <text x="286" y="285" textAnchor="middle" fontSize="18" fill="#385d46">良品は再確認</text>
-   </>}
-  </>}
- </> : mode === "records" ? (
+          {mode === "evaluation" ? (
+            <>
+              <text
+                x="100"
+                y="145"
+                textAnchor="middle"
+                fontSize="20"
+                fill="#385d46"
+              >
+                評価用の{evaluationRecords.length}箱
+              </text>
+              {evaluationRecords.map((row, i) => {
+                const missed =
+                    row.actual === "不良" && row.predicted === "良品",
+                  extra = row.actual === "良品" && row.predicted === "不良";
+                return (
+                  <g key={row.id} data-evaluation-box={row.id}>
+                    <rect
+                      x={30 + (i % 10) * 13}
+                      y={160 + Math.floor(i / 10) * 13}
+                      width="10"
+                      height="10"
+                      rx="2"
+                      fill={
+                        evaluationState === "intro"
+                          ? "#eac58d"
+                          : missed
+                            ? "#f0c58f"
+                            : extra
+                              ? "#d9d0ed"
+                              : "#d4e7d5"
+                      }
+                      stroke={
+                        evaluationState !== "intro" && (missed || extra)
+                          ? "#805337"
+                          : "#829884"
+                      }
+                      strokeWidth={
+                        evaluationState !== "intro" && (missed || extra)
+                          ? 2
+                          : 0.7
+                      }
+                    />
+                    {evaluationState !== "intro" && (missed || extra) && (
+                      <text
+                        x={35 + (i % 10) * 13}
+                        y={169 + Math.floor(i / 10) * 13}
+                        textAnchor="middle"
+                        fontSize="9"
+                        fontWeight="700"
+                      >
+                        {missed ? "!" : "Ⅱ"}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+              {evaluationState === "intro" ? (
+                <>
+                  <Box x={270} y={113} name="100" />
+                  <rect
+                    x="340"
+                    y="20"
+                    width="230"
+                    height="50"
+                    rx="10"
+                    fill="#fffaf0"
+                    stroke="#829884"
+                  />
+                  <text
+                    x="455"
+                    y="51"
+                    textAnchor="middle"
+                    fontSize="23"
+                    fill="#385d46"
+                  >
+                    翌朝の試運転
+                  </text>
+                  <text x="252" y="239" fontSize="20" fill="#385d46">
+                    人の検査結果は、あとで照合
+                  </text>
+                </>
+              ) : (
+                inspected && (
+                  <>
+                    <rect
+                      x="376"
+                      y="10"
+                      width="190"
+                      height="34"
+                      rx="12"
+                      fill="#d4e7d5"
+                    />
+                    <text
+                      x="471"
+                      y="34"
+                      textAnchor="middle"
+                      fontSize="21"
+                      fill="#215b49"
+                    >
+                      良品として通す
+                    </text>
+                    <rect
+                      x="376"
+                      y="264"
+                      width="190"
+                      height="34"
+                      rx="12"
+                      fill="#f1dcc8"
+                    />
+                    <text
+                      x="471"
+                      y="288"
+                      textAnchor="middle"
+                      fontSize="21"
+                      fill="#805337"
+                    >
+                      不良として止める
+                    </text>
+                    <Box
+                      x={427}
+                      y={inspected.predicted === "良品" ? 48 : 193}
+                      name={inspected.id.slice(-3)}
+                    />
+                    <rect
+                      x="218"
+                      y="117"
+                      width="350"
+                      height="73"
+                      rx="12"
+                      fill="#fffaf0"
+                      stroke="#829884"
+                      strokeWidth="2"
+                    />
+                    <text x="235" y="145" fontSize="22" fill="#805337">
+                      人の検査結果：{inspected.actual}
+                    </text>
+                    <text x="235" y="177" fontSize="22" fill="#385d46">
+                      AIの判定：{inspected.predicted}
+                    </text>
+                    {evaluationState === "ending" && (
+                      <>
+                        {evaluationRecords
+                          .filter(
+                            (row) =>
+                              row.actual === "良品" && row.predicted === "不良",
+                          )
+                          .slice(0, 2)
+                          .map((row, i) => (
+                            <Box
+                              key={row.id}
+                              x={227 + i * 75}
+                              y={190}
+                              name={row.id.slice(-3)}
+                            />
+                          ))}
+                        <text
+                          x="286"
+                          y="285"
+                          textAnchor="middle"
+                          fontSize="18"
+                          fill="#385d46"
+                        >
+                          良品は再確認
+                        </text>
+                      </>
+                    )}
+                  </>
+                )
+              )}
+            </>
+          ) : mode === "records" ? (
             <>
               <rect
                 x="425"

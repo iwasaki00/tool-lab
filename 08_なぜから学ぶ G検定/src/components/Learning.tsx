@@ -57,9 +57,9 @@ export function Quiz({
   onAnswer,
   onIndex,
   busy,
-  items=questions,
+  items = questions,
   relatedLabel,
-  sourceLabel="機械学習の概要",
+  sourceLabel = "機械学習の概要",
 }: {
   index: number;
   attempts: QuestionAttempt[];
@@ -67,9 +67,9 @@ export function Quiz({
   onAnswer: (choice: number) => void;
   onIndex: (index: number) => void;
   busy: boolean;
-  items?:Question[];
-  relatedLabel?:string;
-  sourceLabel?:string;
+  items?: Question[];
+  relatedLabel?: string;
+  sourceLabel?: string;
 }) {
   const q = items[index];
   const attempt = attempts
@@ -87,7 +87,9 @@ export function Quiz({
   return (
     <>
       <div className="quiz-top">
-        <span className="tag">独自問題 / {index + 1} of {items.length}</span>
+        <span className="tag">
+          独自問題 / {index + 1} of {items.length}
+        </span>
         <span className="muted">
           {q.id} · v{q.version}
         </span>
@@ -166,9 +168,10 @@ export function Quiz({
             ))}
             <p>
               関連知識：
-              {relatedLabel ?? q.conceptIds
-                .map((id) => concepts.find((c) => c.id === id)?.name)
-                .join("・")}
+              {relatedLabel ??
+                q.conceptIds
+                  .map((id) => concepts.find((c) => c.id === id)?.name)
+                  .join("・")}
             </p>
             <p>
               根拠範囲：{sourceLabel} /
@@ -189,7 +192,10 @@ export function Quiz({
         <button disabled={index === 0 || busy} onClick={() => move(index - 1)}>
           前の問題
         </button>
-        <button disabled={index === items.length-1 || busy} onClick={() => move(index + 1)}>
+        <button
+          disabled={index === items.length - 1 || busy}
+          onClick={() => move(index + 1)}
+        >
           次の問題
         </button>
       </div>

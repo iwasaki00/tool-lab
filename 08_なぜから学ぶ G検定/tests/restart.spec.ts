@@ -82,7 +82,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
     if (i < 2) await expect(panels.nth(i)).not.toContainText("あと1時間");
     await panels.nth(i).screenshot({
       path:
-        "docs/screenshots/v0.1.4/comic-" +
+        "docs/screenshots/v0.1.5/comic-" +
         (i + 1) +
         "-" +
         test.info().project.name +
@@ -99,7 +99,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
   ).toBeGreaterThan(844);
   await page.screenshot({
     path:
-      "docs/screenshots/v0.1.4/prologue-" + test.info().project.name + ".png",
+      "docs/screenshots/v0.1.5/prologue-" + test.info().project.name + ".png",
     fullPage: true,
   });
   await page.getByRole("button", { name: "仕分け台へ行く" }).click();
@@ -111,7 +111,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
   await expect(page.getByText("教師あり学習", { exact: false })).toHaveCount(0);
   await page.screenshot({
     path:
-      "docs/screenshots/v0.1.4/ai-trial-" + test.info().project.name + ".png",
+      "docs/screenshots/v0.1.5/ai-trial-" + test.info().project.name + ".png",
     fullPage: true,
   });
   await page.getByRole("button", { name: "最初の箱を流す" }).click();
@@ -127,7 +127,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
   );
   await expect(page.locator(".shipping-discovery")).toHaveCount(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.4/intro-before-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.5/intro-before-${test.info().project.name}.png`,
     fullPage: true,
   });
   await page
@@ -141,7 +141,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
     "不良 → 良品",
   );
   await page.screenshot({
-    path: `docs/screenshots/v0.1.4/intro-after-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.5/intro-after-${test.info().project.name}.png`,
     fullPage: true,
   });
   expect((await data(page)).attempts).toHaveLength(0);
@@ -328,7 +328,7 @@ test("プロローグも320px・文字200%相当で切れや横溢れなく操�
     );
   }
   await page.screenshot({
-    path: `docs/screenshots/v0.1.4/prologue-large-text-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.5/prologue-large-text-${test.info().project.name}.png`,
     fullPage: true,
   });
   await page.getByRole("button", { name: "仕分け台へ行く" }).click();
@@ -348,7 +348,7 @@ test("プロローグも320px・文字200%相当で切れや横溢れなく操�
   ).toBe(true);
   await page.screenshot({
     path:
-      "docs/screenshots/v0.1.4/ai-trial-large-text-" +
+      "docs/screenshots/v0.1.5/ai-trial-large-text-" +
       test.info().project.name +
       ".png",
     fullPage: true,

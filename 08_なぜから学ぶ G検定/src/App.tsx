@@ -50,7 +50,7 @@ export default function App() {
     [loadError, setLoadError] = useState(false),
     [tab, setTab] = useState(0),
     [inLesson, setInLesson] = useState(false),
-    [activeLesson,setActiveLesson]=useState<"L003"|"L004">("L003"),
+    [activeLesson, setActiveLesson] = useState<"L003" | "L004">("L003"),
     [origin, setOrigin] = useState(0),
     [online, setOnline] = useState(navigator.onLine),
     [offlineReady, setOfflineReady] = useState(false),
@@ -100,6 +100,8 @@ export default function App() {
       window.removeEventListener("offline", on);
     };
   }, []);
+  const totalAttempts =
+    snapshot.attempts.length + (snapshot.evaluationAttempts?.length ?? 0);
   const p = snapshot.progress;
   const episodeCount =
     Number(!!p.storySampleAdded) +
@@ -200,27 +202,50 @@ export default function App() {
     setOrigin(tab);
     setInLesson(true);
   }
-  function enterEvaluation(restart=false) {
-    commit(beginEvaluation(ref.current,restart));
-    setOrigin(tab);setActiveLesson("L004");setInLesson(true);
+  function enterEvaluation(restart = false) {
+    commit(beginEvaluation(ref.current, restart));
+    setOrigin(tab);
+    setActiveLesson("L004");
+    setInLesson(true);
   }
-  function updateEvaluation(change:Partial<EvaluationProgress>) {
-   const current=ref.current;
-   if(!current.evaluation)return;
-   commit({...current,completions:completionRecords(current),evaluation:{...current.evaluation,...change,updatedAt:new Date().toISOString()}});
+  function updateEvaluation(change: Partial<EvaluationProgress>) {
+    const current = ref.current;
+    if (!current.evaluation) return;
+    commit({
+      ...current,
+      completions: completionRecords(current),
+      evaluation: {
+        ...current.evaluation,
+        ...change,
+        updatedAt: new Date().toISOString(),
+      },
+    });
   }
-  function moveEvaluation(stage:EvaluationProgress["stage"]) {
-   const e=ref.current.evaluation!;
-   updateEvaluation({stage,visited:[...new Set([...e.visited,stage])]});
+  function moveEvaluation(stage: EvaluationProgress["stage"]) {
+    const e = ref.current.evaluation!;
+    updateEvaluation({ stage, visited: [...new Set([...e.visited, stage])] });
   }
-  function answerEvaluation(choice:number) {
-   const current=ref.current,e=current.evaluation!;
-   const a=grade(evaluationQuestions[e.questionIndex].id,choice,e.sessionId,evaluationQuestions);
-   commit({...current,completions:completionRecords(current),evaluationAttempts:[...(current.evaluationAttempts??[]),a],evaluation:{...e,updatedAt:a.answeredAt}});
+  function answerEvaluation(choice: number) {
+    const current = ref.current,
+      e = current.evaluation!;
+    const a = grade(
+      evaluationQuestions[e.questionIndex].id,
+      choice,
+      e.sessionId,
+      evaluationQuestions,
+    );
+    commit({
+      ...current,
+      completions: completionRecords(current),
+      evaluationAttempts: [...(current.evaluationAttempts ?? []), a],
+      evaluation: { ...e, updatedAt: a.answeredAt },
+    });
   }
   function finishEvaluation() {
-   if(!ref.current.evaluation?.completed)commit(completeEvaluation(ref.current));
-   setInLesson(false);setTab(origin);
+    if (!ref.current.evaluation?.completed)
+      commit(completeEvaluation(ref.current));
+    setInLesson(false);
+    setTab(origin);
   }
   function move(scene: number) {
     updateProgress({
@@ -411,7 +436,7 @@ export default function App() {
               }}
               onQuiz={() => move(7)}
               onReference={move}
-              onNext={()=>enterEvaluation()}
+              onNext={() => enterEvaluation()}
             />
           );
         if (isPrologue)
@@ -564,7 +589,10 @@ export default function App() {
               <button onClick={manualReviews}>12問を復習候補に登録</button>
               <button onClick={() => move(7)}>試験問題で確認する</button>
             </div>
-            <div className="evaluation-entry"><h3>第2話：モデル評価</h3><button onClick={()=>enterEvaluation()}>第2話を開く</button></div>
+            <div className="evaluation-entry">
+              <h3>第2話：モデル評価</h3>
+              <button onClick={() => enterEvaluation()}>第2話を開く</button>
+            </div>
             {p.completed ? (
               <p className="notice">
                 このレッスンを最後まで学習した記録があります。習得を保証する評価ではありません。
@@ -625,7 +653,7 @@ export default function App() {
             ))}
           </nav>
           <div className="sidebar-foot">
-            <span className="tag">FIRST EPISODE</span>
+            <span className="tag">SECOND EPISODE</span>
             <p>
               小さな「なぜ」が、
               <br />
@@ -675,7 +703,15 @@ export default function App() {
             )}
           </section>
         ) : inLesson && activeLesson === "L004" && snapshot.evaluation ? (
-          <EvaluationEpisode progress={snapshot.evaluation} attempts={snapshot.evaluationAttempts??[]} onMove={moveEvaluation} onIndex={questionIndex=>updateEvaluation({questionIndex})} onAnswer={answerEvaluation} onFinish={finishEvaluation} busy={saving}/>
+          <EvaluationEpisode
+            progress={snapshot.evaluation}
+            attempts={snapshot.evaluationAttempts ?? []}
+            onMove={moveEvaluation}
+            onIndex={(questionIndex) => updateEvaluation({ questionIndex })}
+            onAnswer={answerEvaluation}
+            onFinish={finishEvaluation}
+            busy={saving}
+          />
         ) : inLesson ? (
           <div className={`lesson-wrap ${p.scene === 0 ? "story-intro" : ""}`}>
             {p.scene !== 0 && p.episode && (
@@ -879,7 +915,7 @@ export default function App() {
                   <article>
                     <span>問題に向き合った回数</span>
                     <strong>
-                      {snapshot.attempts.length}
+                      {totalAttempts}
                       <small> 回</small>
                     </strong>
                     <p>解き直しも履歴に残ります</p>
@@ -961,9 +997,29 @@ export default function App() {
                 <section className="card evaluation-course" data-lesson="L004">
                   <span className="tag">第2話 · L004 モデル評価</span>
                   <h2>正解率99％なのに、不良品を見逃した</h2>
-                  <p>同じ100箱を2つの設定で確かめ、何を間違えたかを見比べます。第1話を読んでいなくても始められます。</p>
-                  <p>{snapshot.evaluation?.completed?"最後まで学習した記録あり":snapshot.evaluation?"途中の場面から再開できます。":"演習は最後に選べます。"}</p>
-                  <div className="controls"><button className="primary" onClick={()=>enterEvaluation()}>{snapshot.evaluation?"続きから学ぶ":"第2話を始める"}</button>{snapshot.evaluation&&<button onClick={()=>enterEvaluation(true)}>最初から学ぶ</button>}</div>
+                  <p>
+                    同じ100箱を2つの設定で確かめ、何を間違えたかを見比べます。第1話を読んでいなくても始められます。
+                  </p>
+                  <p>
+                    {snapshot.evaluation?.completed
+                      ? "最後まで学習した記録あり"
+                      : snapshot.evaluation
+                        ? "途中の場面から再開できます。"
+                        : "演習は最後に選べます。"}
+                  </p>
+                  <div className="controls">
+                    <button
+                      className="primary"
+                      onClick={() => enterEvaluation()}
+                    >
+                      {snapshot.evaluation ? "続きから学ぶ" : "第2話を始める"}
+                    </button>
+                    {snapshot.evaluation && (
+                      <button onClick={() => enterEvaluation(true)}>
+                        最初から学ぶ
+                      </button>
+                    )}
+                  </div>
                 </section>
                 <section className="card">
                   <h3>これからの教材</h3>
@@ -1002,7 +1058,7 @@ export default function App() {
                   <article>
                     <span>全回答履歴</span>
                     <strong>
-                      {snapshot.attempts.length}
+                      {totalAttempts}
                       <small>件</small>
                     </strong>
                   </article>
@@ -1074,7 +1130,28 @@ export default function App() {
                     </ul>
                   )}
                 </section>
-                <section className="card evaluation-history"><h2>L004の記録</h2><p>{snapshot.evaluation?.completed?"最後まで学習":snapshot.evaluation?"学習中":"未開始"} · 回答履歴 {(snapshot.evaluationAttempts??[]).length}件</p><ul>{[...(snapshot.evaluationAttempts??[])].reverse().map(a=><li key={a.id}>{a.questionId} v{a.version} · {"ABCD"[a.selected]} · {a.correct?"正解":"不正解"} · {new Date(a.answeredAt).toLocaleString("ja-JP")}</li>)}</ul></section>
+                <section className="card evaluation-history">
+                  <h2>L004の記録</h2>
+                  <p>
+                    {snapshot.evaluation?.completed
+                      ? "最後まで学習"
+                      : snapshot.evaluation
+                        ? "学習中"
+                        : "未開始"}{" "}
+                    · 回答履歴 {(snapshot.evaluationAttempts ?? []).length}件
+                  </p>
+                  <ul>
+                    {[...(snapshot.evaluationAttempts ?? [])]
+                      .reverse()
+                      .map((a) => (
+                        <li key={a.id}>
+                          {a.questionId} v{a.version} · {"ABCD"[a.selected]} ·{" "}
+                          {a.correct ? "正解" : "不正解"} ·{" "}
+                          {new Date(a.answeredAt).toLocaleString("ja-JP")}
+                        </li>
+                      ))}
+                  </ul>
+                </section>
                 <section className="card">
                   <h2>バックアップ</h2>
                   <p>
@@ -1117,7 +1194,7 @@ export default function App() {
                 </section>
                 <details className="card">
                   <summary>
-                    すべての回答履歴（{snapshot.attempts.length}件）
+                    L003の回答履歴（{snapshot.attempts.length}件）
                   </summary>
                   <ul className="history">
                     {[...snapshot.attempts].reverse().map((a) => (
