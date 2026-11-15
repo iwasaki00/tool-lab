@@ -64,10 +64,13 @@ export default function App() {
     scroll: 0,
     element: null as HTMLElement | null,
   });
-  function openGuide() {
+  function openGuide(event?: { currentTarget: EventTarget | null }) {
     guideReturn.current = {
       scroll: window.scrollY,
-      element: document.activeElement as HTMLElement,
+      element:
+        event?.currentTarget instanceof HTMLElement
+          ? event.currentTarget
+          : (document.activeElement as HTMLElement),
     };
     setGuideOpen(true);
   }
@@ -920,10 +923,10 @@ export default function App() {
                       <div className="hero-bottom">
                         <button
                           className="cream"
-                          onClick={() => {
+                          onClick={(event) => {
                             if (resumeEvaluation) enterEvaluation();
                             else if (hasLearningRecord(snapshot)) enter();
-                            else openGuide();
+                            else openGuide(event);
                           }}
                         >
                           {hasLearningRecord(snapshot) || snapshot.evaluation

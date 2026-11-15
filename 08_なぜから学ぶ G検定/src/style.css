@@ -2196,3 +2196,27 @@ select {
   height: auto;
   border-radius: 12px;
 }
+/* Keep the introduction legible and reserve space for the desktop illustration. */
+.hero p:not(.lesson-number),
+.hero .cream {
+  font-size: 1rem;
+}
+.hero-bottom > span {
+  font-size: 0.85rem;
+}
+.guide-home-art {
+  display: flex;
+  align-items: center;
+  padding-left: 24px;
+}
+@media (max-width: 700px) {
+  .guide-home-art {
+    display: none;
+  }
+}
+@media (max-width: 360px) {
+  .image-labels {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}

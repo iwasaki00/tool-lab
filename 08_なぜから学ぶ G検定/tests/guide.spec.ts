@@ -169,8 +169,10 @@ test("漫画の読書位置を第0章のスクロールで上書きせず、ホ�
   await expect
     .poll(async () => (await readSnapshot(page)).progress.prologueScroll)
     .toBeGreaterThan(100);
-  const original = (await readSnapshot(page)).progress.prologueScroll;
   await page.getByRole("button", { name: "第0章で用語を確認" }).click();
+  // Clicking the link can scroll the lesson to its header before opening the guide.
+  // Compare with the checkpoint at guide entry, not with that earlier reading position.
+  const original = (await readSnapshot(page)).progress.prologueScroll;
   await chapter(page).locator("#guide-dl").scrollIntoViewIfNeeded();
   await page.waitForTimeout(300);
   expect((await readSnapshot(page)).progress.prologueScroll).toBe(original);
