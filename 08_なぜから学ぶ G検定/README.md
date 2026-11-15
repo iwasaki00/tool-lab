@@ -1,6 +1,6 @@
 # WHY LEARN G / なぜから学ぶ G検定
 
-v0.1.6 — BEGINNER GUIDE／第0章「G検定とAIの全体像」から、同じ工場で学ぶ第1話と第2話へ。ブラウザ内完結の学習アプリです。L003「機械学習の3つの方法」とL004「モデル評価」を収録しています。G検定全範囲を網羅するものではなく、公式教材・公式試験問題ではありません。
+v0.1.7 — 第0章と第1話冒頭の挿絵統一／第0章「G検定とAIの全体像」から、同じ工場で学ぶ第1話と第2話へ。ブラウザ内完結の学習アプリです。L003「機械学習の3つの方法」とL004「モデル評価」を収録しています。G検定全範囲を網羅するものではなく、公式教材・公式試験問題ではありません。
 
 ## 起動
 
@@ -65,14 +65,14 @@ E2Eは先に `npm run build` を実行し、ポート4173を空けてくださ�
 
 ## 資料
 
-- [実装仕様](docs/SPEC_v0.1.6.md)
+- [実装仕様](docs/SPEC_v0.1.7.md)
 - [第0章の内容・出典](docs/CONTENT_GUIDE.md)
 - [挿絵・最終プロンプト](docs/ASSETS_v0.1.6.md)
 - [L003の教材・問題・出典](docs/CONTENT_L003.md)
 - [L004の判定データ・3問と解説](docs/CONTENT_L004.md)
 - [構成とデータ](docs/ARCHITECTURE.md)
-- [検証結果](docs/QA_REPORT_v0.1.6.md)
-- [実装報告・残課題](docs/IMPLEMENTATION_REPORT_v0.1.6.md)
+- [検証結果](docs/QA_REPORT_v0.1.7.md)
+- [実装報告・残課題](docs/IMPLEMENTATION_REPORT_v0.1.7.md)
 
 ## tool-labのメニューから利用する
 
@@ -85,3 +85,5 @@ npm run build:menu
 第2話の画像：[冒頭](docs/screenshots/v0.1.5/evaluation-intro-chromium.png)・[見逃し](docs/screenshots/v0.1.5/evaluation-discovery-chromium.png)・[A/B比較](docs/screenshots/v0.1.5/evaluation-comparison-chromium.png)・[結末](docs/screenshots/v0.1.5/evaluation-ending-chromium.png)。第1話と旧版の仕様・報告・画像は残しています。
 
 第0章の組み込み画像：[概要全体](docs/screenshots/v0.1.6/guide-overview-390-chromium.png)・[ルールの深掘り](docs/screenshots/v0.1.6/guide-rules-390-chromium.png)・[機械学習](docs/screenshots/v0.1.6/guide-ml-390-chromium.png)・[ディープラーニング](docs/screenshots/v0.1.6/guide-dl-390-chromium.png)。iPhone実機は未確認です。
+
+第1話冒頭の[画像比較](docs/screenshots/v0.1.7/style-comparison.png)・[制作記録と最終プロンプト](docs/ASSETS_v0.1.7.md)。同じ背景・箱部品で、実計算に応じてQの移動先を描画します。第0章の基準画像は保持しています。

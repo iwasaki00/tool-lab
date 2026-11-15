@@ -79,11 +79,11 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
   ];
   for (let i = 0; i < 3; i++) {
     await expect(panels.nth(i).locator("h2")).toContainText(titles[i]);
-    await expect(panels.nth(i).locator("svg")).toHaveCount(1);
+    await expect(panels.nth(i).locator(".pixel-prologue img")).toHaveCount(1);
     if (i < 2) await expect(panels.nth(i)).not.toContainText("あと1時間");
     await panels.nth(i).screenshot({
       path:
-        "docs/screenshots/v0.1.6/comic-" +
+        "docs/screenshots/v0.1.7/comic-" +
         (i + 1) +
         "-" +
         test.info().project.name +
@@ -100,7 +100,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
   ).toBeGreaterThan(844);
   await page.screenshot({
     path:
-      "docs/screenshots/v0.1.6/prologue-" + test.info().project.name + ".png",
+      "docs/screenshots/v0.1.7/prologue-" + test.info().project.name + ".png",
     fullPage: true,
   });
   await page.getByRole("button", { name: "仕分け台へ行く" }).click();
@@ -116,7 +116,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
   await expect(page.getByText("教師あり学習", { exact: false })).toHaveCount(0);
   await page.screenshot({
     path:
-      "docs/screenshots/v0.1.6/ai-trial-" + test.info().project.name + ".png",
+      "docs/screenshots/v0.1.7/ai-trial-" + test.info().project.name + ".png",
     fullPage: true,
   });
   await page.getByRole("button", { name: "最初の箱を流す" }).click();
@@ -125,14 +125,14 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
     "良品が、不良品レーンへ。",
   );
   await expect(page.locator(".shipping-verdicts")).toContainText(
-    "検査員の確認：合格",
+    "人の検査：合格",
   );
   await expect(page.locator(".shipping-verdicts")).toContainText(
     "AIの判定：不良",
   );
   await expect(page.locator(".shipping-discovery")).toHaveCount(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.6/intro-before-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.7/intro-before-${test.info().project.name}.png`,
     fullPage: true,
   });
   await page
@@ -146,7 +146,7 @@ test("390×844：プロローグから人とAIの食い違い、見本追加へ�
     "不良 → 良品",
   );
   await page.screenshot({
-    path: `docs/screenshots/v0.1.6/intro-after-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.7/intro-after-${test.info().project.name}.png`,
     fullPage: true,
   });
   expect((await data(page)).attempts).toHaveLength(0);
@@ -325,7 +325,7 @@ test("プロローグも320px・文字200%相当で切れや横溢れなく操�
     ),
   ).toBe(true);
   for (const panel of await page.locator(".comic-panel").all()) {
-    const image = await panel.locator("svg").boundingBox();
+    const image = await panel.locator(".pixel-prologue img").boundingBox();
     const text = await panel.locator("p").boundingBox();
     expect(image!.y + image!.height).toBeLessThanOrEqual(text!.y);
     const bounds = await panel.boundingBox();
@@ -334,7 +334,7 @@ test("プロローグも320px・文字200%相当で切れや横溢れなく操�
     );
   }
   await page.screenshot({
-    path: `docs/screenshots/v0.1.6/prologue-large-text-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.7/prologue-large-text-${test.info().project.name}.png`,
     fullPage: true,
   });
   await page.getByRole("button", { name: "仕分け台へ行く" }).click();
@@ -354,7 +354,7 @@ test("プロローグも320px・文字200%相当で切れや横溢れなく操�
   ).toBe(true);
   await page.screenshot({
     path:
-      "docs/screenshots/v0.1.6/ai-trial-large-text-" +
+      "docs/screenshots/v0.1.7/ai-trial-large-text-" +
       test.info().project.name +
       ".png",
     fullPage: true,

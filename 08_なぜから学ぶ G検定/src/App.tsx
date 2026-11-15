@@ -696,7 +696,7 @@ export default function App() {
               <br />
               理解のはじまり。
             </p>
-            <small>v0.1.6 · この端末に保存</small>
+            <small>v0.1.7 · この端末に保存</small>
           </div>
         </aside>
       )}
@@ -1290,7 +1290,7 @@ export default function App() {
                 </>
               )}
               <footer className="page-footer">
-                <span>WHY LEARN G · v0.1.6</span>
+                <span>WHY LEARN G · v0.1.7</span>
                 <details>
                   <summary>教材の参照情報</summary>
                   <p>

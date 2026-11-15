@@ -58,7 +58,7 @@ test("390×844：回答や選択なしで最初の発見、挿絵とボタンが
   expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(844);
   expect(await page.evaluate(() => scrollY)).toBe(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.6/intro-before-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.7/intro-before-${test.info().project.name}.png`,
     fullPage: true,
   });
   const positionBefore = await page
@@ -81,12 +81,12 @@ test("390×844：回答や選択なしで最初の発見、挿絵とボタンが
   await expect(
     page.getByRole("button", { name: "搬送の様子を見る" }),
   ).toBeVisible();
-  const aiLabel = await page.locator(".shipping-ai-verdict rect").boundingBox();
-  const humanLabel = await page.locator(".shipping-human-check").boundingBox();
-  expect(humanLabel!.y).toBeGreaterThanOrEqual(aiLabel!.y + aiLabel!.height);
+  await expect(page.locator(".shipping-verdicts")).toContainText(
+    "人の検査：合格",
+  );
   expect((await snapshot(page)).attempts).toHaveLength(0);
   await page.screenshot({
-    path: `docs/screenshots/v0.1.6/intro-after-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.7/intro-after-${test.info().project.name}.png`,
     fullPage: true,
   });
   await page.getByText("仕組みを詳しく見る", { exact: true }).click();
@@ -264,7 +264,7 @@ test("320pxと文字200%相当で横溢れ・挿絵やボタンの重なりが�
     .click();
   await check();
   await page.screenshot({
-    path: `docs/screenshots/v0.1.6/intro-large-text-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.7/intro-large-text-${test.info().project.name}.png`,
     fullPage: true,
   });
 });

@@ -25,7 +25,7 @@ async function open(page: Page) {
 }
 const shot = async (page: Page, name: string) =>
   page.screenshot({
-    path: `docs/screenshots/v0.1.6/${name}-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.7/${name}-${test.info().project.name}.png`,
     fullPage: true,
   });
 async function runToEnd(page: Page) {

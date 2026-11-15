@@ -1,5 +1,4 @@
-import { GuideIllustration } from "./BeginnerGuide";
-import { ShippingIllustration } from "./ShippingIllustration";
+import { PrologueArtwork, SortingArtwork } from "./ShippingArtwork";
 import { shippingPrologue, shippingTrial } from "../data/shippingStory";
 export function ShippingPrologue({ onContinue }: { onContinue: () => void }) {
   return (
@@ -10,7 +9,7 @@ export function ShippingPrologue({ onContinue }: { onContinue: () => void }) {
             <span>{i + 1}</span>
             {panel.title}
           </h2>
-          <ShippingIllustration mode={panel.mode} />
+          <PrologueArtwork mode={panel.mode} />
           {"line" in panel ? (
             <blockquote className="inspector-line">
               <span>検査員</span>
@@ -30,7 +29,7 @@ export function ShippingPrologue({ onContinue }: { onContinue: () => void }) {
 export function ShippingTrial({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="shipping-story shipping-trial">
-      <GuideIllustration name="ml-inspected-samples" />
+      <SortingArtwork trial />
       <blockquote className="inspector-line">
         <span>検査員</span>
         <p>「{shippingTrial.line}」</p>

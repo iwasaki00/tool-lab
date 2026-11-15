@@ -3,7 +3,7 @@ import { firstBox, saved, readSnapshot } from "./helpers";
 const chapter = (page: Page) => page.locator(".beginner-guide");
 const shot = async (page: Page, name: string) =>
   page.screenshot({
-    path: `docs/screenshots/v0.1.6/${name}-${test.info().project.name}.png`,
+    path: `docs/screenshots/v0.1.7/${name}-${test.info().project.name}.png`,
     fullPage: true,
   });
 async function openGuide(page: Page) {
@@ -57,7 +57,7 @@ test("新規ホーム → 第0章 → 深掘り不要で第1話、包含図は�
     await chapter(page)
       .locator("#" + id)
       .screenshot({
-        path: `docs/screenshots/v0.1.6/${id}-390-${test.info().project.name}.png`,
+        path: `docs/screenshots/v0.1.7/${id}-390-${test.info().project.name}.png`,
       });
   }
   await page.getByRole("button", { name: "第1話で、AIの学び方を試す" }).click();
@@ -95,7 +95,7 @@ test("深掘り4項目を開閉して元のスクロール位置とフォーカ�
         "歴史上の出来事を描いたものではありません",
       );
       await detail.screenshot({
-        path: `docs/screenshots/v0.1.6/guide-rules-390-${test.info().project.name}.png`,
+        path: `docs/screenshots/v0.1.7/guide-rules-390-${test.info().project.name}.png`,
       });
     }
     if (title.startsWith("なぜ、何層"))
@@ -206,11 +206,11 @@ for (const large of [false, true])
       const section = chapter(page).locator("#" + id);
       if (large)
         await section.screenshot({
-          path: `docs/screenshots/v0.1.6/${id}-320-large-${test.info().project.name}.png`,
+          path: `docs/screenshots/v0.1.7/${id}-320-large-${test.info().project.name}.png`,
         });
       else
         await section.screenshot({
-          path: `docs/screenshots/v0.1.6/${id}-320-${test.info().project.name}.png`,
+          path: `docs/screenshots/v0.1.7/${id}-320-${test.info().project.name}.png`,
         });
       const img = section.locator("img");
       if (await img.count()) {
@@ -230,7 +230,7 @@ for (const large of [false, true])
     await chapter(page)
       .locator("details[open]")
       .screenshot({
-        path: `docs/screenshots/v0.1.6/guide-rules-320${large ? "-large" : ""}-${test.info().project.name}.png`,
+        path: `docs/screenshots/v0.1.7/guide-rules-320${large ? "-large" : ""}-${test.info().project.name}.png`,
       });
     await page
       .getByRole("button", { name: "解説を閉じて元の項目に戻る" })

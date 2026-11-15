@@ -80,3 +80,9 @@ DB名 `why-learn-g`、DB版1、object store `state`、キー `snapshot`。履歴
 Appの`guideOpen`は保存対象の学習状態から独立する。背後のページはアンマウントせずhiddenで保持し、呼び出し前のスクロールとフォーカスを復元する。L003プロローグの位置保存は第0章表示中に停止し、L003/L004の進行や履歴は変更しない。新しいDBフィールドやバックアップ移行は不要。案内ページ自体の読書位置は一時状態で、再読込後はホームから開く。
 
 ホームは両レッスンの学習記録・更新時刻から再開先を示し、同じ話へのやり直しを提供する。静的なAI試行挿絵は見本用PNGへ置換し、動的な結果図は従来のSVG・データ描画を維持する。
+
+## v0.1.7：第1話冒頭の挿絵統一
+
+`ShippingArtwork.tsx`に3コマのPNGと、固定背景＋独立した箱PNG＋SVG文字＋HTMLレーン名の描画を分離した。`ShippingPrologue.tsx`と`ShippingStory.tsx`の冒頭だけを接続し、後半・L004の既存機能図は維持。`shippingPrediction`の結果を`SortingArtwork.label`に渡し、箱Qの座標と判定文字を同じ結果から描画する。追加された箱Wは別要素として見本位置へ移す。
+
+保存形式と計算エンジンの変更はなく、既存の`storySampleAdded`と`introStage`を使う。画像は`public/illustrations/l003/`から相対BASE_URLで参照し、ビルドとService Workerの対象になる。第0章の基準画像は読み取り参照だけで保持する。

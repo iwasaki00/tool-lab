@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ShippingIllustration } from "./ShippingIllustration";
+import { SortingArtwork } from "./ShippingArtwork";
 import { shippingStory } from "../data/shippingStory";
 import { shippingPrediction } from "../engine/shippingStory";
 
@@ -19,9 +19,9 @@ export function ShippingStory({
   const result = shippingPrediction(sampleAdded);
   return (
     <div className="shipping-story">
-      <ShippingIllustration label={result.label} sampleAdded={sampleAdded} />
+      <SortingArtwork label={result.label} sampleAdded={sampleAdded} />
       <div className="shipping-verdicts">
-        <span>箱Q／検査員の確認：合格</span>
+        <span>箱Q／人の検査：合格</span>
         <strong>AIの判定：{result.label}</strong>
       </div>
       <blockquote className="inspector-line">
