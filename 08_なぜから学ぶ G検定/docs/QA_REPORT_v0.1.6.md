@@ -9,14 +9,16 @@
 | `npm test` | 5ファイル・45件成功 |
 | `npm run build` | 成功：通常版dist |
 | `npm run build:menu` | 成功：メニュー版app |
-| `npm run test:e2e` | 最終結果確認中 |
-| `node scripts/verify-menu.mjs` | 最終版での再確認待ち |
+| `npm run test:e2e -- --workers=2` | 72件成功：Chromium 36件・WebKit 36件、2.8分 |
+| `node scripts/verify-menu.mjs` | 両ブラウザで/app/配下の相対画像・オフライン・L003入口に成功 |
 | 両ビルドの比較 | SWを含む12ファイルがバイト単位で一致 |
 | オフライン用資産 | 11資産、キャッシュ名 `why-g-98bd72acb9eb` |
-| 改行・BOM | LF・BOMなしを確認。最終報告追加後も再確認する |
+| 改行・BOM | 最終報告を含めLF・BOMなしを確認 |
 | `git diff --check` | 成功 |
 
 ビルドのJSは338.27 kB（gzip105.62 kB）、CSSは29.29 kB（gzip7.08 kB）。画像3点は計4,835,790 bytes。画像を含めて初回オンライン時にキャッシュを作成する。「オフライン教材：準備済み」後に利用できる。
+
+最終E2Eの[全ログ](test-logs/e2e-v0.1.6.txt)を保存。既存56件に第0章16件を追加した。読書位置の検証は、リンクを押すためのスクロールと第0章内のスクロールを区別し、第0章を開いた時点の保存値と比較する。該当ケースは両ブラウザ3回ずつの追加確認にも成功。
 
 ## 受入確認
 
